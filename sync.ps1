@@ -2,9 +2,9 @@ $ErrorActionPreference = "Stop"
 
 $repo = "https://github.com/Bellosoft-Limited/bellosoft-default-skills.git"
 $tmp = Join-Path $env:TEMP ("bellosoft-sync-" + [System.IO.Path]::GetRandomFileName())
-
 $protectedFiles = @("config.yaml", "config.yml", ".env")
 
+# Must be defined before use
 function Get-ContentHash($path) {
     $content = [System.IO.File]::ReadAllText($path) -replace "`r`n", "`n"
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
@@ -16,7 +16,6 @@ Write-Host "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet $repo $tmp
 
-# Get ALL directories including hidden (dotfolders like .github, .vscode)
 Get-ChildItem -Path $tmp -Directory -Force | Where-Object { $_.Name -ne ".git" } | ForEach-Object {
     $folderName = $_.Name
     $srcFolder = $_.FullName
@@ -30,13 +29,11 @@ Get-ChildItem -Path $tmp -Directory -Force | Where-Object { $_.Name -ne ".git" }
         $dest = Join-Path ".\$folderName" $rel
         $filename = $_.Name
 
-        # Skip protected files if they already exist
         if ($protectedFiles -contains $filename -and (Test-Path $dest)) {
             Write-Host "     ⏭ Skipping $folderName\$rel (protected)"
             return
         }
 
-        # Skip if files are identical (normalize line endings before comparing)
         if (Test-Path $dest) {
             $srcHash = Get-ContentHash $src
             $destHash = Get-ContentHash $dest

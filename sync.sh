@@ -6,11 +6,16 @@ TMP=$(mktemp -d)
 
 PROTECTED_FILES=("config.yaml" "config.yml" ".env")
 
+files_equal() {
+    local a=$(tr -d '\r' < "$1" | md5sum)
+    local b=$(tr -d '\r' < "$2" | md5sum)
+    [ "$a" = "$b" ]
+}
+
 echo "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet "$REPO" "$TMP"
 
-# Include hidden directories (dotfolders) explicitly
 for dir in "$TMP"/*/ "$TMP"/.*/; do
   name=$(basename "$dir")
   [[ "$name" == ".git" || "$name" == "." || "$name" == ".." ]] && continue
@@ -28,7 +33,7 @@ for dir in "$TMP"/*/ "$TMP"/.*/; do
       continue
     fi
 
-    if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+    if [ -f "$dest" ] && files_equal "$src" "$dest"; then
       echo "     ⏭ Skipping $name/$rel (unchanged)"
       continue
     fi
