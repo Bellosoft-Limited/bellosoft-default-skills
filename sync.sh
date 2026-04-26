@@ -4,7 +4,6 @@ set -e
 REPO="https://github.com/Bellosoft-Limited/bellosoft-default-skills.git"
 TMP=$(mktemp -d)
 
-# Files that should never be overwritten if they already exist
 PROTECTED_FILES=("config.yaml" "config.yml" ".env")
 
 echo "🔄 Syncing Bellosoft project defaults..."
@@ -24,12 +23,19 @@ for dir in "$TMP"/*/; do
 
     # Skip protected files if they already exist
     if [[ " ${PROTECTED_FILES[@]} " =~ " ${filename} " ]] && [ -f "$dest" ]; then
-      echo "     ⏭ Skipping $name/$rel (protected, already exists)"
+      echo "     ⏭ Skipping $name/$rel (protected)"
+      continue
+    fi
+
+    # Skip if files are identical
+    if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+      echo "     ⏭ Skipping $name/$rel (unchanged)"
       continue
     fi
 
     mkdir -p "$(dirname "$dest")"
     cp "$src" "$dest"
+    echo "     ✅ $name/$rel"
   done
 done
 
