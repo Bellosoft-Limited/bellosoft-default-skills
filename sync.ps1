@@ -5,6 +5,13 @@ $tmp = Join-Path $env:TEMP ("bellosoft-sync-" + [System.IO.Path]::GetRandomFileN
 
 $protectedFiles = @("config.yaml", "config.yml", ".env")
 
+function Get-ContentHash($path) {
+    $content = [System.IO.File]::ReadAllText($path) -replace "`r`n", "`n"
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
+    $md5 = [System.Security.Cryptography.MD5]::Create()
+    return [System.BitConverter]::ToString($md5.ComputeHash($bytes)) -replace "-", ""
+}
+
 Write-Host "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet $repo $tmp
@@ -28,10 +35,10 @@ Get-ChildItem -Path $tmp -Directory | Where-Object { $_.Name -ne ".git" } | ForE
             return
         }
 
-        # Skip if files are identical
+        # Skip if files are identical (normalize line endings before comparing)
         if (Test-Path $dest) {
-            $srcHash = (Get-FileHash $src -Algorithm MD5).Hash
-            $destHash = (Get-FileHash $dest -Algorithm MD5).Hash
+            $srcHash = Get-ContentHash $src
+            $destHash = Get-ContentHash $dest
             if ($srcHash -eq $destHash) {
                 Write-Host "     ⏭ Skipping $folderName\$rel (unchanged)"
                 return
