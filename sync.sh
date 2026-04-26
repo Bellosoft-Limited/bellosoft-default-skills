@@ -10,9 +10,11 @@ echo "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet "$REPO" "$TMP"
 
-for dir in "$TMP"/*/; do
+# Include hidden directories (dotfolders) explicitly
+for dir in "$TMP"/*/ "$TMP"/.*/; do
   name=$(basename "$dir")
-  [ "$name" = ".git" ] && continue
+  [[ "$name" == ".git" || "$name" == "." || "$name" == ".." ]] && continue
+  [ ! -d "$dir" ] && continue
   echo "  → Copying $name/"
   mkdir -p "./$name"
 
@@ -21,13 +23,11 @@ for dir in "$TMP"/*/; do
     dest="./$name/$rel"
     filename=$(basename "$rel")
 
-    # Skip protected files if they already exist
     if [[ " ${PROTECTED_FILES[@]} " =~ " ${filename} " ]] && [ -f "$dest" ]; then
       echo "     ⏭ Skipping $name/$rel (protected)"
       continue
     fi
 
-    # Skip if files are identical
     if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
       echo "     ⏭ Skipping $name/$rel (unchanged)"
       continue

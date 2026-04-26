@@ -16,14 +16,15 @@ Write-Host "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet $repo $tmp
 
-Get-ChildItem -Path $tmp -Directory | Where-Object { $_.Name -ne ".git" } | ForEach-Object {
+# Get ALL directories including hidden (dotfolders like .github, .vscode)
+Get-ChildItem -Path $tmp -Directory -Force | Where-Object { $_.Name -ne ".git" } | ForEach-Object {
     $folderName = $_.Name
     $srcFolder = $_.FullName
     Write-Host "  → Copying $folderName/"
 
     New-Item -ItemType Directory -Force -Path ".\$folderName" | Out-Null
 
-    Get-ChildItem -Path $srcFolder -Recurse -File | ForEach-Object {
+    Get-ChildItem -Path $srcFolder -Recurse -File -Force | ForEach-Object {
         $src = $_.FullName
         $rel = $src.Substring($srcFolder.Length + 1)
         $dest = Join-Path ".\$folderName" $rel
