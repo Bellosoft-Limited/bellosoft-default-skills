@@ -185,7 +185,7 @@ parts: 1
 - `npx skills add <source>` — GitHub, GitLab, local paths, git URLs
 - 40+ agents; per-agent path mappings; symlinks (recommended) or copies
 - Scopes: project-level or global
-- Discovery: `skills/`, `.agents/skills/`, agent-specific paths, `.claude-plugin/marketplace.json`
+- Discovery: `skills/`, `.github/skills/`, agent-specific paths, `.claude-plugin/marketplace.json`
 - Commands: add, list, find, remove, check, update, init
 - Non-interactive: `-y`, `--all` flags for CI/CD
 
@@ -224,4 +224,3 @@ parts: 1
 - 40+ platform testing environments even with Vercel handling translation
 - Scope creep pressure from marketplace vision (explicitly excluded but primary long-term value)
 - Vercel dependency: minor supply-chain risk; MIT license allows fork if deprioritized
-```
