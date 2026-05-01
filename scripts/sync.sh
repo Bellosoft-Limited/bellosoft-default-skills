@@ -13,6 +13,9 @@ SYNC_FOLDERS=(
     "scripts"           # Sync scripts (self-updating)
 )
 
+# Filenames that the sync script will NEVER overwrite if they already exist.
+PROTECTED_FILES=("config.yaml" "config.yml" ".env")
+
 # Path prefixes that the sync script will NEVER overwrite.
 PROTECTED_PREFIXES=(
     ".github/skills/bmad-tea"
@@ -47,6 +50,15 @@ sync_folder() {
         rel="${src#$src_base/}"
         dest="$dest_base/$rel"
         rel_norm="$log_label/$rel"
+
+        filename=$(basename "$src")
+
+        for protected in "${PROTECTED_FILES[@]}"; do
+            if [ "$filename" = "$protected" ] && [ -f "$dest" ]; then
+                echo "     ⏭ Skipping $rel_norm (protected file)"
+                continue 2
+            fi
+        done
 
         if is_protected "$rel_norm"; then
             echo "     ⏭ Skipping $rel_norm (protected)"

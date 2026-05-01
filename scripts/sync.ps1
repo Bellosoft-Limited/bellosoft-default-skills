@@ -12,6 +12,8 @@ $syncFolders = @(
     "scripts"            # Sync scripts (self-updating)
 )
 
+$protectedFiles = @("config.yaml", "config.yml", ".env")
+
 # Paths the sync script will NEVER overwrite.
 $protectedPathPrefixes = @(
     ".github/skills/bmad-tea",
@@ -35,6 +37,12 @@ function Sync-Folder($srcBase, $destBase, $logLabel) {
         $dest = Join-Path $destBase ($rel -replace "/", "\")
 
         $relNorm = "$logLabel/$rel"
+
+        $filename = $_.Name
+        if ($protectedFiles -contains $filename -and (Test-Path $dest)) {
+            Write-Host "     ⏭ Skipping $relNorm (protected file)"
+            return
+        }
 
         foreach ($prefix in $protectedPathPrefixes) {
             if ($relNorm -like "$prefix/*" -or $relNorm -eq $prefix) {
