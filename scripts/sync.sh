@@ -10,7 +10,6 @@ SYNC_FOLDERS=(
     ".github"           # Copilot instructions, agents, prompts, skills, hooks, workflows, core, stack
     "_bmad"             # BMAD methodology config
     ".vscode"           # VS Code settings (chat.* configs)
-    "scripts"           # Sync scripts (self-updating)
 )
 
 # Path prefixes that the sync script will NEVER overwrite.

@@ -8,8 +8,7 @@ $tmp = Join-Path $env:TEMP ("bellosoft-sync-" + [System.IO.Path]::GetRandomFileN
 $syncFolders = @(
     ".github",           # Copilot instructions, agents, prompts, skills, hooks, workflows, core, stack
     "_bmad",             # BMAD methodology config
-    ".vscode",           # VS Code settings (chat.* configs)
-    "scripts"            # Sync scripts (self-updating)
+    ".vscode"            # VS Code settings (chat.* configs)    
 )
 
 # Paths the sync script will NEVER overwrite.
