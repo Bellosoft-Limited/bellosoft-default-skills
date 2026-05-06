@@ -195,7 +195,14 @@ Do NOT update `description_html`.
 
 ## SYNC_EPICS
 
-Upsert every epic and story from `planning-artifacts/epics.md` into Plane. **Source is planning-artifacts only — never implementation-artifacts.** Safe to re-run.
+Upsert every epic and story from `planning-artifacts/epics.md` into Plane. **epics.md is the single source of truth** — when content changes there, this command updates Plane to match. Safe to re-run.
+
+**Behavior:**
+- Creates new epics/stories that don't exist in Plane
+- Updates existing epics/stories when name or description in epics.md has changed
+- Skips items that are already in sync
+- Never changes workflow state, labels, assignees, or other user-managed fields
+- Only updates: `name`, `description_html`, `parent` (for stories)
 
 **Step 1 — Scan & list before doing anything:**
 Read `planning-artifacts/epics.md`. Extract all epics and stories. Print the full list to the user before any API calls:
@@ -212,6 +219,8 @@ Proceed? [y/n]
 **Step 2 — Build existence lookups:**
 Fetch all existing epics (paginate `mcp_plane_list_epics`) and work items (paginate `mcp_plane_list_work_items`). Build case-insensitive lookups by `name.toLowerCase()`.
 
+**Important:** Store the full epic/work item objects (including `id`, `sequence_id`, `name`, `description_html`, `parent`) — needed for comparison in Steps 5 and 6 to detect content changes.
+
 **Step 3 — Resolve label ID:**
 Fetch labels via `mcp_plane_list_labels`. Find `bmad-generated` label by name (case-insensitive). If not found, create it with color `#7C3AED` via `mcp_plane_create_label`. Store the label ID.
 
@@ -221,27 +230,93 @@ Fetch labels via `mcp_plane_list_labels`. Find `bmad-generated` label by name (c
 - Stories: `### Story N.M: <Title>` (H3) — extract: story_id, title, user story ("As a..." paragraph), acceptance criteria (Given/When/Then blocks under **Acceptance Criteria:**)
 - **Process in file order (ascending)** — Epic 1 before Epic 2, Story N.1 before Story N.2, etc. Do NOT sort or reorder.
 
-**Step 5 — Upsert epics** via `mcp_plane_create_epic` or update if found:
+**Name comparison rules:**
+When checking if an epic/story exists in Plane:
+- Strip the `[IDENTIFIER-seq]` suffix from both the epics.md title and Plane name before comparing
+- Example: `Epic 11 [CA3-54]: MCP Data Access Tools` → compare as `Epic 11: MCP Data Access Tools`
+- This allows the workflow to find items even when the identifier has been written back
+- Case-insensitive match on the stripped name
 
-- `name`: epic title (e.g. `Epic 1: Infrastructure Foundations`)
-- `description_html`: compact HTML of the epic's first paragraph
-- `label_ids`: `[bmad-generated label ID]`
-- Never change state on existing epics
-- Record the `sequence_id` from each epic response (created or existing) — needed in Step 7.
+**Step 5 — Upsert epics** via `mcp_plane_create_epic` or update if content changed:
 
-**Step 6 — Upsert stories** via `mcp_plane_create_work_item` or skip if found:
+**For each epic in epics.md:**
 
-- `name`: story title (e.g. `Story 1.2: Security Hardening — ...`)
-- `description_html`: compact HTML — user story `<p>` + `<h3>Acceptance Criteria</h3>` + `<ul>` of criteria items
-- `parent`: epic work item ID
-- `state`: Backlog state ID
-- `label_ids`: `[bmad-generated label ID]`
-- Never change state on existing items
-- Record the `sequence_id` from each story response (created or existing) — needed in Step 7.
-- After creating each story, add a traceability comment via `mcp_plane_create_work_item_comment`:
-  ```
-  <p><strong>Source:</strong> docs/planning-artifacts/epics.md — Story {story_id}</p>
-  ```
+1. Build expected values from epics.md:
+   - `expected_name`: epic title with [IDENTIFIER-seq] if present, e.g. `Epic 1 [CA3-2]: Infrastructure Foundations`
+   - `expected_description_html`: compact HTML of the epic's first descriptive paragraph (the italic line starting with `_`)
+
+2. Check existence lookup (from Step 2):
+   - If epic name (ignoring `[IDENTIFIER-seq]` suffix) found → **UPDATE PATH**
+   - If not found → **CREATE PATH**
+
+3. **CREATE PATH:**
+   - Call `mcp_plane_create_epic` with:
+     - `name`: `expected_name`
+     - `description_html`: `expected_description_html`
+     - `label_ids`: `[bmad-generated label ID]`
+   - Record the `sequence_id` from response — needed in Step 7.
+
+4. **UPDATE PATH (epics.md is source of truth):**
+   - Retrieve the existing epic's current `name` and `description_html`
+   - Compare with expected values:
+     - Name differs (ignoring whitespace)? → UPDATE
+     - Description differs (ignoring whitespace)? → UPDATE
+   - If either field differs, call `mcp_plane_update_epic` with:
+     - `name`: `expected_name`
+     - `description_html`: `expected_description_html`
+   - **Never change `state`** on existing epics — preserve user's workflow state
+   - **Never change `labels`, `assignees`, `priority`, etc.** — only update name and description
+   - Record the existing `sequence_id` (from lookup) — needed in Step 7.
+   - If updated, log: `Updated Epic {epic_id}: name/description changed in epics.md`
+
+5. **Skip criteria:**
+   - Only skip (no API call) if name AND description match exactly
+   - Log: `Skipped Epic {epic_id}: already in sync`
+
+**Step 6 — Upsert stories** via `mcp_plane_create_work_item` or update if content changed:
+
+**For each story in epics.md:**
+
+1. Build expected values from epics.md:
+   - `expected_name`: story title with [IDENTIFIER-seq] if present, e.g. `Story 1.2 [CA3-19]: Security Hardening — ...`
+   - `expected_description_html`: compact HTML — user story `<p>` + `<h3>Acceptance Criteria</h3>` + `<ul>` of criteria items
+   - `expected_parent_id`: epic work item ID (from Step 5)
+
+2. Check existence lookup (from Step 2):
+   - If story name (ignoring `[IDENTIFIER-seq]` suffix) found → **UPDATE PATH**
+   - If not found → **CREATE PATH**
+
+3. **CREATE PATH:**
+   - Call `mcp_plane_create_work_item` with:
+     - `name`: `expected_name`
+     - `description_html`: `expected_description_html`
+     - `parent`: `expected_parent_id`
+     - `state`: Backlog state ID
+     - `label_ids`: `[bmad-generated label ID]`
+   - After creating, add a traceability comment via `mcp_plane_create_work_item_comment`:
+     ```
+     <p><strong>Source:</strong> docs/planning-artifacts/epics.md — Story {story_id}</p>
+     ```
+   - Record the `sequence_id` from response — needed in Step 7.
+
+4. **UPDATE PATH (epics.md is source of truth):**
+   - Retrieve the existing work item's current `name`, `description_html`, and `parent`
+   - Compare with expected values:
+     - Name differs (ignoring whitespace)? → UPDATE
+     - Description differs (ignoring whitespace)? → UPDATE
+     - Parent differs? → UPDATE
+   - If any field differs, call `mcp_plane_update_work_item` with:
+     - `name`: `expected_name`
+     - `description_html`: `expected_description_html`
+     - `parent`: `expected_parent_id`
+   - **Never change `state`** on existing items — preserve user's workflow state
+   - **Never change `labels`, `assignees`, `priority`, etc.** — only update name, description, parent
+   - Record the existing `sequence_id` (from lookup) — needed in Step 7.
+   - If updated, log: `Updated Story {story_id}: name/description changed in epics.md`
+
+5. **Skip criteria:**
+   - Only skip (no API call) if name, description, AND parent all match exactly
+   - Log: `Skipped Story {story_id}: already in sync`
 
 **Step 7 — Write back Plane identifiers to epics.md:**
 Update `planning_artifacts/epics.md` to embed the Plane work item identifier into each heading. This enables reliable identifier-based lookup during development without fuzzy title matching.
@@ -264,10 +339,12 @@ Report:
 
 ```
 Sync complete:
-  Epics:   X created, Y skipped (already existed)
-  Stories: X created, Y skipped (already existed)
+  Epics:   X created, Y updated, Z skipped (in sync)
+  Stories: X created, Y updated, Z skipped (in sync)
   Failures: N (list any)
 ```
+
+**Key principle:** epics.md is the single source of truth. When content in epics.md changes, SYNC_EPICS updates Plane to match — ensuring consistency and preventing drift.
 
 ---
 
