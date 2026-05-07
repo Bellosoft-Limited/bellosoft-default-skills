@@ -446,6 +446,8 @@ Fetch existing labels via `mcp_plane_list_labels`. Create only those missing (ca
 | ai-implemented | #ff6900 |
 | ai-rework      | #ff6900 |
 | human-reviewed | #ff6900 |
+| failed-test | #ff6900 |
+| failed-test-2-plus | #ff6900 |
 
 **Step 5 — Create work item types:**
 Fetch existing types via `mcp_plane_list_work_item_types`. Create only those missing (case-insensitive name match):
