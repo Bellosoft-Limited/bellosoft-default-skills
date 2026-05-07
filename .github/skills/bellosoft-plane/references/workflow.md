@@ -398,15 +398,17 @@ Store the returned `project_id` and `identifier` for all subsequent steps.
 **Step 3 — Configure states:**
 Fetch current states via `mcp_plane_list_states`. Upsert to match this exact set:
 
-| Name           | Color   | Group     | Default |
-| -------------- | ------- | --------- | ------- |
-| Backlog        | #d9d9d9 | backlog   | ✅      |
-| Todo           | #3f76ff | unstarted |         |
-| In Development | #f59e0b | started   |         |
-| In Review      | #f59e0b | started   |         |
-| Ready for QA   | #16a34a | completed |         |
-| Done           | #16a34a | completed |         |
-| Cancelled      | #dc2626 | cancelled |         |
+| Name             | Color     | Group     | Default |
+| ---------------- | --------- | --------- | ------- |
+| Backlog          | #d9d9d9 | backlog   | ✅      |
+| Todo             | #3f76ff | unstarted |         |
+| In Development   | #f59e0b | started   |         |
+| In Review        | #f59e0b | started   |         |
+| Ready for QA     | #16a34a | completed |         |
+| Ready to Release | #16a34a | completed |         |
+| Done             | #16a34a | completed |         |
+| Blocked          | #dc2626 | cancelled |         |
+| Cancelled        | #dc2626 | cancelled |         |
 
 Rules:
 
@@ -420,14 +422,32 @@ Fetch existing labels via `mcp_plane_list_labels`. Create only those missing (ca
 
 | Name           | Color   |
 | -------------- | ------- |
-| bmad-generated | #7C3AED |
+| frontend       | #9900ef |
+| framework      | #def511 |
+| backend        | #0693e3 |
+| test           | #16a34a |
+| blocked        | #ff6900 |
+| feature        | #00ccff |
+| bug            | #ff0000 |
+| improvement    | #d6d6d6 |
+| chore          | #d6d6d6 |
+| incident       | #d6d6d6 |
+| rollback       | #d6d6d6 |
+| non-billable   | #d6d6d6 |
+| project-management | #d6d6d6 |
+| planning       | #d6d6d6 |
+| meeting        | #d6d6d6 |
+| technical      | #d6d6d6 |
+| devops         | #d6d6d6 |
+| pr-review      | #d6d6d6 |
+| bmad-generated | #ff6900 |
 | ai-planned     | #ff6900 |
 | ai-spec        | #ff6900 |
 | ai-implemented | #ff6900 |
+| ai-rework      | #ff6900 |
 | human-reviewed | #ff6900 |
-| frontend       | #9900ef |
-| backend        | #0693e3 |
-| blocked        | #ff6900 |
+| failed-test | #ff6900 |
+| failed-test-2-plus | #ff6900 |
 
 **Step 5 — Create work item types:**
 Fetch existing types via `mcp_plane_list_work_item_types`. Create only those missing (case-insensitive name match):
