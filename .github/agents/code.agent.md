@@ -70,3 +70,4 @@ These apply to ALL code produced through this agent, whether via story or ad-hoc
 - ❌ Over-implementing beyond what the test requires (YAGNI)
 - ❌ Multiple assertions per test without good reason
 - ❌ Tests that depend on other tests or shared mutable state
+- ❌ Injecting framework- or package-specific types into Services or Repositories — inner layers should remain decoupled from web/persistence frameworks. When such dependencies seem unavoidable, ask the developer whether to move the framework-specific code to outer layers (Controller/Middleware) or accept the coupling for that scenario.

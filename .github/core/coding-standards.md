@@ -163,6 +163,82 @@
 - Raise specific exceptions, never bare `raise Exception("message")`.
 
 ---
+---
+
+## Layer Boundaries — Framework Type Isolation
+
+> **Rule**: Framework- and package-specific types (e.g., `IHttpContextAccessor`, `HttpContext`, ASP.NET abstractions) couple inner layers to the web framework or infrastructure. They should be avoided in Services and Repositories. When such dependencies appear unavoidable, ask the developer whether to extract the framework-specific code into outer layers (Controller/Middleware) or accept the coupling for that scenario.
+
+### User Identity Flow
+
+```
+Controller (extracts userId from HttpContext.User)
+  → Service (receives userId as explicit string parameter)
+    → Repository (receives userId as explicit string parameter)
+```
+
+### What Each Layer May Do
+
+| Layer | Allowed | Forbidden |
+|-------|---------|-----------|
+| **Controller** | `IHttpContextAccessor`, `HttpContext.User`, JWT claims extraction | Direct DB access, business logic |
+| **Middleware** | `IHttpContextAccessor`, `HttpContext` | Direct DB access, business logic |
+| **Service** | Business logic, validation, orchestration | Framework/package-specific types (e.g., `IHttpContextAccessor`, `HttpContext`) |
+| **Repository** | Data access, query building | Framework/package-specific types (e.g., `IHttpContextAccessor`, `HttpContext`) |
+| **DbContext** | `IHttpContextAccessor` for audit fields only (`AuditInterceptor`) | Business logic |
+
+### Rationale
+
+- **Testability**: Services and repositories can be unit-tested without mocking framework infrastructure
+- **Separation of concerns**: Business logic should not depend on web framework or infrastructure types
+- **Portability**: Services could be reused in non-HTTP contexts (background jobs, console apps)
+- **Clarity**: Explicit parameters make the data flow visible and traceable
+- **Pragmatic exceptions**: When coupling to framework types is truly necessary, the decision to extract to outer layers or accept the coupling should be an explicit developer decision, not made by the agent
+
+### Example — CORRECT
+
+```csharp
+// Controller: extracts userId from HTTP context
+[HttpPost("[action]")]
+public async Task<IActionResult> Create([FromBody] CreateFormModel form)
+{
+    var userId = this.User.GetUserId(this.appSettings.Auth0.ClaimUserId);
+    var result = await this.widgetService.CreateWidget(userId, form.Name);
+    return this.Ok(result);
+}
+
+// Service: receives userId as explicit parameter — no IHttpContextAccessor
+public async Task<WidgetDto> CreateWidget(string userId, string name)
+{
+    var widget = new Widget { Name = name, CreatedBy = userId };
+    return await this.widgetRepository.Add(widget);
+}
+
+// Repository: only dependency is DbContext — no IHttpContextAccessor
+public async Task<WidgetDto> Add(Widget widget)
+{
+    await this.context.Widgets.AddAsync(widget);
+    await this.context.SaveChangesAsync();
+    return widget.ToDto();
+}
+```
+
+### Example — WRONG
+
+```csharp
+// ❌ Service injecting IHttpContextAccessor — forbidden
+public class WidgetService
+{
+    private readonly IHttpContextAccessor httpContextAccessor; // ❌
+    
+    public async Task<Widget> CreateWidget(string name)
+    {
+        var userId = this.httpContextAccessor.HttpContext.User.FindFirst("userId")?.Value; // ❌
+    }
+}
+```
+
+---
 
 ## What to Never Do
 
@@ -174,3 +250,4 @@
 - Never return `null` where an empty collection is valid.
 - Never use `Thread.Sleep` or `Task.Delay` in production paths.
 - Never share mutable state across threads without synchronization.
+- Never inject framework- or package-specific types (e.g., `IHttpContextAccessor`, `HttpContext`, ASP.NET abstractions) into Services or Repositories without explicit developer approval — prefer parameter passing from outer layers. When such coupling appears unavoidable, ask the developer whether to extract the framework code or accept the dependency.

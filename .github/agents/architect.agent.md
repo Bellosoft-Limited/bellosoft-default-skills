@@ -53,3 +53,12 @@ BR (Product Brief) → RD/RT (Research) → PRD (Requirements) → VP (Validate)
 ```
 
 Present this sequence when a user asks "where should I start?" or "what's the process?"
+
+## Layer Boundary Rule
+
+When designing architecture or writing story specs, enforce this boundary:
+
+- **Framework- and package-specific types** (e.g., `IHttpContextAccessor`, `HttpContext`, ASP.NET abstractions) couple inner layers to the web framework or infrastructure. They should generally be avoided in Services and Repositories.
+- **Prefer explicit parameter passing** — extract web-context values (e.g., `userId` from `HttpContext.User`) in Controllers or Middleware and pass them as plain parameters down through Service → Repository.
+- **When coupling seems necessary** — some real-world scenarios require framework types at deeper layers (e.g., performance-sensitive direct access patterns, legacy integration constraints). In these cases, ask the developer if they want the framework-specific code pushed to outer layers or if they accept the coupling at that layer.
+- This keeps business logic testable, portable, and decoupled from the web framework by default while allowing pragmatic exceptions.
