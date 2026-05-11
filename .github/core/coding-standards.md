@@ -251,3 +251,4 @@ public class WidgetService
 - Never use `Thread.Sleep` or `Task.Delay` in production paths.
 - Never share mutable state across threads without synchronization.
 - Never inject framework- or package-specific types (e.g., `IHttpContextAccessor`, `HttpContext`, ASP.NET abstractions) into Services or Repositories without explicit developer approval — prefer parameter passing from outer layers. When such coupling appears unavoidable, ask the developer whether to extract the framework code or accept the dependency.
+- Never hardcode business-logic numbers or limits that could change in the future (e.g., max items, expiry days, retry counts, thresholds). Prefer appsettings.json / environment variables so they can be adjusted without recompilation.
