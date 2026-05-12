@@ -216,15 +216,43 @@ Found:
 Proceed? [y/n]
 ```
 
-**Step 2 — Build existence lookups:**
+**Step 2 — Create project (with identifier collision handling):**
+
+⚠️ **Plane enforces globally-unique identifiers across ALL workspace projects.** `HTTP 409 Conflict` means the identifier is taken.
+
+**Identifier strategy:**
+1. Try `identifier` (user's chosen value).
+2. If 409: append digit → `{identifier}2`, `{identifier}3`, etc. (max 3 retries).
+3. If all fail: fall back to initials of each word in `project_name`, uppercased, max 12 chars.
+4. If STILL 409: ask user for a new identifier.
+
+**⚠️ `is_time_tracking_enabled` causes 400 Bad Request** — Plane's API silently rejects it. Never pass this field.
+
+Call `mcp_plane_create_project`:
+
+- `name`: project_name
+- `identifier`: IDENTIFIER (uppercase)
+- `timezone`: `America/Sao_Paulo`
+- `cycle_view`: true
+- `is_issue_type_enabled`: true
+- `project_lead`: invoking user's `plane_member_id`
+
+Store the returned `project_id` and `identifier` for all subsequent steps.
+
+**⚠️ Ambiguous matching alert:** If the user says "it created the project" after multiple 409s and retries with different identifiers, the project may exist under a retried identifier. Use `curl` to list all workspace projects and match by `name` case-insensitively to find the actual `project_id`:
+```
+curl -s "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/" -H "x-api-key: {key}"
+```
+
+**Step 3 — Build existence lookups:**
 Fetch all existing epics (paginate `mcp_plane_list_epics`) and work items (paginate `mcp_plane_list_work_items`). Build case-insensitive lookups by `name.toLowerCase()`.
 
 **Important:** Store the full epic/work item objects (including `id`, `sequence_id`, `name`, `description_html`, `parent`) — needed for comparison in Steps 5 and 6 to detect content changes.
 
-**Step 3 — Resolve label ID:**
+**Step 4 — Resolve label ID:**
 Fetch labels via `mcp_plane_list_labels`. Find `bmad-generated` label by name (case-insensitive). If not found, create it with color `#7C3AED` via `mcp_plane_create_label`. Store the label ID.
 
-**Step 4 — Parse epics.md:**
+**Step 5 — Parse epics.md:**
 
 - Epics: `### Epic N: <Title>` (H3, under `## Epic List`) — extract number, title, and the first descriptive paragraph (the italic line starting with `_`)
 - Stories: `### Story N.M: <Title>` (H3) — extract: story_id, title, user story ("As a..." paragraph), acceptance criteria (Given/When/Then blocks under **Acceptance Criteria:**)
@@ -318,33 +346,24 @@ When checking if an epic/story exists in Plane:
    - Only skip (no API call) if name, description, AND parent all match exactly
    - Log: `Skipped Story {story_id}: already in sync`
 
-**Step 7 — Write back Plane identifiers to epics.md:**
-Update `planning_artifacts/epics.md` to embed the Plane work item identifier into each heading. This enables reliable identifier-based lookup during development without fuzzy title matching.
-
-**Format:**
-
-- Epics: `## Epic N: Title` → `## Epic N [IDENTIFIER-seq]: Title`
-- Stories: `### Story N.M: Title` → `### Story N.M [IDENTIFIER-seq]: Title`
-
-**Rules:**
-
-- Only update headings that do NOT already contain `[{project_identifier}-` — idempotent, safe to re-run.
-- Use the `sequence_id` values captured in Steps 5 and 6.
-- For items that were skipped (already existed), their `sequence_id` comes from the existence lookup built in Step 2 (the full work item objects include `sequence_id`).
-- Write all changes to `epics.md` in a single file update — do not write per item.
-- Preserve all other content in `epics.md` exactly as-is.
-
-**Step 8 — Summary:**
-Report:
-
+**Step 7 — Summary &amp; offer sync:**
 ```
-Sync complete:
-  Epics:   X created, Y updated, Z skipped (in sync)
-  Stories: X created, Y updated, Z skipped (in sync)
-  Failures: N (list any)
+✅ Project scaffolded: {project_name} ({IDENTIFIER})
+  States:     8 configured (N created, M updated, K deleted)
+  Labels:     N created, M skipped
+  Work types: N created, M skipped (Task was default — reused)
+
+⚠️  Icon/color for work item types must be set manually in the Plane UI
+    (Project Settings → Work item types):
+      Task        → default icon  · #6695FF
+      Bug         → AlertTriangle · #FF7474
+      User Story  → BookOpen      · #1FA191
+      Test        → Aperture      · #FC964D
+
+Run 'sync epics to plane' now to populate epics and stories from epics.md? [y/n]
 ```
 
-**Key principle:** epics.md is the single source of truth. When content in epics.md changes, SYNC_EPICS updates Plane to match — ensuring consistency and preventing drift.
+If yes → proceed with SYNC_EPICS using this new project.
 
 ---
 
@@ -382,7 +401,18 @@ Will create Plane project:
 Proceed? [y/n]
 ```
 
-**Step 2 — Create project:**
+**Step 2 — Create project (with identifier collision handling):**
+
+⚠️ **Plane enforces globally-unique identifiers across ALL workspace projects.** `HTTP 409 Conflict` means the identifier is taken.
+
+**Identifier strategy:**
+1. Try `identifier` (user's chosen value).
+2. If 409: append digit → `{identifier}2`, `{identifier}3`, etc. (max 3 retries).
+3. If all fail: fall back to initials of each word in `project_name`, uppercased, max 12 chars.
+4. If STILL 409: ask user for a new identifier.
+
+**⚠️ `is_time_tracking_enabled` causes 400 Bad Request** — Plane's API silently rejects it. Never pass this field.
+
 Call `mcp_plane_create_project`:
 
 - `name`: project_name
@@ -390,10 +420,14 @@ Call `mcp_plane_create_project`:
 - `timezone`: `America/Sao_Paulo`
 - `cycle_view`: true
 - `is_issue_type_enabled`: true
-- `is_time_tracking_enabled`: true
 - `project_lead`: invoking user's `plane_member_id`
 
 Store the returned `project_id` and `identifier` for all subsequent steps.
+
+**⚠️ Ambiguous matching alert:** If the user says "it created the project" after multiple 409s and retries with different identifiers, the project may exist under a retried identifier. Use `curl` to list all workspace projects and match by `name` case-insensitively to find the actual `project_id`:
+```
+curl -s "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/" -H "x-api-key: {key}"
+```
 
 **Step 3 — Configure states:**
 Fetch current states via `mcp_plane_list_states`. Upsert to match this exact set:
@@ -452,6 +486,16 @@ Fetch existing labels via `mcp_plane_list_labels`. Create only those missing (ca
 **Step 5 — Create work item types:**
 Fetch existing types via `mcp_plane_list_work_item_types`. Create only those missing (case-insensitive name match):
 
+⚠️ **Plane auto-creates a default `Task` type** with `is_default: true` on every new project. You MUST detect this and skip it.
+
+**Fetch existing types:** GET `/workspaces/{slug}/projects/{id}/work-item-types/` via curl. The MCP `mcp_plane_list_work_item_types` tool is unreliable — use direct curl:
+```
+curl -s "https://api.plane.so/api/v1/workspaces/{slug}/projects/{id}/work-item-types/" -H "x-api-key: {key}"
+```
+Build a map of `name → {id, is_default}` from the response. The default Task has `"is_default": true` and often a description like `"Default work item type..."`.
+
+Create only those missing from this list (case-insensitive name match, skipping items where `is_default: true` already fills the role):
+
 | Name       | is_epic |
 | ---------- | ------- |
 | Task       | false   |
@@ -459,7 +503,11 @@ Fetch existing types via `mcp_plane_list_work_item_types`. Create only those mis
 | User Story | false   |
 | Test       | false   |
 
-Skip any type that already exists.
+**Skip logic:**
+- If `Task` exists with `is_default: true` → **skip** Task creation entirely. Use the default type's ID for property assignments.
+- If `Task` exists but `is_default: false` (rare) → skip, use that ID.
+- If any type name already exists (case-insensitive) → skip it.
+- Only create types whose names are absent from the lookup.
 
 > ⚠️ **Icon and color styling cannot be set via the Plane API.** After scaffolding, instruct the user to update these manually in **Project Settings → Work item types**:
 >
@@ -471,51 +519,28 @@ Skip any type that already exists.
 > | Test       | Aperture      | `#FC964D` |
 
 **Step 6 — Create custom properties per work item type:**
-For each work item type created in Step 5, create the following properties via POST to `/work-item-types/{type_id}/work-item-properties/`.
+For each work item type (using existing types from Step 5), create the following properties. **Always use the existing type's ID** — never create a duplicate type first.
 
-Valid `property_type` values confirmed via live API: `TEXT`, `DATETIME`, `URL`, `OPTION`, `BOOLEAN`, `FILE`.
+Fetch existing properties first via curl GET `/work-item-types/{type_id}/work-item-properties/` and skip any whose `display_name` already matches (case-insensitive).
 
 | Type       | Property       | property_type | settings                            |
 | ---------- | -------------- | ------------- | ----------------------------------- |
-| Task       | Deploy Date    | `DATETIME`    | —                                   |
-| Task       | Affected Files | `TEXT`        | `{"display_format": "multi-line"}`  |
-| Task       | Spec Link      | `TEXT`        | `{"display_format": "single-line"}` |
-| Bug        | Affected Files | `TEXT`        | `{"display_format": "multi-line"}`  |
-| Bug        | Spec Link      | `TEXT`        | `{"display_format": "single-line"}` |
-| Bug        | Deploy Date    | `DATETIME`    | —                                   |
-| User Story | Spec Link      | `TEXT`        | `{"display_format": "single-line"}` |
-| User Story | Deploy Date    | `DATETIME`    | —                                   |
-| Test       | Spec Link      | `TEXT`        | `{"display_format": "single-line"}` |
-| Test       | Deploy Date    | `DATETIME`    | —                                   |
+| Task       | Deploy Date    | `DATETIME`    | `{"display_format":"dd/MM/yyyy"}`   |
+| Task       | Affected Files | `TEXT`        | `{"display_format":"multi-line"}`   |
+| Task       | Spec Link      | `TEXT`        | `{"display_format":"single-line"}`  |
+| Bug        | Affected Files | `TEXT`        | `{"display_format":"multi-line"}`   |
+| Bug        | Spec Link      | `TEXT`        | `{"display_format":"single-line"}`  |
+| Bug        | Deploy Date    | `DATETIME`    | `{"display_format":"dd/MM/yyyy"}`   |
+| User Story | Spec Link      | `TEXT`        | `{"display_format":"single-line"}`  |
+| User Story | Deploy Date    | `DATETIME`    | `{"display_format":"dd/MM/yyyy"}`   |
+| Test       | Spec Link      | `TEXT`        | `{"display_format":"single-line"}`  |
+| Test       | Deploy Date    | `DATETIME`    | `{"display_format":"dd/MM/yyyy"}`   |
 
-Rules:
-
-- Always use the exact `display_name` values from the table.
-- Fetch existing properties first via GET `/work-item-types/{type_id}/work-item-properties/` and skip any property whose `display_name` already matches (case-insensitive).
-- Use `is_required: false`, `is_active: true` for all.
-- ⚠️ `property_type` values are **uppercase** — `TEXT` not `text`, `DATETIME` not `datetime`.
-- ⚠️ For `TEXT` properties, always include `settings` in the POST body. Plane UI shows "Invalid text format" if `settings` is missing or has the wrong value. PATCH can also fix it after creation. The **exact** valid values are `"single-line"` (single line input) and `"multi-line"` (paragraph/multi-line input). The string `"paragraph"` is **wrong**.
-- ⚠️ Python `urllib.request` is blocked by Cloudflare (403 error 1010). Use MCP tool calls, not raw Python HTTP, when calling the Plane API.
-
-**Step 7 — Summary & offer sync:**
-
+**Verification (after each type's properties are created):**
 ```
-✅ Project scaffolded: {project_name} ({IDENTIFIER})
-  States:     7 configured (N created, M updated, K deleted)
-  Labels:     N created, M skipped
-  Work types: N created, M skipped
-
-⚠️  Icon/color for work item types must be set manually in the Plane UI
-    (Project Settings → Work item types):
-      Task        → default icon  · #6695FF
-      Bug         → AlertTriangle · #FF7474
-      User Story  → BookOpen      · #1FA191
-      Test        → Aperture      · #FC964D
-
-Run 'sync epics to plane' now to populate epics and stories from epics.md? [y/n]
+curl -s ".../work-item-types/{type_id}/work-item-properties/" -H "x-api-key: {key}" | grep -o '"display_name":"[^"]*"' | sort -u
 ```
-
-If yes → proceed with SYNC_EPICS using this new project.
+Confirm all expected `display_name` values appear before moving to the next type.
 
 ---
 
@@ -540,9 +565,14 @@ Otherwise ask for display name or email, call `mcp_plane_get_workspace_members`,
 ## Safety Rules
 
 - **Never delete** epics or work items.
-- **Never duplicate** — check existence before creating.
+- **Never duplicate** — check existence before creating. Plane auto-creates a default Task; detect it via curl before attempting to create another.
 - **Never change state** of existing items during SYNC_EPICS.
 - **Confirm before bulk changes** (> 10 items).
 - Always use `state=`, never `state_id=`.
 - Always use `comment_html=`, never `data=`.
 - If no Plane projects found: halt with `"No Plane projects found. Check MCP server config."`
+- **HTTP 409 on create_project = identifier collision.** Retry with variant identifiers before giving up.
+- **`is_time_tracking_enabled=true` → 400 pydantic error.** Never pass this field to `mcp_plane_create_project`.
+- **DATETIME properties need settings:** `{"display_format":"dd/MM/yyyy"}`. Omitted settings → validation error.
+- **MCP `Output validation error: None is not of type 'string'` is usually a false positive.** Verify via curl GET after creation.
+- **When MCP tools for listing types/labels are unavailable**, use direct curl to the Plane REST API with the x-api-key header.
