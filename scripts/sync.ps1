@@ -3,22 +3,19 @@ $ErrorActionPreference = "Stop"
 $repo = "https://github.com/Bellosoft-Limited/bellosoft-default-skills.git"
 $tmp = Join-Path $env:TEMP ("bellosoft-sync-" + [System.IO.Path]::GetRandomFileName())
 
-# Folders to sync from company core into each client repo.
-# NOTE: .github/core/ and .github/stack/ are subfolders of .github/ and synced automatically.
 $syncFolders = @(
-    ".github",           # Copilot instructions, agents, prompts, skills, hooks, workflows, core, stack
-    ".agents",           # Global instructions, agents, prompts, skills, hooks, workflows, core, stack
-    ".claude",           # Claude instructions, agents, prompts, skills, hooks, workflows, core, stack
-    ".kilo",             # Kilo instructions, agents, prompts, skills, hooks, workflows, core, stack
-    "_bmad",             # BMAD methodology config
-    ".vscode"            # VS Code settings (chat.* configs)    
+    ".github"
+    ".agents"
+    ".claude"
+    ".kilo"
+    "_bmad"
+    ".vscode"
 )
 
-# Paths the sync script will NEVER overwrite.
 $protectedPathPrefixes = @(
-    ".github/skills/bmad-tea",
-    ".github/skills/reports",
-    ".github/CODEOWNERS"          # Each client may have their own
+    ".github/skills/bmad-tea"
+    ".github/skills/reports"
+    ".github/CODEOWNERS"
 )
 
 function Get-ContentHash($path) {
@@ -31,24 +28,28 @@ function Get-ContentHash($path) {
 function Sync-Folder($srcBase, $destBase, $logLabel) {
     if (-not (Test-Path $srcBase)) { return }
 
-    Get-ChildItem -Path $srcBase -Recurse -File -Force | ForEach-Object {
-        $src = $_.FullName
+    $srcBase = $srcBase.TrimEnd('\', '/')
+
+    foreach ($file in (Get-ChildItem -Path $srcBase -Recurse -File -Force)) {
+        $src = $file.FullName
         $rel = $src.Substring($srcBase.Length + 1) -replace "\\", "/"
         $dest = Join-Path $destBase ($rel -replace "/", "\")
-
         $relNorm = "$logLabel/$rel"
 
+        $protected = $false
         foreach ($prefix in $protectedPathPrefixes) {
-            if ($relNorm -like "$prefix/*" -or $relNorm -eq $prefix) {
+            if ($relNorm -eq $prefix -or $relNorm -like "$prefix/*") {
                 Write-Host "     ⏭ Skipping $relNorm (protected)"
-                return
+                $protected = $true
+                break
             }
         }
+        if ($protected) { continue }
 
         if (Test-Path $dest) {
             if ((Get-ContentHash $src) -eq (Get-ContentHash $dest)) {
                 Write-Host "     ⏭ Skipping $relNorm (unchanged)"
-                return
+                continue
             }
         }
 
@@ -62,7 +63,6 @@ Write-Host "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet $repo $tmp
 
-# Sync top-level allow-listed folders
 foreach ($folder in $syncFolders) {
     $src = Join-Path $tmp $folder
     $dest = ".\$folder"
