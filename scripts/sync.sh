@@ -4,22 +4,19 @@ set -e
 REPO="https://github.com/Bellosoft-Limited/bellosoft-default-skills.git"
 TMP=$(mktemp -d)
 
-# Folders to sync from company core into each client repo.
-# NOTE: .github/core/ and .github/stack/ are subfolders of .github/ and synced automatically.
 SYNC_FOLDERS=(
-    ".github"           # Copilot instructions, agents, prompts, skills, hooks, workflows, core, stack
-    ".agents",           # Global instructions, agents, prompts, skills, hooks, workflows, core, stack
-    ".claude",           # Claude instructions, agents, prompts, skills, hooks, workflows, core, stack
-    ".kilo",             # Kilo instructions, agents, prompts, skills, hooks, workflows, core, stack
-    "_bmad"             # BMAD methodology config
-    ".vscode"           # VS Code settings (chat.* configs)
+    ".github"
+    ".agents"
+    ".claude"
+    ".kilo"
+    "_bmad"
+    ".vscode"
 )
 
-# Path prefixes that the sync script will NEVER overwrite.
 PROTECTED_PREFIXES=(
     ".github/skills/bmad-tea"
     ".github/skills/reports"
-    ".github/CODEOWNERS"          # Each client may have their own
+    ".github/CODEOWNERS"
 )
 
 files_equal() {
@@ -45,7 +42,7 @@ sync_folder() {
     local log_label="$3"
     [ -d "$src_base" ] || return 0
 
-    find "$src_base" -type f | while read -r src; do
+    while read -r src; do
         rel="${src#$src_base/}"
         dest="$dest_base/$rel"
         rel_norm="$log_label/$rel"
@@ -63,20 +60,18 @@ sync_folder() {
         mkdir -p "$(dirname "$dest")"
         cp "$src" "$dest"
         echo "     ✅ $rel_norm"
-    done
+    done < <(find "$src_base" -type f)
 }
 
 echo "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet "$REPO" "$TMP"
 
-# Sync top-level allow-listed folders
 for folder in "${SYNC_FOLDERS[@]}"; do
     src="$TMP/$folder"
     dest="./$folder"
     [ -d "$src" ] || continue
     echo "  → $folder/"
-    mkdir -p "$dest"
     sync_folder "$src" "$dest" "$folder"
 done
 

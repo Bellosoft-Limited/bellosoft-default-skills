@@ -68,7 +68,6 @@ foreach ($folder in $syncFolders) {
     $dest = ".\$folder"
     if (Test-Path $src) {
         Write-Host "  → $folder/"
-        New-Item -ItemType Directory -Force -Path $dest | Out-Null
         Sync-Folder $src $dest $folder
     }
 }
