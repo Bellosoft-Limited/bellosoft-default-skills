@@ -21,10 +21,7 @@ PROTECTED_PREFIXES=(
 )
 
 files_equal() {
-    local a b
-    a=$(tr -d '\r' < "$1" | md5sum)
-    b=$(tr -d '\r' < "$2" | md5sum)
-    [ "$a" = "$b" ]
+    cmp -s <(tr -d '\r' < "$1") <(tr -d '\r' < "$2")
 }
 
 is_protected() {
@@ -94,11 +91,10 @@ git clone --depth=1 --quiet "$REPO" "$TMP"
 for folder in "${SYNC_FOLDERS[@]}"; do
     src="$TMP/$folder"
     dest="$CWD/$folder"
-    [ -d "$src" ] || [ -L "$src" ] && {
-        echo "  → $folder/"
-        sync_folder "$src" "$dest" "$folder"
-        sync_symlinks "$src" "$dest" "$folder"
-    }
+    { [ -d "$src" ] || [ -L "$src" ]; } || continue
+    echo "  → $folder/"
+    sync_folder "$src" "$dest" "$folder"
+    sync_symlinks "$src" "$dest" "$folder"
 done
 
 rm -rf "$TMP"
