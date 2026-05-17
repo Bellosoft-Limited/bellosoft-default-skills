@@ -1,9 +1,10 @@
 #!/bin/bash
-set -e
 
 REPO="https://github.com/Bellosoft-Limited/bellosoft-default-skills.git"
 TMP=$(mktemp -d)
-CWD=$(pwd)
+CWD=$(cygpath -u "${1:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}" 2>/dev/null || echo "${1:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}")
+FILELIST=$(mktemp)
+LINKLIST=$(mktemp)
 
 SYNC_FOLDERS=(
     ".github"
@@ -22,6 +23,7 @@ PROTECTED_PREFIXES=(
 
 files_equal() {
     cmp -s <(tr -d '\r' < "$1") <(tr -d '\r' < "$2")
+    return $?
 }
 
 is_protected() {
@@ -40,7 +42,9 @@ sync_symlinks() {
     local log_label="$3"
     [ -d "$src_base" ] || return 0
 
-    while read -r src; do
+    find "$src_base" -maxdepth 1 -type l > "$LINKLIST"
+
+    while IFS= read -r src; do
         rel="${src#$src_base/}"
         dest="$dest_base/$rel"
         rel_norm="$log_label/$rel"
@@ -54,7 +58,7 @@ sync_symlinks() {
         mkdir -p "$(dirname "$dest")"
         ln -s "$target" "$dest"
         echo "     🔗 $rel_norm -> $target"
-    done < <(find "$src_base" -maxdepth 1 -type l)
+    done < "$LINKLIST"
 }
 
 sync_folder() {
@@ -63,8 +67,23 @@ sync_folder() {
     local log_label="$3"
     [ -d "$src_base" ] || return 0
 
-    while read -r src; do
+    local symlinks=()
+    find "$src_base" -maxdepth 1 -type l > "$LINKLIST"
+    while IFS= read -r s; do
+        symlinks+=("$(basename "$s")")
+    done < "$LINKLIST"
+
+    find "$src_base" -type f > "$FILELIST"
+
+    while IFS= read -r src; do
         rel="${src#$src_base/}"
+        local top="${rel%%/*}"
+        local skip=false
+        for s in "${symlinks[@]}"; do
+            [[ "$top" == "$s" ]] && skip=true && break
+        done
+        $skip && continue
+
         dest="$dest_base/$rel"
         rel_norm="$log_label/$rel"
 
@@ -73,7 +92,12 @@ sync_folder() {
             continue
         fi
 
-        if [ -f "$dest" ] && files_equal "$src" "$dest"; then
+        local equal=false
+        if [ -f "$dest" ]; then
+            files_equal "$src" "$dest" && equal=true
+        fi
+
+        if $equal; then
             echo "     ⏭ Skipping $rel_norm (unchanged)"
             continue
         fi
@@ -81,12 +105,12 @@ sync_folder() {
         mkdir -p "$(dirname "$dest")"
         cp "$src" "$dest"
         echo "     ✅ $rel_norm"
-    done < <(find "$src_base" -type f -not -type l)
+    done < "$FILELIST"
 }
 
 echo "🔄 Syncing Bellosoft project defaults into: $CWD"
 
-git clone --depth=1 --quiet "$REPO" "$TMP"
+git clone --depth=1 --quiet "$REPO" "$TMP" || { echo "❌ git clone failed"; exit 1; }
 
 for folder in "${SYNC_FOLDERS[@]}"; do
     src="$TMP/$folder"
@@ -97,6 +121,7 @@ for folder in "${SYNC_FOLDERS[@]}"; do
     sync_folder "$src" "$dest" "$folder"
 done
 
+rm -f "$FILELIST" "$LINKLIST"
 rm -rf "$TMP"
 
 echo "✅ Sync complete."
