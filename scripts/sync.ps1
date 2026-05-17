@@ -18,12 +18,6 @@ $protectedPathPrefixes = @(
     ".github/CODEOWNERS"
 )
 
-function Test-SymlinkPrivilege {
-    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object System.Security.Principal.WindowsPrincipal($id)
-    return $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
 function Get-ContentHash($path) {
     $content = [System.IO.File]::ReadAllText($path) -replace "`r`n", "`n"
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
@@ -31,30 +25,10 @@ function Get-ContentHash($path) {
     return [System.BitConverter]::ToString($md5.ComputeHash($bytes)) -replace "-", ""
 }
 
-function Sync-Symlinks($srcBase, $destBase) {
-    if (-not (Test-Path $srcBase)) { return }
-
-    Get-ChildItem -Path $srcBase -Recurse -Force | Where-Object { $_.LinkType -eq "SymbolicLink" } | ForEach-Object {
-        $rel = [System.IO.Path]::GetRelativePath($srcBase, $_.FullName) -replace "\\", "/"
-        $dest = Join-Path $destBase ($rel -replace "/", "\")
-        $target = $_.Target
-
-        if (Test-Path $dest) {
-            Write-Host "     ⏭ Skipping symlink $rel (already exists)"
-            return
-        }
-
-        New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
-        New-Item -ItemType SymbolicLink -Path $dest -Target $target -Force | Out-Null
-        Write-Host "     🔗 $rel -> $target"
-    }
-}
-
 function Sync-Folder($srcBase, $destBase, $logLabel) {
     if (-not (Test-Path $srcBase)) { return }
 
     foreach ($file in (Get-ChildItem -Path $srcBase -Recurse -File -Force)) {
-        # Skip files that are inside symlinked directories
         if ($file.LinkType -eq "SymbolicLink") { continue }
 
         $src = $file.FullName
@@ -88,10 +62,6 @@ function Sync-Folder($srcBase, $destBase, $logLabel) {
 $cwd = (Get-Location).Path
 Write-Host "🔄 Syncing Bellosoft project defaults into: $cwd"
 
-if (-not (Test-SymlinkPrivilege)) {
-    Write-Warning "⚠️  Not running as Administrator — symlinks may fail. Enable Developer Mode or run as Admin."
-}
-
 git clone --depth=1 --quiet $repo $tmp
 
 foreach ($folder in $syncFolders) {
@@ -100,7 +70,6 @@ foreach ($folder in $syncFolders) {
     if (Test-Path $src) {
         Write-Host "  → $folder/"
         Sync-Folder $src $dest $folder
-        Sync-Symlinks $src $dest
     }
 }
 
