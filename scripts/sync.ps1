@@ -28,13 +28,10 @@ function Get-ContentHash($path) {
 function Sync-Folder($srcBase, $destBase, $logLabel) {
     if (-not (Test-Path $srcBase)) { return }
 
-    $srcBase = $srcBase.TrimEnd('\')
-    $destBase = $destBase.TrimEnd('\')
-
     foreach ($file in (Get-ChildItem -Path $srcBase -Recurse -File -Force)) {
         $src = $file.FullName
-        $rel = $src.Substring($srcBase.Length + 1) -replace "\\", "/"
-        $dest = "$destBase\" + ($rel -replace "/", "\")
+        $rel = [System.IO.Path]::GetRelativePath($srcBase, $src) -replace "\\", "/"
+        $dest = Join-Path $destBase ($rel -replace "/", "\")
         $relNorm = "$logLabel/$rel"
 
         $protected = $false
@@ -64,12 +61,11 @@ Write-Host "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet $repo $tmp
 
-$tmp = (Resolve-Path $tmp).Path.TrimEnd('\')
-$cwd = (Get-Location).Path.TrimEnd('\')
+$cwd = (Get-Location).Path
 
 foreach ($folder in $syncFolders) {
-    $src = "$tmp\$folder"
-    $dest = "$cwd\$folder"
+    $src = Join-Path $tmp $folder
+    $dest = Join-Path $cwd $folder
     if (Test-Path $src) {
         Write-Host "  → $folder/"
         Sync-Folder $src $dest $folder
