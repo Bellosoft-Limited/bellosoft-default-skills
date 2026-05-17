@@ -28,7 +28,8 @@ function Get-ContentHash($path) {
 function Sync-Folder($srcBase, $destBase, $logLabel) {
     if (-not (Test-Path $srcBase)) { return }
 
-    $srcBase = $srcBase.TrimEnd('\', '/')
+    $srcBase = (Resolve-Path $srcBase).Path.TrimEnd('\')
+    $destBase = [System.IO.Path]::GetFullPath($destBase)
 
     foreach ($file in (Get-ChildItem -Path $srcBase -Recurse -File -Force)) {
         $src = $file.FullName
@@ -63,9 +64,11 @@ Write-Host "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet $repo $tmp
 
+$cwd = (Get-Location).Path
+
 foreach ($folder in $syncFolders) {
     $src = Join-Path $tmp $folder
-    $dest = ".\$folder"
+    $dest = Join-Path $cwd $folder
     if (Test-Path $src) {
         Write-Host "  → $folder/"
         Sync-Folder $src $dest $folder
