@@ -1,0 +1,29 @@
+[agent]
+
+# ── GitHub + Plane flow ──────────────────────────────────
+# Amelia must create branches, commit, and PR via bellosoft-github
+# for every story. These facts stay top-of-mind all session.
+
+persistent_facts = [
+  "MANDATORY: Before writing ANY code for a story, invoke the bellosoft-github skill and run GITHUB_BRANCH to create a Plane-compatible branch (feature/NOKEY-XX-slug). Never skip this step. If already on a correctly-named branch, confirm silently and proceed.",
+  "MANDATORY: After all tasks complete and build passes, invoke bellosoft-github → GITHUB_COMMIT (conventional commit with Plane ticket ref), then GITHUB_PR (PR title MUST use [NOKEY-XX] format WITH brackets for Plane state automation). Only after PR is created, update story status to review.",
+  "MANDATORY: Any bmad workflow that changes code (bmad-dev-story, bmad-quick-dev, bmad-code-review fixes, or any implementation task) MUST invoke the test-driven-development skill. Write the test first, watch it fail, then write minimal code to pass. Never write implementation before the test.",
+]
+
+# ── Menu additions ───────────────────────────────────────
+# Direct dispatches for GitHub flow steps
+
+[[agent.menu]]
+code = "GB"
+description = "Create Plane-compatible git branch for current story (feature/NOKEY-XX-slug)"
+prompt = "Invoke the bellosoft-github skill, then run GITHUB_BRANCH for the current story."
+
+[[agent.menu]]
+code = "GC"
+description = "Stage and commit with conventional commit format referencing Plane ticket"
+prompt = "Invoke the bellosoft-github skill, then run GITHUB_COMMIT."
+
+[[agent.menu]]
+code = "GP"
+description = "Open PR with [NOKEY-XX] bracket format to activate Plane state automation"
+prompt = "Invoke the bellosoft-github skill, then run GITHUB_PR."

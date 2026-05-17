@@ -1,0 +1,21 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://litellm.bellosoft.dev",
+    "ANTHROPIC_AUTH_TOKEN": "sk-........",
+    "ANTHROPIC_MODEL": "bellosoft-reasoning",
+    "ANTHROPIC_SMALL_FAST_MODEL": "bellosoft-simple",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "bellosoft-simple",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "bellosoft-complex",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "bellosoft-medium",
+
+    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
+    "DISABLE_TELEMETRY": "1"
+  },
+  "availableModels": [
+    "bellosoft-simple",
+    "bellosoft-medium",
+    "bellosoft-complex",
+    "bellosoft-reasoning"
+  ]
+}

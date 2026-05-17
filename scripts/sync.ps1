@@ -7,6 +7,9 @@ $tmp = Join-Path $env:TEMP ("bellosoft-sync-" + [System.IO.Path]::GetRandomFileN
 # NOTE: .github/core/ and .github/stack/ are subfolders of .github/ and synced automatically.
 $syncFolders = @(
     ".github",           # Copilot instructions, agents, prompts, skills, hooks, workflows, core, stack
+    ".agents",           # Global instructions, agents, prompts, skills, hooks, workflows, core, stack
+    ".claude",           # Claude instructions, agents, prompts, skills, hooks, workflows, core, stack
+    ".kilo",             # Kilo instructions, agents, prompts, skills, hooks, workflows, core, stack
     "_bmad",             # BMAD methodology config
     ".vscode"            # VS Code settings (chat.* configs)    
 )

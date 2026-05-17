@@ -1,23 +1,23 @@
 {
   // ── Custom Agents (replaces deprecated chat.modeFilesLocations) ──
   "chat.agentFilesLocations": {
-    ".github/agents": true
+    ".agents/agents": true
   },
   // ── Prompt Files ──
   "chat.promptFilesLocations": {
-    ".github/prompts": true
+    ".agents/prompts": true
   },
   // ── Instructions (always-on context) ──
   "chat.instructionsFilesLocations": {
-    ".github/instructions": true
+    ".agents/instructions": true
   },
   // ── Agent Skills ──
   "chat.agentSkillsLocations": {
-    ".github/skills": true
+    ".agents/skills": true
   },
   // ── Hooks (lifecycle automation) ──
   "chat.hookFilesLocations": {
-    ".github/hooks": true
+    ".agents/hooks": true
   },
   // ── Persistent Memory ──
   "github.copilot.chat.tools.memory.enabled": true
