@@ -57,17 +57,16 @@ function Sync-Folder($srcBase, $destBase, $logLabel) {
     }
 }
 
-Write-Host "🔄 Syncing Bellosoft project defaults..."
+$cwd = (Get-Location).Path
+Write-Host "🔄 Syncing Bellosoft project defaults into: $cwd"
 
 git clone --depth=1 --quiet $repo $tmp
-
-$cwd = (Get-Location).Path
 
 foreach ($folder in $syncFolders) {
     $src = Join-Path $tmp $folder
     $dest = Join-Path $cwd $folder
     if (Test-Path $src) {
-        Write-Host "  → $folder/"
+        Write-Host "  → $folder/  (src: $src  dest: $dest)"
         Sync-Folder $src $dest $folder
     }
 }
