@@ -54,7 +54,7 @@ sync_symlinks() {
         mkdir -p "$(dirname "$dest")"
         ln -s "$target" "$dest"
         echo "     🔗 $rel_norm -> $target"
-    done < <(find "$src_base" -type l)
+    done < <(find "$src_base" -maxdepth 1 -type l)
 }
 
 sync_folder() {
@@ -93,8 +93,8 @@ for folder in "${SYNC_FOLDERS[@]}"; do
     dest="$CWD/$folder"
     { [ -d "$src" ] || [ -L "$src" ]; } || continue
     echo "  → $folder/"
-    sync_folder "$src" "$dest" "$folder"
     sync_symlinks "$src" "$dest" "$folder"
+    sync_folder "$src" "$dest" "$folder"
 done
 
 rm -rf "$TMP"
