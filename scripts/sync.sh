@@ -3,6 +3,7 @@ set -e
 
 REPO="https://github.com/Bellosoft-Limited/bellosoft-default-skills.git"
 TMP=$(mktemp -d)
+CWD=$(pwd)
 
 SYNC_FOLDERS=(
     ".github"
@@ -36,6 +37,29 @@ is_protected() {
     return 1
 }
 
+sync_symlinks() {
+    local src_base="$1"
+    local dest_base="$2"
+    local log_label="$3"
+    [ -d "$src_base" ] || return 0
+
+    while read -r src; do
+        rel="${src#$src_base/}"
+        dest="$dest_base/$rel"
+        rel_norm="$log_label/$rel"
+        target=$(readlink "$src")
+
+        if [ -e "$dest" ] || [ -L "$dest" ]; then
+            echo "     ⏭ Skipping symlink $rel_norm (already exists)"
+            continue
+        fi
+
+        mkdir -p "$(dirname "$dest")"
+        ln -s "$target" "$dest"
+        echo "     🔗 $rel_norm -> $target"
+    done < <(find "$src_base" -type l)
+}
+
 sync_folder() {
     local src_base="$1"
     local dest_base="$2"
@@ -60,19 +84,21 @@ sync_folder() {
         mkdir -p "$(dirname "$dest")"
         cp "$src" "$dest"
         echo "     ✅ $rel_norm"
-    done < <(find "$src_base" -type f)
+    done < <(find "$src_base" -type f -not -type l)
 }
 
-echo "🔄 Syncing Bellosoft project defaults..."
+echo "🔄 Syncing Bellosoft project defaults into: $CWD"
 
 git clone --depth=1 --quiet "$REPO" "$TMP"
 
 for folder in "${SYNC_FOLDERS[@]}"; do
     src="$TMP/$folder"
-    dest="./$folder"
-    [ -d "$src" ] || continue
-    echo "  → $folder/"
-    sync_folder "$src" "$dest" "$folder"
+    dest="$CWD/$folder"
+    [ -d "$src" ] || [ -L "$src" ] && {
+        echo "  → $folder/"
+        sync_folder "$src" "$dest" "$folder"
+        sync_symlinks "$src" "$dest" "$folder"
+    }
 done
 
 rm -rf "$TMP"
