@@ -34,7 +34,7 @@ mklink /D ".kilo\skills" "..\\.claude\\skills"
 **Windows — PowerShell (run as Administrator):**
 ```powershell
 New-Item -ItemType SymbolicLink -Path ".kilo\agents" -Target "..\.claude\agents"
-New-Item -ItemType SymbolicLink -Path ".kilo\skills" -Target "..\.claude\agents"
+New-Item -ItemType SymbolicLink -Path ".kilo\skills" -Target "..\.claude\skills"
 ```
 
 ---
