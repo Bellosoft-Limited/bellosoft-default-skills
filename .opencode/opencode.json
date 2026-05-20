@@ -36,7 +36,7 @@
       "model": "litellm/bellosoft-complex",
       "prompt": "{file:../.claude/agents/architect.agent.md}",
       "permission": {
-        "edit": "deny",
+        "edit": "allow",
         "bash": "allow"
       }
     },

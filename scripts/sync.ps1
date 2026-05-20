@@ -9,6 +9,7 @@ $syncFolders = @(
     ".claude"
     ".kilo"
     "_bmad"
+    ".opencode"
     ".vscode"
 )
 

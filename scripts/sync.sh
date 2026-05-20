@@ -10,6 +10,7 @@ SYNC_FOLDERS=(
     ".claude"
     ".kilo"
     "_bmad"
+    ".opencode"
     ".vscode"
 )
 
