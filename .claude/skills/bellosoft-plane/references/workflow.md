@@ -1,6 +1,6 @@
 # Plane Lifecycle Workflow
 
-Sync Plane tickets with BMAD story lifecycle events. All changes go through Plane MCP — never the UI.
+Sync Plane tickets with BMAD story lifecycle events. Uses Plane MCP for reads/simple updates and the Plane REST API via curl (with `X-API-Key`) for creating epics and typed work items.
 
 ---
 
@@ -11,6 +11,29 @@ Sync Plane tickets with BMAD story lifecycle events. All changes go through Plan
 - `project_name` — used to auto-select the Plane project
 - `planning_artifacts` (default: `{project-root}/docs/planning-artifacts`) → `epics.md`
 - `implementation_artifacts` (default: `{project-root}/docs/implementation-artifacts`) → story files and `sprint-status.yaml`
+
+**API Key resolution:** The Plane REST API requires an `X-API-Key` header for creating epics, work items with custom types, and other write operations that MCP cannot handle.
+
+1. Check `_bmad/secrets/plane-api-key.txt` — if the file exists, read the key and use it.
+2. If not found, check the `PLANE_API_KEY` environment variable.
+3. If neither exists, prompt the user: `"Enter your Plane API key (or set PLANE_API_KEY env var, or save to _bmad/secrets/plane-api-key.txt):"`
+4. Once obtained, store it in `_bmad/secrets/plane-api-key.txt` for future sessions.
+
+The resolved key is used via `-H "X-API-Key: {key}"` in all curl commands throughout this workflow.
+
+**Work item type resolution:** Before any create/update operations, resolve the type IDs needed for proper typing:
+
+```bash
+curl -s "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-item-types/" -H "X-API-Key: {key}"
+```
+
+Build a map from the response:
+
+- `EPIC_TYPE_ID` — the type with `is_epic: true` (used automatically by the `/epics/` endpoint)
+- `USER_STORY_TYPE_ID` — the type named "User Story" (use for all story work items)
+- `TASK_TYPE_ID` — the default type named "Task"
+
+Store all three IDs. The User Story type must exist in the project before creating stories — if missing, create it first (see CREATE_PROJECT Step 5).
 
 **Project resolution:** Call `mcp_plane_list_projects`. Match `project_name` case-insensitively.
 
@@ -247,7 +270,7 @@ curl -s "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/" -H "
 **Step 3 — Build existence lookups:**
 Fetch all existing epics (paginate `mcp_plane_list_epics`) and work items (paginate `mcp_plane_list_work_items`). Build case-insensitive lookups by `name.toLowerCase()`.
 
-**Important:** Store the full epic/work item objects (including `id`, `sequence_id`, `name`, `description_html`, `parent`) — needed for comparison in Steps 5 and 6 to detect content changes.
+**Important:** Store the full epic/work item objects (including `id`, `sequence_id`, `name`, `description_html`, `parent`) — needed for comparison in Steps 5, 7, and 8 to detect content changes.
 
 **Step 4 — Resolve label ID:**
 Fetch labels via `mcp_plane_list_labels`. Find `bmad-generated` label by name (case-insensitive). If not found, create it with color `#7C3AED` via `mcp_plane_create_label`. Store the label ID.
@@ -265,7 +288,16 @@ When checking if an epic/story exists in Plane:
 - This allows the workflow to find items even when the identifier has been written back
 - Case-insensitive match on the stripped name
 
-**Step 5 — Upsert epics** via `mcp_plane_create_epic` or update if content changed:
+**Step 6 — Resolve work item type IDs:**
+Before creating or updating, resolve the User Story type ID for the project:
+
+```bash
+curl -s "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-item-types/" -H "X-API-Key: {key}"
+```
+
+Build a map from the response. Store `USER_STORY_TYPE_ID` (the type named "User Story") and `TASK_TYPE_ID` (the type named "Task" with `is_default: true`). If "User Story" type doesn't exist, create it (see CREATE_PROJECT Step 5 for the type definition).
+
+**Step 7 — Upsert epics** via the Plane REST API `/epics/` endpoint (creates proper Plane epics, not work items with Epic type):
 
 **For each epic in epics.md:**
 
@@ -278,11 +310,15 @@ When checking if an epic/story exists in Plane:
    - If not found → **CREATE PATH**
 
 3. **CREATE PATH:**
-   - Call `mcp_plane_create_epic` with:
-     - `name`: `expected_name`
-     - `description_html`: `expected_description_html`
-     - `label_ids`: `[bmad-generated label ID]`
-   - Record the `sequence_id` from response — needed in Step 7.
+   - Call the Plane REST API:
+     ```
+     curl -s -X POST "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/epics/" \
+       -H "X-API-Key: {key}" \
+       -H "Content-Type: application/json" \
+       -d '{"name":"{expected_name}","description_html":"{expected_description_html}","labels":["{bmad-generated label ID}"]}'
+     ```
+   - ⚠️ Do **NOT** use `mcp_plane_create_epic` — it may fail if no work item type with `is_epic=True` exists. The `/epics/` endpoint creates proper Plane epics with the correct internal type automatically.
+   - Record the `sequence_id` from the response — needed in Step 8.
 
 4. **UPDATE PATH (epics.md is source of truth):**
    - Retrieve the existing epic's current `name` and `description_html`
@@ -294,38 +330,44 @@ When checking if an epic/story exists in Plane:
      - `description_html`: `expected_description_html`
    - **Never change `state`** on existing epics — preserve user's workflow state
    - **Never change `labels`, `assignees`, `priority`, etc.** — only update name and description
-   - Record the existing `sequence_id` (from lookup) — needed in Step 7.
+   - Record the existing `sequence_id` (from lookup) — needed in Step 8.
    - If updated, log: `Updated Epic {epic_id}: name/description changed in epics.md`
 
 5. **Skip criteria:**
    - Only skip (no API call) if name AND description match exactly
    - Log: `Skipped Epic {epic_id}: already in sync`
 
-**Step 6 — Upsert stories** via `mcp_plane_create_work_item` or update if content changed:
+**Step 8 — Upsert stories** via the Plane REST API `POST /work-items/` with `type_id` set to the User Story type:
 
 **For each story in epics.md:**
 
 1. Build expected values from epics.md:
    - `expected_name`: story title with [IDENTIFIER-seq] if present, e.g. `Story 1.2 [CA3-19]: Security Hardening — ...`
    - `expected_description_html`: compact HTML — user story `<p>` + `<h3>Acceptance Criteria</h3>` + `<ul>` of criteria items
-   - `expected_parent_id`: epic work item ID (from Step 5)
+   - `expected_parent_id`: epic ID (from Step 7)
 
 2. Check existence lookup (from Step 2):
    - If story name (ignoring `[IDENTIFIER-seq]` suffix) found → **UPDATE PATH**
    - If not found → **CREATE PATH**
 
 3. **CREATE PATH:**
-   - Call `mcp_plane_create_work_item` with:
-     - `name`: `expected_name`
-     - `description_html`: `expected_description_html`
-     - `parent`: `expected_parent_id`
-     - `state`: Backlog state ID
-     - `label_ids`: `[bmad-generated label ID]`
-   - After creating, add a traceability comment via `mcp_plane_create_work_item_comment`:
+   - Call the Plane REST API:
      ```
-     <p><strong>Source:</strong> docs/planning-artifacts/epics.md — Story {story_id}</p>
+     curl -s -X POST "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/" \
+       -H "X-API-Key: {key}" \
+       -H "Content-Type: application/json" \
+       -d '{"name":"{expected_name}","description_html":"{expected_description_html}","parent":"{expected_parent_id}","state":"{backlog_state_id}","labels":["{bmad-generated label ID}"],"type_id":"{USER_STORY_TYPE_ID}"}'
      ```
-   - Record the `sequence_id` from response — needed in Step 7.
+   - ⚠️ `type_id` is **required** — omitting it creates a default "Task" type work item instead of "User Story". Always set it to the resolved User Story type ID.
+   - ⚠️ Do **NOT** use `mcp_plane_create_work_item` for creating stories — it doesn't support the `type_id` parameter and always creates "Task" type items.
+   - After creating, add a traceability comment via the REST API:
+     ```
+     curl -s -X POST "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/{work_item_id}/comments/" \
+       -H "X-API-Key: {key}" \
+       -H "Content-Type: application/json" \
+       -d '{"comment_html":"<p><strong>Source:</strong> docs/planning-artifacts/epics.md — Story {story_id}</p>"}'
+     ```
+   - Record the `sequence_id` from response — needed in Step 8.
 
 4. **UPDATE PATH (epics.md is source of truth):**
    - Retrieve the existing work item's current `name`, `description_html`, and `parent`
@@ -338,15 +380,16 @@ When checking if an epic/story exists in Plane:
      - `description_html`: `expected_description_html`
      - `parent`: `expected_parent_id`
    - **Never change `state`** on existing items — preserve user's workflow state
+   - **Never change `type_id`** on existing items — type is set at creation and should not change
    - **Never change `labels`, `assignees`, `priority`, etc.** — only update name, description, parent
-   - Record the existing `sequence_id` (from lookup) — needed in Step 7.
+   - Record the existing `sequence_id` (from lookup) — needed in Step 8.
    - If updated, log: `Updated Story {story_id}: name/description changed in epics.md`
 
 5. **Skip criteria:**
    - Only skip (no API call) if name, description, AND parent all match exactly
    - Log: `Skipped Story {story_id}: already in sync`
 
-**Step 7 — Summary &amp; offer sync:**
+**Step 8 — Summary &amp; offer sync:**
 ```
 ✅ Project scaffolded: {project_name} ({IDENTIFIER})
   States:     8 configured (N created, M updated, K deleted)
@@ -503,6 +546,8 @@ Create only those missing from this list (case-insensitive name match, skipping 
 | User Story | false   |
 | Test       | false   |
 
+**All types have `is_epic: false`** — including "User Story". The `is_epic` flag is reserved for Plane's internal epic type (created automatically via the `/epics/` endpoint). Epics should never be created as work items; always use `POST /workspaces/{slug}/projects/{id}/epics/` instead.
+
 **Skip logic:**
 - If `Task` exists with `is_default: true` → **skip** Task creation entirely. Use the default type's ID for property assignments.
 - If `Task` exists but `is_default: false` (rare) → skip, use that ID.
@@ -576,3 +621,6 @@ Otherwise ask for display name or email, call `mcp_plane_get_workspace_members`,
 - **DATETIME properties need settings:** `{"display_format":"dd/MM/yyyy"}`. Omitted settings → validation error.
 - **MCP `Output validation error: None is not of type 'string'` is usually a false positive.** Verify via curl GET after creation.
 - **When MCP tools for listing types/labels are unavailable**, use direct curl to the Plane REST API with the x-api-key header.
+- **Always create stories as "User Story" type** — use the Plane REST API `POST /work-items/` with `type_id` set to the User Story type ID. NEVER use `mcp_plane_create_work_item` for creating stories (it creates "Task" type items).
+- **Always create epics via the `/epics/` REST endpoint** — `POST /workspaces/{slug}/projects/{id}/epics/`. Do NOT use `mcp_plane_create_epic` (it may fail if no `is_epic=True` type exists) or create epics as work items with "Epic" type.
+- **Prompt for API key if missing** — whenever a REST API call is needed, ensure the key is available. If not, prompt the user before proceeding. Store the key in `_bmad/secrets/plane-api-key.txt` after first use.
