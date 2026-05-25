@@ -1,53 +1,55 @@
 # Copilot Instructions — Bellosoft Delivery OS
 
-## Knowledge Base
+This file is always loaded. Keep behaviour minimal — detailed references live in `AGENTS.md`.
 
-### `core/` — Universal Rules (always active)
-- `.agents/core/coding-standards.md` — C#, TypeScript/Vue, Python naming & language rules
-- `.agents/core/review-checklist.md` — PR review with 🔴 BLOCKER · 🟡 MAJOR · 🔵 MINOR · 💡 NIT
-- `.agents/core/security-rules.md` — OWASP Top 10 + API Security Top 10 rules
-- `.agents/core/git-flow.md` — GitFlow branching: main + develop + feature/* + hotfix/* + release/*
-- `.agents/core/delivery-process.md` — Sprint lifecycle, Definition of Ready/Done
-- `.agents/core/github-actions.md` — Workflows, OIDC, permissions, secrets, branch protection
-- `.agents/core/testing-patterns.md` — TDD (Red‑Green‑Refactor), FIRST, AAA, xUnit patterns
+## Core Principles
 
+- **BMAD methodology** — use multi-agent workflows via `task` and `skill`
+- **Load on demand** — never pre-load rules; fetch only what the current task needs
+- **Delegate appropriately** — use agents for complex work, skills for domain rules
+- **Lean context** — compress completed sections to keep the conversation window clean
 
-### `stack/` — Tech‑Specific Guidelines (context‑dependent)
-- `.agents/stack/dotnet.md` — .NET 9/10, ASP.NET Core, EF Core conventions
-- `.agents/stack/vue.md` — Vue 3 Composition API, Nuxt 3, Pinia, TypeScript
-- `.agents/stack/mssql.md` — SQL Server 2022+, T‑SQL, indexing, performance
-- `.agents/stack/postgresql.md` — PostgreSQL 16+, PL/pgSQL, indexing, performance
-- `.agents/stack/mariadb.md` — MariaDB 11.x, MySQL 8.0, InnoDB, Galera Cluster
-- `.agents/stack/azure.md` — Azure PaaS, naming, tagging, IAM, Key Vault, networking
-- `.agents/stack/docker.md` — Multi‑stage builds, Docker Compose, security, CI
+## How to Work
 
-## Custom Agents
+1. Check `AGENTS.md` for the directory map and discovery commands
+2. Check `_bmad/custom/bmad-agent-dev.toml` before any coding task
+3. Load what you need — skill manifests via `skill`, plain files via `read`
+4. Delegate complex work via `task`
+5. Compress when a section of work is complete
 
-Seven specialized agents — defined in `.claude/agents/` 
-- `architect.agent.md` — System architecture & memory bank
-- `code.agent.md` — Feature implementation & debugging
-- `debug.agent.md` — Issue analysis & root‑cause fixing
-- `ask.agent.md` — Project Q&A & knowledge retrieval
-- `pm.agent.md` — Sprint planning & work item management
-- `review.agent.md` — Adversarial code review & quality gates
-- `sales.agent.md` — Proposals, estimates & client docs
+## Loading Rules
 
-## Copilot Configuration
+**Skill manifests** (`.claude/skills/`) — use `skill` tool:
+```bash
+skill name="bmad-agent-dev"
+skill name="bellosoft-github"
+```
 
-| Customization | Copilot (VS Code) |
+**Stack, core, and prompt files** — read directly:
+```bash
+read .agents/stack/dotnet.md
+read .agents/core/security-rules.md
+read .agents/prompts/github-pr.prompt.md
+```
+
+## Delegating Work
+
+```bash
+task subagent_type="code" prompt="Implement user login"
+task subagent_type="review" prompt="Review PR #42"
+```
+
+## Configuration Paths
+
+| Resource | Path |
 |---|---|
-| Always‑on instructions | `.github/copilot-instructions.md` |
-| Custom agents | `.claude/agents/*.agent.md` |
-| Prompt files | `.agents/prompts/*.prompt.md` |
-| Skills | `.claude/skills/*/SKILL.md` |
-| Universal rules | `.agents/core/` |
-| Tech‑stack guidelines | `.agents/stack/` |
+| These instructions | `.github/copilot-instructions.md` |
+| Agent catalog | `AGENTS.md` |
 | MCP servers | `.vscode/mcp.json` |
-| Hooks | `.github/hooks/*.json` |
 
-## Key Principles
+## Reference
 
-1. All rules are stored in `.agents/` (the source of truth).
-2. Use the `_bmad/` methodology for multi‑agent delivery workflows.
-3. All schema/rule files use command‑format (actionable rules, no prose).
-4. "Never Do" blocklist at the bottom of each rule file.
+See `AGENTS.md` for:
+- Full directory map
+- How to discover available skills, agents, stack rules, and prompts
+- Complete loading instructions
