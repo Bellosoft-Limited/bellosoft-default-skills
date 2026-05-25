@@ -14,6 +14,10 @@ SYNC_FOLDERS=(
     ".vscode"
 )
 
+ROOT_FILES=(
+    "AGENTS.md"
+)
+
 PROTECTED_PREFIXES=(
     ".github/skills/bmad-tea"
     ".github/skills/reports"
@@ -64,6 +68,21 @@ sync_folder() {
     done
 }
 
+sync_root_files() {
+    for file in "${ROOT_FILES[@]}"; do
+        src="$TMP/$file"
+        dest="./$file"
+        [ -f "$src" ] || continue
+        echo "  → $file"
+        if [ -f "$dest" ] && files_equal "$src" "$dest"; then
+            echo "     ⏭ Skipping $file (unchanged)"
+            continue
+        fi
+        cp "$src" "$dest"
+        echo "     ✅ $file"
+    done
+}
+
 echo "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet "$REPO" "$TMP"
@@ -76,6 +95,8 @@ for folder in "${SYNC_FOLDERS[@]}"; do
     mkdir -p "$dest"
     sync_folder "$src" "$dest" "$folder"
 done
+
+sync_root_files
 
 rm -rf "$TMP"
 

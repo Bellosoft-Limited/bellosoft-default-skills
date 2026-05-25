@@ -13,6 +13,10 @@ $syncFolders = @(
     ".vscode"
 )
 
+$rootFiles = @(
+    "AGENTS.md"
+)
+
 $protectedPathPrefixes = @(
     ".github/skills/bmad-tea"
     ".github/skills/reports"
@@ -60,6 +64,23 @@ function Sync-Folder($srcBase, $destBase, $logLabel) {
     }
 }
 
+function Sync-RootFiles($tmpBase, $destBase) {
+    foreach ($file in $rootFiles) {
+        $src = Join-Path $tmpBase $file
+        $dest = Join-Path $destBase $file
+        if (-not (Test-Path $src)) { continue }
+        Write-Host "  → $file"
+        if (Test-Path $dest) {
+            if ((Get-ContentHash $src) -eq (Get-ContentHash $dest)) {
+                Write-Host "     ⏭ Skipping $file (unchanged)"
+                continue
+            }
+        }
+        Copy-Item -Path $src -Destination $dest -Force
+        Write-Host "     ✅ $file"
+    }
+}
+
 $cwd = (Get-Location).Path
 Write-Host "🔄 Syncing Bellosoft project defaults into: $cwd"
 
@@ -73,6 +94,8 @@ foreach ($folder in $syncFolders) {
         Sync-Folder $src $dest $folder
     }
 }
+
+Sync-RootFiles $tmp $cwd
 
 Remove-Item -Recurse -Force $tmp
 
