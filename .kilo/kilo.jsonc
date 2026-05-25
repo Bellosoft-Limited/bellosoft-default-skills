@@ -1,28 +1,27 @@
 {
   "$schema": "https://app.kilo.ai/config.json",
-  "instructions": [".claude/CLAUDE.md", ".agents/**/*.md"],
+  "instructions": [".agents/instructions/bellosoft-core.instructions.md"],
+  "skills": {
+    "paths": [".claude/skills"],
+  },
   "mcp": {
     "context7": {
       "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@upstash/context7-mcp"
-      ],
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
       "environment": {
-        "DEFAULT_MINIMUM_TOKENS": ""
+        "DEFAULT_MINIMUM_TOKENS": "",
       },
-      "enabled": false
+      "enabled": false,
     },
     "sequentialthinking": {
       "type": "local",
       "command": [
         "npx",
         "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
+        "@modelcontextprotocol/server-sequential-thinking",
       ],
-      "enabled": false
-    }
+      "enabled": false,
+    },
   },
   "permission": {
     "bash": "allow",
@@ -33,10 +32,9 @@
     "external_directory": "ask",
     "edit": "ask",
     "skill": {
-      "*": "ask",
-      "bmad-code-review": "allow"
+      "*": "allow",
     },
-    "task": "ask"
+    "task": "allow",
   },
   "model": "litellm/bellosoft-medium",
   "disabled_providers": [],
@@ -45,23 +43,17 @@
       "name": "LiteLLM",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "baseURL": "https://litellm.bellosoft.dev/v1"
+        "baseURL": "https://litellm.bellosoft.dev/v1",
       },
       "models": {
-        "bellosoft-medium": {
-          "name": "bellosoft-medium"
-        },
-        "bellosoft-complex": {
-          "name": "bellosoft-complex"
-        },
-        "bellosoft-simple": {
-          "name": "bellosoft-simple"
-        },
+        "bellosoft-medium": { "name": "bellosoft-medium" },
+        "bellosoft-complex": { "name": "bellosoft-complex" },
+        "bellosoft-simple": { "name": "bellosoft-simple" },
         "bellosoft-reasoning": {
           "name": "bellosoft-reasoning",
-          "reasoning": true
-        }
-      }
-    }
-  }
+          "reasoning": true,
+        },
+      },
+    },
+  },
 }
