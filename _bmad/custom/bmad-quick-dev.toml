@@ -1,0 +1,12 @@
+[workflow]
+
+# ── TDD enforcement (runs before activation) ──
+activation_steps_prepend = [
+  "MANDATORY: Invoke the skill tool with name='test-driven-development' NOW. Load its full TDD guidance (Iron Law, Red-Green-Refactor, FIRST, AAA, anti-patterns) before writing ANY code.",
+  "CRITICAL — TDD ENFORCED: Before writing ANY code, write a failing test first. Watch it fail (confirm the failure is for the expected reason). Then write the MINIMAL code to make it pass. Refactor while keeping tests green. Never write implementation before the test.",
+]
+
+# ── Persistent guardrails ──
+persistent_facts = [
+  "MANDATORY — TDD: Any bmad workflow that changes code MUST follow strict test-first discipline. Write the test first, watch it fail, then write minimal code to pass. Never write implementation before the test.",
+]

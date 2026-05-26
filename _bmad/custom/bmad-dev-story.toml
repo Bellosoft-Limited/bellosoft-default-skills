@@ -1,0 +1,13 @@
+[workflow]
+
+# ── TDD enforcement (runs before activation, config load, and greet) ──
+activation_steps_prepend = [
+  "MANDATORY: Invoke the skill tool with name='test-driven-development' NOW. Load its full TDD guidance (Iron Law, Red-Green-Refactor, FIRST, AAA, anti-patterns) before writing ANY code.",
+  "CRITICAL — TDD ENFORCED: Before writing ANY code, write a failing test first. Watch it fail (confirm the failure is for the expected reason). Then write the MINIMAL code to make it pass. Refactor while keeping tests green. Never write implementation before the test. Never write more code than needed to pass the current failing test.",
+]
+
+# ── Persistent guardrails ──
+persistent_facts = [
+  "MANDATORY — TDD: Any bmad workflow that changes code (bmad-dev-story, bmad-quick-dev, bmad-code-review fixes, or any implementation task) MUST follow strict test-first discipline. Write the test first, watch it fail (confirming the test is valid), then write minimal code to pass. Never write implementation before the test. Never write extra code beyond what the test requires. This is non-negotiable.",
+  "MANDATORY — GitHub flow: Before writing code for a story, create a Plane-compatible branch (feature/NOKEY-XX-slug). After all tasks complete and build passes, commit with a conventional commit message referencing the Plane ticket, then create a PR whose title uses [NOKEY-XX] bracket format for Plane state automation. Only after PR is created, update story status to review.",
+]

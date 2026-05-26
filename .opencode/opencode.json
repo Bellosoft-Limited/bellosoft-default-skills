@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "instructions": [".claude/CLAUDE.md", ".agents/**/*.md"],
   "provider": {
     "litellm": {
       "npm": "@ai-sdk/openai-compatible",
@@ -70,5 +71,5 @@
   },
   "plugin": [
     "@tarquinen/opencode-dcp@latest"
-  ]  
+  ]
 }
