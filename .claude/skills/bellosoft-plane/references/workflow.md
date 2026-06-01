@@ -218,7 +218,7 @@ Do NOT update `description_html`.
 
 ## SYNC_EPICS
 
-Upsert every epic and story from `planning-artifacts/epics.md` into Plane. **epics.md is the single source of truth** — when content changes there, this command updates Plane to match. Safe to re-run.
+Upsert every epic and story from `planning-artifacts/epics.md` specified by the user into Plane. **epics.md is the single source of truth** — when content changes there, this command updates Plane to match. Safe to re-run.
 
 **Behavior:**
 - Creates new epics/stories that don't exist in Plane
@@ -226,9 +226,10 @@ Upsert every epic and story from `planning-artifacts/epics.md` into Plane. **epi
 - Skips items that are already in sync
 - Never changes workflow state, labels, assignees, or other user-managed fields
 - Only updates: `name`, `description_html`, `parent` (for stories)
+- Upsert or update only Epics and Stories specified by the user
 
 **Step 1 — Scan & list before doing anything:**
-Read `planning-artifacts/epics.md`. Extract all epics and stories. Print the full list to the user before any API calls:
+Read `planning-artifacts/epics.md`. Extract all epics and stories mentioned by the user. If user does not specify specific Epics or Stories, all should be included. Print the full list to the user before any API calls:
 
 ```
 Found:
@@ -299,7 +300,7 @@ Build a map from the response. Store `USER_STORY_TYPE_ID` (the type named "User 
 
 **Step 7 — Upsert epics** via the Plane REST API `/epics/` endpoint (creates proper Plane epics, not work items with Epic type):
 
-**For each epic in epics.md:**
+**For each epic in epics.md specified by the user:**
 
 1. Build expected values from epics.md:
    - `expected_name`: epic title with [IDENTIFIER-seq] if present, e.g. `Epic 1 [CA3-2]: Infrastructure Foundations`
@@ -339,7 +340,7 @@ Build a map from the response. Store `USER_STORY_TYPE_ID` (the type named "User 
 
 **Step 8 — Upsert stories** via the Plane REST API `POST /work-items/` with `type_id` set to the User Story type:
 
-**For each story in epics.md:**
+**For each story in epics.md specified by the user:**
 
 1. Build expected values from epics.md:
    - `expected_name`: story title with [IDENTIFIER-seq] if present, e.g. `Story 1.2 [CA3-19]: Security Hardening — ...`
@@ -399,7 +400,7 @@ Build a map from the response. Store `USER_STORY_TYPE_ID` (the type named "User 
 ⚠️  Icon/color for work item types must be set manually in the Plane UI
     (Project Settings → Work item types):
       Task        → default icon  · #6695FF
-      Bug         → AlertTriangle · #FF7474
+      Bug         → AlertTriangle · #f80000
       User Story  → BookOpen      · #1FA191
       Test        → Aperture      · #FC964D
 
@@ -500,17 +501,17 @@ Fetch existing labels via `mcp_plane_list_labels`. Create only those missing (ca
 | Name           | Color   |
 | -------------- | ------- |
 | frontend       | #9900ef |
-| framework      | #def511 |
+| framework      | #f78da7 |
 | backend        | #0693e3 |
 | test           | #16a34a |
-| blocked        | #ff6900 |
+| blocked        | #ff0000 |
 | feature        | #00ccff |
 | bug            | #ff0000 |
 | improvement    | #d6d6d6 |
 | chore          | #d6d6d6 |
 | incident       | #d6d6d6 |
 | rollback       | #d6d6d6 |
-| non-billable   | #d6d6d6 |
+| non-billable   | #ff0000 |
 | project-management | #d6d6d6 |
 | planning       | #d6d6d6 |
 | meeting        | #d6d6d6 |
@@ -578,8 +579,7 @@ Fetch existing properties first via curl GET `/work-item-types/{type_id}/work-it
 | Bug        | Deploy Date    | `DATETIME`    | `{"display_format":"dd/MM/yyyy"}`   |
 | User Story | Spec Link      | `TEXT`        | `{"display_format":"single-line"}`  |
 | User Story | Deploy Date    | `DATETIME`    | `{"display_format":"dd/MM/yyyy"}`   |
-| Test       | Spec Link      | `TEXT`        | `{"display_format":"single-line"}`  |
-| Test       | Deploy Date    | `DATETIME`    | `{"display_format":"dd/MM/yyyy"}`   |
+| User Story | Affected Files | `TEXT`        | `{"display_format":"multi-line"}`   |
 
 **Verification (after each type's properties are created):**
 ```
