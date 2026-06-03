@@ -50,10 +50,19 @@ All Plane operations must follow the rules in that file.
 
 ### Step 1a — Workspace slug
 
+**Always read the file first. Run this exact command:**
+
+```bash
+# On Windows (PowerShell):
+if (Test-Path ".secrets/plane-workspace.txt") { Get-Content ".secrets/plane-workspace.txt" -Raw }
+# On Mac/Linux (bash):
+cat .secrets/plane-workspace.txt 2>/dev/null
+```
+
 **Resolution order (stop at first success):**
 
-1. Check `.secrets/plane-workspace.txt` — if exists, read and use silently
-2. Check `docs/planning-artifacts/plane-profile.md` — if `workspace_slug` present, use it and save to `.secrets/plane-workspace.txt`
+1. **Read `.secrets/plane-workspace.txt`** — run the command above; if file exists and non-empty, use value silently
+2. Check `docs/planning-artifacts/plane-profile.md` — if `workspace_slug` present, save to `.secrets/plane-workspace.txt` and use silently
 3. Try MCP: call `mcp_plane_list_projects` — if succeeds, extract slug from project URLs and save to `.secrets/plane-workspace.txt`
 4. If all above fail, prompt once:
    `"What is your Plane workspace slug? (visible in the URL: app.plane.so/{slug}/...)"`
@@ -67,9 +76,18 @@ The API key is required for all write operations MCP cannot handle: creating epi
 (`POST /epics/`) and typed work items (`POST /work-items/` with `type_id`).
 It is also the fallback for all read operations when MCP is unavailable.
 
-**Resolve upfront, before any operation:**
+**Always read the file first. Run this exact command:**
 
-1. Check `.secrets/plane-api-key.txt` — if exists, use silently
+```bash
+# On Windows (PowerShell):
+if (Test-Path ".secrets/plane-api-key.txt") { Get-Content ".secrets/plane-api-key.txt" -Raw }
+# On Mac/Linux (bash):
+cat .secrets/plane-api-key.txt 2>/dev/null
+```
+
+**Resolution order (stop at first success):**
+
+1. **Read `.secrets/plane-api-key.txt`** — run the command above; if file exists and non-empty, use value silently
 2. Check `PLANE_API_KEY` env var — if set, use silently
 3. If neither found, prompt once:
    `"A Plane API key is needed. Get it from Plane → Profile → Personal Access Tokens:"`
@@ -229,14 +247,18 @@ Called by: `bellosoft-plan-epic` (for sub-tasks), `bellosoft-plan-adhoc`
 
 **Input:**
 ```
-title: string           (format: "[TAG] Task description")
+title: string                (task description, without tag prefix)
+task_id: string              (e.g. "E1-S1-T1" — epic.story.task numbers)
 acceptance_criterion: string
 estimate_hours: number
-parent_story_id: string (Plane work item UUID)
-area_tag: string        (BE/FE/DB/QA/etc.)
-depends_on: string[]    (optional — Plane work item IDs)
-labels: string[]        (optional)
+parent_story_id: string      (Plane work item UUID)
+area_tag: string             (BE/FE/DB/QA/INFRA/etc.)
+depends_on: string[]         (optional — Plane work item IDs)
+labels: string[]             (optional)
 ```
+
+**Task name format:** `{task_id} [{TAG}] {title}`
+Example: `E1-S1-T1 [FW] Update TargetFramework to net10.0 in all 4 .csproj files`
 
 **Execution:**
 
@@ -248,7 +270,7 @@ curl -s -X POST \
   -H "X-API-Key: {key}" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "[{TAG}] {title}",
+    "name": "{task_id} [{TAG}] {title}",
     "description_html": "<div><h3>Acceptance Criterion</h3><p>{AC}</p><p><strong>Estimate:</strong> {N}h</p></div>",
     "parent": "{parent_story_id}",
     "state": "{backlog_state_id}",

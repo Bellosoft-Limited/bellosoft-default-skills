@@ -12,9 +12,18 @@ Sync Plane tickets with bellosoft skill lifecycle events. Uses Plane MCP for rea
 
 **API Key resolution:** The Plane REST API requires an `X-API-Key` header for creating epics, work items with custom types, and other write operations that MCP cannot handle. **Always resolve the API key during setup — never mid-operation.**
 
-1. Check `.secrets/plane-api-key.txt` — if the file exists, read the key and use it.
-2. If not found, check the `PLANE_API_KEY` environment variable.
-3. If neither exists, prompt the user once at the start: `"Enter your Plane API key (get it from Plane → Profile → Personal Access Tokens):"`
+**Run this command first — do not skip:**
+```bash
+# On Windows (PowerShell):
+if (Test-Path ".secrets/plane-api-key.txt") { Get-Content ".secrets/plane-api-key.txt" -Raw }
+# On Mac/Linux (bash):
+cat .secrets/plane-api-key.txt 2>/dev/null
+```
+
+Resolution order (stop at first success):
+1. **Read `.secrets/plane-api-key.txt`** using the command above — if non-empty, use silently
+2. Check `PLANE_API_KEY` env var — if set, use silently
+3. Only if both are empty/missing: prompt the user once at the start: `"Enter your Plane API key (get it from Plane → Profile → Personal Access Tokens):"`
 4. Once obtained, store it in `.secrets/plane-api-key.txt` immediately for this and future sessions.
 
 The resolved key is used via `-H "X-API-Key: {key}"` in all curl commands throughout this workflow.

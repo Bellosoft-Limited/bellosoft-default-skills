@@ -367,13 +367,17 @@ Called by: `bellosoft-plan-epic` (sub-tasks), `bellosoft-plan-adhoc`
 
 **Input:**
 ```
-title: string           (format: "[TAG] Task description")
+title: string                (task description, without tag prefix)
+task_id: string              (e.g. "E1-S1-T1" — epic.story.task numbers)
 acceptance_criterion: string
 estimate_hours: number
-parent_story_key: string (e.g. PROJ-12)
-area_tag: string        (BE/FE/DB/QA/etc.)
-labels: string[]        (optional)
+parent_story_key: string     (e.g. PROJ-12)
+area_tag: string             (BE/FE/DB/QA/INFRA/etc.)
+labels: string[]             (optional)
 ```
+
+**Task summary format:** `{task_id} [{TAG}] {title}`
+Example: `E1-S1-T1 [FW] Update TargetFramework to net10.0 in all 4 .csproj files`
 
 **Issue type selection:**
 - Parent provided → use "Sub-task" type with `parent` field
@@ -399,7 +403,7 @@ Build ADF description:
 ```
 mcp__atlassian__jira_create_issue(
   project_key = "{KEY}",
-  summary = "[{TAG}] {title}",
+  summary = "{task_id} [{TAG}] {title}",
   issue_type = "Sub-task",
   description = {ADF},
   additional_fields = {
