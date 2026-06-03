@@ -137,7 +137,20 @@ Cache results in session. Store discovered IDs in `docs/planning-artifacts/jira-
 Runs automatically on first use (triggered by Step 1 above). Discovers and caches
 everything needed so subsequent operations never need to ask questions.
 
-**Steps:**
+**ALREADY CONFIGURED CHECK — run this first:**
+1. Check if `docs/planning-artifacts/jira-profile.md` exists and contains `project_key`, `account_id`, and `issue_types`
+2. If complete → **stop immediately** and report:
+   ```
+   ✅ Jira already configured:
+     Project: {project_key} ({project_name})
+     Type: {project_type}
+     User: {display_name} ({email})
+     Issue types: Epic, Story, Task, Sub-task, Bug
+   No setup needed. To refresh, delete docs/planning-artifacts/jira-profile.md first.
+   ```
+3. Only proceed with discovery steps below if profile is missing or incomplete.
+
+**Steps (only if not already configured):**
 1. Identity + project already resolved in Step 1 — reuse, no extra calls
 2. `mcp__atlassian__jira_get_issue_types(project_key)` → save type IDs
 3. `mcp__atlassian__jira_get_fields()` → save custom field IDs (story points, sprint, epic link)

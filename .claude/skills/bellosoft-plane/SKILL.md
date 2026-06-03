@@ -84,22 +84,25 @@ Save result:
 - **workspace_slug**: [slug]
 ```
 
-### Step 1d — API key (deferred — only when first needed)
+### Step 1d — API key (resolved during setup)
 
-The API key is only required for operations MCP cannot handle: creating epics
+The API key is required for all write operations MCP cannot handle: creating epics
 (`POST /epics/`) and typed work items (`POST /work-items/` with `type_id`).
 
-**Do NOT ask for the API key during setup.** Resolve lazily on first REST call:
+**Resolve the API key during every setup, before any operation:**
 
 1. Check `.secrets/plane-api-key.txt` — if exists, use silently
 2. Check `PLANE_API_KEY` env var — if set, use silently
-3. Only then prompt once: `"A Plane API key is needed for this operation.
-   Get it from Plane → Profile → Personal Access Tokens:"`
-4. Save to `.secrets/plane-api-key.txt` for future sessions
+3. If neither found, prompt once during setup (not mid-operation):
+   `"A Plane API key is needed. Get it from Plane → Profile → Personal Access Tokens:"`
+4. Save to `.secrets/plane-api-key.txt` immediately
 5. Ensure `.secrets/` is gitignored — append if missing:
    ```bash
    grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
    ```
+
+**Never defer this to mid-operation.** Interrupting a create/update flow to ask for the
+key causes failures and confusion. Resolve it once, upfront, and reuse throughout the session.
 
 ---
 
@@ -398,11 +401,58 @@ states, labels, and work item types. See `references/workflow.md` CREATE_PROJECT
 section for the full step-by-step — it contains the exact state names, colors,
 label list, and work item type definitions.
 
-Key rules from workflow.md:
+**ALREADY CONFIGURED CHECK — run this first, before anything else:**
+1. Check `docs/planning-artifacts/status.md` for a `project_id:` or `plane_project_id:` line
+2. If found → call `mcp_plane_list_projects` to confirm the project still exists
+3. If project exists → **stop immediately** and report:
+   ```
+   ✅ Plane already configured:
+     Project: {name} ({identifier})
+     Project ID: {project_id}
+     Workspace: {workspace_slug}
+   No setup needed. To re-scaffold, delete docs/planning-artifacts/status.md first.
+   ```
+4. Only proceed with phases below if no project is found.
+
+**CRITICAL: Execute in phases. Stop and confirm between each phase. Never run all phases in one shot.**
+
+### Phase 1 — Create project
+Follow workflow.md Step 1 (gather inputs) and Step 2 (create project).
+- Ask for `project_name` and `identifier`
+- Confirm with user before creating
+- Never pass `is_time_tracking_enabled` → causes 400
+- Handle 409 identifier collisions with `{ID}2`, `{ID}3` retries
+- **After project is created: stop and report** `"✅ Project created: {name} ({IDENTIFIER}) — project_id: {id}. Proceed to configure states? [y/n]"`
+
+### Phase 2 — Configure states
+Follow workflow.md Step 3 only.
+- Fetch existing states, upsert the 9 standard states
+- **After states are configured: stop and report** `"✅ States configured (N created, M updated). Proceed to create labels? [y/n]"`
+
+### Phase 3 — Create labels
+Follow workflow.md Step 4 only.
+- Fetch existing labels, create only missing ones from the 26-label list
+- **After labels are created: stop and report** `"✅ Labels done (N created, M skipped). Proceed to create work item types? [y/n]"`
+
+### Phase 4 — Create work item types
+Follow workflow.md Step 5 only.
+- Use direct curl (not `mcp_plane_list_work_item_types` — it's unreliable)
+- Detect existing default Task type, skip creating it
+- Create Bug, User Story, Test — all with `is_epic: false`
+- **After types are created: stop and report** `"✅ Work item types done (N created, M skipped). Proceed to create custom properties? [y/n]"`
+
+### Phase 5 — Create custom properties
+Follow workflow.md Step 6 only.
+- For each type, fetch existing properties first, skip if already present
+- Create the 10 properties (Deploy Date, Affected Files, Spec Link) across 4 types
+- **After properties are created: stop and report full summary** per workflow.md Step 8, then offer to run sync-epics.
+
+Key rules (all phases):
 - Identifier must be globally unique — retry with `{ID}2`, `{ID}3` on 409
 - Never pass `is_time_tracking_enabled` → causes 400
 - Work item types: Task (default), Bug, User Story, Test — all `is_epic: false`
 - Icon/color for types must be set manually in Plane UI after scaffold
+- If any phase fails, report the error and ask the user how to proceed — never auto-retry more than once
 
 ---
 

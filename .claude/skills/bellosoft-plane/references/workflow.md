@@ -10,12 +10,12 @@ Sync Plane tickets with bellosoft skill lifecycle events. Uses Plane MCP for rea
 - Planning artifacts: `docs/planning-artifacts/` → `epics.md`, `status.md`, `plane-profile.md`
 - Implementation artifacts: `docs/implementation-artifacts/` → story files, `sprint-status.yaml`
 
-**API Key resolution:** The Plane REST API requires an `X-API-Key` header for creating epics, work items with custom types, and other write operations that MCP cannot handle.
+**API Key resolution:** The Plane REST API requires an `X-API-Key` header for creating epics, work items with custom types, and other write operations that MCP cannot handle. **Always resolve the API key during setup — never mid-operation.**
 
 1. Check `.secrets/plane-api-key.txt` — if the file exists, read the key and use it.
 2. If not found, check the `PLANE_API_KEY` environment variable.
-3. If neither exists, prompt the user: `"Enter your Plane API key (or set PLANE_API_KEY env var, or save to .secrets/plane-api-key.txt):"`
-4. Once obtained, store it in `.secrets/plane-api-key.txt` for future sessions.
+3. If neither exists, prompt the user once at the start: `"Enter your Plane API key (get it from Plane → Profile → Personal Access Tokens):"`
+4. Once obtained, store it in `.secrets/plane-api-key.txt` immediately for this and future sessions.
 
 The resolved key is used via `-H "X-API-Key: {key}"` in all curl commands throughout this workflow.
 

@@ -22,6 +22,11 @@
       ],
       "enabled": false,
     },
+    "plane": {
+      "type": "local",
+      "command": ["npx", "mcp-remote@latest", "https://mcp.plane.so/http/mcp"],
+      "enabled": true,
+    },
   },
   "permission": {
     "bash": "allow",
