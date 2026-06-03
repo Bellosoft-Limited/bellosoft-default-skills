@@ -46,48 +46,60 @@ All Plane operations must follow the rules in that file.
 
 ## Step 1 — Setup and auth
 
-### API key resolution (required for REST API calls)
+**Goal: resolve everything from MCP first. Only ask for what cannot be auto-detected.**
 
-1. Check `.secrets/plane-api-key.txt` — if exists, read and use
-2. Else check `PLANE_API_KEY` env var
-3. Else prompt: `"Enter your Plane API key (get it from Plane → Profile → Personal Access Tokens):"`
-4. Once obtained, save to `.secrets/plane-api-key.txt` for future sessions
+### Step 1a — MCP connectivity
 
-### Workspace slug resolution
+Call `mcp_plane_list_projects` silently.
 
-1. Check `.secrets/plane-workspace.txt`
-2. Else check `PLANE_WORKSPACE` env var
-3. Else prompt: `"Enter your Plane workspace slug (e.g. 'my-team' from app.plane.so/my-team/)"`
-4. Save to `.secrets/plane-workspace.txt`
+- Succeeds → MCP is connected. Extract workspace slug from the returned project URLs
+  or API base URL. Save to `.secrets/plane-workspace.txt`.
+- Fails → stop and tell the user:
+  `"Plane MCP is not connected. Please configure it in your MCP settings and retry."`
+  Do NOT ask for API key or workspace manually — nothing else can proceed without MCP.
 
-### Project resolution
+### Step 1b — Project resolution
 
-Call `mcp_plane_list_projects`. Match project by name (case-insensitive) from
-`docs/planning-artifacts/status.md` header or ask the user.
+Use the projects already returned in Step 1a (no extra call needed).
 
-- Match found → use silently
-- No match, one project → default to it, notify user
-- No match, multiple → list and ask
-- No projects at all OR user wants a new one:
-  ```
-  No Plane projects found (or want a new one)?
-    → Type "create" to scaffold a new project
-  ```
+- One project → use it silently, notify: `"Using project: {name}"`
+- Project name in `docs/planning-artifacts/status.md` → match and use silently
+- Multiple projects → list and ask which to use
+- No projects or user wants a new one → offer:
+  `"No projects found. Type 'create' to scaffold one."`
   → Delegate to SETUP (CREATE_PROJECT) operation
 
 Store `project_id` and `project_identifier` for the session.
 
-### Member ID resolution (when assigning)
+### Step 1c — Member ID resolution
 
-Check `docs/planning-artifacts/plane-profile.md` first. If `plane_member_id` exists, use it.
+Call `mcp_plane_get_workspace_members` silently. Match current user by display name or email.
+If already saved in `docs/planning-artifacts/plane-profile.md` → use silently, skip the call.
 
-Otherwise call `mcp_plane_get_workspace_members`, match by display name or email,
-and save to `docs/planning-artifacts/plane-profile.md`:
+Save result:
 ```markdown
 # Plane Profile
 - **display_name**: [name]
 - **plane_member_id**: [uuid]
+- **workspace_slug**: [slug]
 ```
+
+### Step 1d — API key (deferred — only when first needed)
+
+The API key is only required for operations MCP cannot handle: creating epics
+(`POST /epics/`) and typed work items (`POST /work-items/` with `type_id`).
+
+**Do NOT ask for the API key during setup.** Resolve lazily on first REST call:
+
+1. Check `.secrets/plane-api-key.txt` — if exists, use silently
+2. Check `PLANE_API_KEY` env var — if set, use silently
+3. Only then prompt once: `"A Plane API key is needed for this operation.
+   Get it from Plane → Profile → Personal Access Tokens:"`
+4. Save to `.secrets/plane-api-key.txt` for future sessions
+5. Ensure `.secrets/` is gitignored — append if missing:
+   ```bash
+   grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
+   ```
 
 ---
 

@@ -45,42 +45,43 @@ issue type hierarchy, and JQL patterns. **Never skip this.**
 
 ## Step 1 — Setup and auth
 
-### Connection check
+### Step 1a — MCP connectivity
 
-Jira access comes via the `mcp__atlassian` MCP server. Test connectivity:
-```
-mcp__atlassian__jira_get_myself()
-```
+Call `mcp__atlassian__jira_get_myself()` silently.
 
-If this fails → tell the user to install and configure the Atlassian MCP
-(https://github.com/sooperset/mcp-atlassian) and set `JIRA_URL`, `JIRA_USERNAME`,
-`JIRA_API_TOKEN` env vars. Do not proceed until connectivity is confirmed.
+- Succeeds → MCP is connected. Capture identity (display name, account ID, email).
+- Fails → stop and tell the user:
+  `"Jira MCP is not connected. Please configure the Atlassian MCP
+  (https://github.com/sooperset/mcp-atlassian) and set JIRA_URL, JIRA_USERNAME,
+  JIRA_API_TOKEN, then retry."`
+  Do NOT ask for credentials manually — nothing else can proceed without MCP.
 
-### User identity resolution
+### Step 1b — User identity
 
-On first run, call `mcp__atlassian__jira_get_myself()` and save:
+Use the result from Step 1a (no extra call needed).
+If already saved in `docs/planning-artifacts/jira-profile.md` → use silently, skip the call.
+
+Save to `docs/planning-artifacts/jira-profile.md`:
 ```markdown
 # Jira Profile
 - **display_name**: [name]
 - **account_id**: [accountId]
 - **email**: [emailAddress]
 ```
-to `docs/planning-artifacts/jira-profile.md`.
+Also ensure `.secrets/` is gitignored (in case API keys are ever stored there):
+```bash
+grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
+```
 
-On subsequent runs, read from `docs/planning-artifacts/jira-profile.md` if it exists.
+### Step 1c — Project resolution
 
-### Project resolution
-
-1. Check `docs/planning-artifacts/status.md` for `jira_project_key:` — use if found
-2. Else call `mcp__atlassian__jira_get_all_projects()` — list and ask user to pick
-3. If no projects exist OR user wants a new one:
-   ```
-   No projects found (or want a new one)?
-     → Type "create" to scaffold a new Jira project
-   ```
-   → Delegate to CREATE_PROJECT operation
-4. Confirm selection: `"Using project {KEY} ({name}). Correct? [y/n]"`
-5. Store in `docs/planning-artifacts/status.md` under `jira_project_key:`
+1. Check `docs/planning-artifacts/status.md` for `jira_project_key:` — use silently if found
+2. Else call `mcp__atlassian__jira_get_all_projects()`:
+   - One project → use it silently, notify: `"Using project: {KEY} ({name})"`
+   - Multiple → list and ask which to use
+   - None or user wants a new one → offer: `"No projects found. Type 'create' to scaffold one."`
+     → Delegate to CREATE_PROJECT operation
+3. Store in `docs/planning-artifacts/status.md` under `jira_project_key:`
 
 ---
 
@@ -133,19 +134,17 @@ Cache results in session. Store discovered IDs in `docs/planning-artifacts/jira-
 
 ## Operation: SETUP
 
-First-time project validation. Discovers and caches:
-1. Project type (next-gen vs classic)
-2. Available issue types and their IDs
-3. Custom field IDs (story points, sprint, epic link)
-4. Board ID for sprint operations
+Runs automatically on first use (triggered by Step 1 above). Discovers and caches
+everything needed so subsequent operations never need to ask questions.
 
 **Steps:**
-1. `mcp__atlassian__jira_get_myself()` → save identity
-2. `mcp__atlassian__jira_get_all_projects()` → confirm project selection
-3. `mcp__atlassian__jira_get_issue_types(project_key)` → save type IDs
-4. `mcp__atlassian__jira_get_fields()` → save custom field IDs
-5. Detect project type (search for Epic issues)
-6. Save all to `docs/planning-artifacts/jira-profile.md`
+1. Identity + project already resolved in Step 1 — reuse, no extra calls
+2. `mcp__atlassian__jira_get_issue_types(project_key)` → save type IDs
+3. `mcp__atlassian__jira_get_fields()` → save custom field IDs (story points, sprint, epic link)
+4. Detect project type: search for one Epic issue — if found, record type
+5. Save all to `docs/planning-artifacts/jira-profile.md`
+
+SETUP is silent and automatic. It does not ask the user any questions.
 
 **Output `docs/planning-artifacts/jira-profile.md`:**
 ```markdown
