@@ -1,47 +1,37 @@
-# Claude Code — Bellosoft Delivery OS
+# Claude Code — Project Instructions
 
-This file is always loaded. Keep it minimal — detailed references live in `AGENTS.md`.
+This file is always loaded. Keep it minimal — details live in `AGENTS.md`.
 
 ## Core Principles
 
-- **BMAD methodology** — use multi-agent workflows via `task` and `skill`
 - **Load on demand** — never pre-load rules; fetch only what the current task needs
-- **Delegate appropriately** — use agents for complex work, skills for domain rules
-- **Lean context** — compress completed sections to keep the conversation window clean
+- **Delegate complex work** — use `task` for multi-step agents, `skill` for domain rules
+- **Lean context** — summarise completed sections to keep the context window clean
 
 ## How to Work
 
-1. Check `AGENTS.md` for the directory map and discovery commands
-2. Check `_bmad/custom/bmad-agent-dev.toml` before any coding task
-3. Load what you need — skill manifests via `skill`, plain files via `read`
-4. Delegate complex work via `task`
-5. Compress when a section of work is complete
+1. Check `AGENTS.md` for the directory map and what is available
+2. Load what you need — skill manifests via `skill`, plain files via `read`
+3. Delegate complex or parallel work via `task`
 
 ## Loading Rules
 
-**Skill manifests** (`.claude/skills/`) — use `skill` tool:
-```bash
-skill name="bmad-agent-dev"
-skill name="bellosoft-github"
+**Skills** — load via `skill` tool (run `skill` with no args to list all):
+```
+skill name="bellosoft-plan-epic"
 ```
 
 **Stack, core, and prompt files** — read directly:
-```bash
+```
 read .agents/stack/dotnet.md
 read .agents/core/security-rules.md
-read .agents/prompts/github-pr.prompt.md
 ```
 
-## Delegating Work
-
-```bash
+**Agents** — delegate via `task`:
+```
 task subagent_type="code" prompt="Implement user login"
-task subagent_type="review" prompt="Review PR #42"
 ```
 
 ## Reference
 
-See `AGENTS.md` for:
-- Full directory map
-- How to discover available skills, agents, stack rules, and prompts
-- Complete loading instructions
+See `AGENTS.md` for the full directory map and discovery commands.

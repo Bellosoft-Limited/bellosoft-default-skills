@@ -1,25 +1,17 @@
-# Bellosoft Delivery OS — Always-On Instructions
+# Bellosoft — Always-On Instructions
 
-This file is loaded automatically on every session. Keep it minimal.
+Loaded automatically every session. Keep this minimal.
 
-## Project Structure
+## Structure
 
-Rules and guidelines are organised under `.agents/`:
+| Location | Contents |
+|---|---|
+| `.agents/core/` | Universal rules: coding standards, git, security, testing, delivery |
+| `.agents/stack/` | Tech-specific guidelines: .NET, Vue, SQL, Azure, Docker |
+| `.agents/prompts/` | Reusable prompt templates |
+| `.claude/skills/` | Skill manifests — load on demand via `skill` tool |
+| `.claude/agents/` | Agent definitions — delegate via `task` tool |
 
-- `.agents/core/` — universal rules: coding standards, git flow, security, testing, delivery process
-- `.agents/stack/` — tech-specific guidelines: .NET, Vue, SQL, Azure, Docker
-- `.agents/instructions/` — always-on instruction files (this file)
-- `.agents/prompts/` — reusable prompt templates
+## Key Rule
 
-Skills and agents:
-
-- `.claude/skills/` — skill manifests loaded on demand via `skill` tool
-- `.claude/agents/` — custom agent definitions: architect, code, debug, ask, pm, review, sales
-
-See `AGENTS.md` for the full directory map and loading instructions.
-
-## Key Principles
-
-- Load rules on demand — never pre-load `.agents/core/` or `.agents/stack/` upfront
-- Check `_bmad/custom/bmad-agent-dev.toml` before any coding task
-- Use `_bmad/` methodology for multi-agent delivery workflows
+Load only what the current task needs. Do not pre-load stack or core files speculatively.

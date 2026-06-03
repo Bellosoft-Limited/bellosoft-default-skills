@@ -1,6 +1,3 @@
----
-mode: agent
-description: Bulk-update Plane story states from sprint-status.yaml after sprint planning.
----
+# DEPRECATED
 
-Follow the bellosoft-plane skill: load `.github/skills/bellosoft-plane/SKILL.md`, then `references/workflow.md`. Run SYNC_SPRINT.
+Superseded by `/bellosoft-plane` skill. Use `/bellosoft-plane sync-epics` or `/bellosoft-plane update` instead.

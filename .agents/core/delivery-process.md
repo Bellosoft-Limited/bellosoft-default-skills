@@ -1,5 +1,5 @@
 # Delivery Process
-> Bellosoft delivery workflow — sprint-based with BMAD story execution
+> Bellosoft delivery workflow — sprint-based
 > Stack-agnostic. Applies to all projects.
 
 ---
@@ -57,7 +57,7 @@ Backlog → Ready → In Progress → Review → QA → Done
 ### Done
 - Acceptance criteria met.
 - No known defects.
-- Plane/issue tracker updated.
+- Tracker updated (Jira/Plane).
 - Story closed.
 
 ---
@@ -125,21 +125,6 @@ A story is not closed until ALL of the following are true:
 
 - Configuration per environment via Azure App Configuration or environment-specific secrets.
 - Never promote code that hasn't passed staging QA to production.
-
----
-
-## BMAD Story Execution
-
-When using AI-assisted development with BMAD:
-
-1. Story file created by `bmad-create-story` skill — stored in `docs/stories/`.
-2. Developer reviews story file and confirms it is Ready.
-3. `bmad-dev-story` skill executes the story implementation.
-4. `bmad-code-review` skill runs a structured adversarial code review.
-5. Developer addresses all BLOCKER and MAJOR findings before opening PR.
-6. Normal PR + QA + Done flow continues.
-
-Story files are committed to the repo alongside the code they describe.
 
 ---
 
