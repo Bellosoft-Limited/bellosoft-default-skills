@@ -31,44 +31,6 @@
       "url": "https://mcp.plane.so/http/mcp"
     }
   },
-  "agent": {
-    "architect": {
-      "mode": "primary",
-      "model": "litellm/bellosoft-complex",
-      "prompt": "{file:../.claude/agents/architect.agent.md}",
-      "permission": {
-        "edit": "allow",
-        "bash": "allow"
-      }
-    },
-    "code": {
-      "mode": "primary",
-      "model": "litellm/bellosoft-simple",
-      "prompt": "{file:../.claude/agents/code.agent.md}",
-      "permission": {
-        "edit": "allow",
-        "bash": "allow"
-      }
-    },
-    "pm": {
-      "mode": "primary",
-      "model": "litellm/bellosoft-complex",
-      "prompt": "{file:../.claude/agents/pm.agent.md}",
-      "permission": {
-        "edit": "allow",
-        "bash": "deny"
-      }
-    },
-    "review": {
-      "description": "Reviews code for best practices and potential issues",
-      "mode": "subagent",
-      "model": "litellm/bellosoft-medium",
-      "prompt": "{file:../.claude/agents/review.agent.md}",
-      "permission": {
-        "edit": "deny"
-      }
-    }
-  },
   "plugin": [
     "@tarquinen/opencode-dcp@latest"
   ]
