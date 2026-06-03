@@ -4,7 +4,7 @@ description: >
   Use this skill to decompose a single epic into stories and atomic tasks.
   Triggers: /bellosoft-plan-epic E1, /bellosoft-plan-epic E3, "break down epic 2", "create stories
   for E1", "decompose E3 into tasks". Requires /bellosoft-plan-epics to have been run first
-  (reads docs/plan/epics.md). Works on ONE epic at a time — you choose which, and when.
+  (reads docs/planning-artifacts/epics.md). Works on ONE epic at a time — you choose which, and when.
   After approval, optionally pushes to Jira or Plane via MCP. Can be re-run on the
   same epic if requirements changed.
 ---
@@ -31,7 +31,7 @@ You decide which epic to decompose and when.
 ## Step 0.5 — Tracker resolution (first-time only)
 
 Before any push operation, check if tracker is already configured:
-- If `docs/plan/status.md` contains `tracker:` → skip this step entirely
+- If `docs/planning-artifacts/status.md` contains `tracker:` → skip this step entirely
 - If not → load and follow `.claude/skills/bellosoft-plane/references/tracker-bootstrap.md`
 
 This step runs silently when re-running on an already-configured project.
@@ -40,12 +40,12 @@ This step runs silently when re-running on an already-configured project.
 
 ## Step 1 — Load state
 
-1. Read `docs/plan/epics.md` — get the target epic definition
-2. Read `docs/plan/status.md` — check current state of that epic
-3. Read `docs/plan/prd-source.md` — for full context
-4. Check `docs/plan/codebase-audit.md` — staleness check before using
+1. Read `docs/planning-artifacts/epics.md` — get the target epic definition
+2. Read `docs/planning-artifacts/status.md` — check current state of that epic
+3. Read `docs/planning-artifacts/prd-source.md` — for full context
+4. Check `docs/planning-artifacts/codebase-audit.md` — staleness check before using
 
-If `docs/plan/epics.md` doesn't exist:
+If `docs/planning-artifacts/epics.md` doesn't exist:
 ```
 No epic register found. Please run /bellosoft-plan-epics first.
 ```
@@ -60,7 +60,7 @@ Options:
 
 **Tracker check** — before decomposing, check whether stories already exist in Jira/Plane:
 
-If `tracker: jira` (from `docs/plan/status.md`):
+If `tracker: jira` (from `docs/planning-artifacts/status.md`):
 ```
 # Delegate to bellosoft-jira:
 /bellosoft-jira get [EPIC-KEY]  ← then search stories linked to it
@@ -89,7 +89,7 @@ Options:
   2. Decompose anyway — I'll skip stories that match existing ones by title
   3. Start fresh — ignore tracker stories, re-decompose from PRD (will create duplicates if pushed)
 ```
-If option 1 → import the existing stories into `docs/plan/status.md`, skip Steps 3-6, go straight to Step 8.
+If option 1 → import the existing stories into `docs/planning-artifacts/status.md`, skip Steps 3-6, go straight to Step 8.
 If option 2 → proceed with decomposition, flagging any story whose title closely matches an existing ticket.
 
 D) **Tracker connected, epic not found in tracker** → note it:
@@ -98,12 +98,12 @@ D) **Tracker connected, epic not found in tracker** → note it:
 **Audit staleness check** — run before using the audit:
 
 ```bash
-stat docs/plan/codebase-audit.md 2>/dev/null
+stat docs/planning-artifacts/codebase-audit.md 2>/dev/null
 
-find . -newer docs/plan/codebase-audit.md \
+find . -newer docs/planning-artifacts/codebase-audit.md \
   -not -path '*/.git/*' -not -path '*/node_modules/*' \
   -not -path '*/bin/*' -not -path '*/obj/*' \
-  -not -path '*/docs/plan/*' \
+  -not -path '*/docs/planning-artifacts/*' \
   -name "*.cs" -o -name "*.ts" -o -name "*.vue" \
   2>/dev/null | wc -l
 ```
@@ -143,7 +143,7 @@ find . -newer docs/plan/codebase-audit.md \
 
 ## Step 2 — Load existing implementation context
 
-**If `docs/plan/codebase-audit.md` exists (preferred):**
+**If `docs/planning-artifacts/codebase-audit.md` exists (preferred):**
 Read the relevant sections for this epic — Module Inventory, Conventions, Tech Debt.
 Do NOT re-read the entire codebase — the audit already captured it.
 
@@ -396,7 +396,7 @@ custom field discovery, project type detection, and error handling.
 
 ## Step 8 — Update state
 
-After push (or approval if markdown-only), update `docs/plan/status.md`:
+After push (or approval if markdown-only), update `docs/planning-artifacts/status.md`:
 
 ```markdown
 | E1: [name] | ✅ Decomposed | 4 stories, 18 tasks | Jira (2026-06-02) |
@@ -404,7 +404,7 @@ After push (or approval if markdown-only), update `docs/plan/status.md`:
 
 Output:
 ```
-✅ Epic E[N] done. docs/plan/status.md updated.
+✅ Epic E[N] done. docs/planning-artifacts/status.md updated.
 
 Other epics not yet decomposed:
   /bellosoft-plan-epic E2    ← do this now or next week
@@ -419,7 +419,7 @@ To re-read the PRD after changes: /bellosoft-plan-epics
 ## Hard rules
 - Never decompose more than one epic per invocation
 - Never push without approval
-- Always update docs/plan/status.md
+- Always update docs/planning-artifacts/status.md
 - No task over 8h — split without exception
 - Every task has exactly one AC
 - Every task has exactly one area tag (two only if inseparable)

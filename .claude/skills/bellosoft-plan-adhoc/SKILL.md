@@ -139,7 +139,7 @@ Given the current sprint status:
 
 Recommendation for this item: [specific suggestion with rationale]
 
-Current sprint capacity used: [read from docs/plan/status.md if available]
+Current sprint capacity used: [read from docs/planning-artifacts/status.md if available]
 ```
 
 ---
@@ -160,14 +160,14 @@ Reply with:
 ## Step 5.5 — Tracker resolution (first-time only)
 
 Before pushing:
-- If `docs/plan/status.md` contains `tracker:` → skip this step
+- If `docs/planning-artifacts/status.md` contains `tracker:` → skip this step
 - If not → load and follow `.claude/skills/bellosoft-plane/references/tracker-bootstrap.md`
 
 ---
 
 ## Step 6 — Push (optional)
 
-Push to whichever tracker is configured in `docs/plan/status.md`:
+Push to whichever tracker is configured in `docs/planning-artifacts/status.md`:
 
 **Plane** → delegate to `/bellosoft-plane`:
 - Bug/Hotfix: `/bellosoft-plane create-story` with Bug type
@@ -212,7 +212,7 @@ completed in the same PR as the fix — never deferred.
 
 ## Step 8 — Update state
 
-Append to `docs/plan/status.md` under a separate section:
+Append to `docs/planning-artifacts/status.md` under a separate section:
 
 ```markdown
 ## Bugs & Unplanned Work
@@ -230,5 +230,5 @@ Append to `docs/plan/status.md` under a separate section:
 - Hotfixes go to current sprint — do not defer
 - Classification is always explicit (Bug / Hotfix / Unplanned / Debt / Security)
 - Same atomicity rules as plan-epic: no task over 8h, one AC per task
-- Always update docs/plan/status.md
+- Always update docs/planning-artifacts/status.md
 - Never skip the dev handoff block — devs need to know they can work with or without AI

@@ -2,13 +2,13 @@
 
 **Load this block whenever a skill is about to push/read from a tracker for the first time.**
 
-This runs once per project. After the choice is saved to `docs/plan/status.md`, skip this block entirely on subsequent calls.
+This runs once per project. After the choice is saved to `docs/planning-artifacts/status.md`, skip this block entirely on subsequent calls.
 
 ---
 
 ## When to run
 
-Run this bootstrap BEFORE any tracker push/pull operation when `docs/plan/status.md` does NOT contain a `tracker:` line (or the file doesn't exist).
+Run this bootstrap BEFORE any tracker push/pull operation when `docs/planning-artifacts/status.md` does NOT contain a `tracker:` line (or the file doesn't exist).
 
 ---
 
@@ -16,7 +16,7 @@ Run this bootstrap BEFORE any tracker push/pull operation when `docs/plan/status
 
 ### Step B1 — Check saved preference
 
-Read `docs/plan/status.md`. Look for:
+Read `docs/planning-artifacts/status.md`. Look for:
 ```
 tracker: jira
 ```
@@ -75,7 +75,7 @@ Options:
 ### Step B4 — Project selection
 
 **Jira path:**
-1. Check `docs/plan/jira-profile.md` for `project_key:` — if found, confirm: `"Using Jira project {KEY}. Correct? [y/n]"`
+1. Check `docs/planning-artifacts/jira-profile.md` for `project_key:` — if found, confirm: `"Using Jira project {KEY}. Correct? [y/n]"`
 2. If not found or user says no → call `mcp__atlassian__jira_get_all_projects()` and list
 3. User picks project OR:
    ```
@@ -83,10 +83,10 @@ Options:
      → Type "create" to scaffold a new one
    ```
 4. If "create" → delegate to `/bellosoft-jira setup` CREATE_PROJECT flow
-5. Save `project_key` to `docs/plan/jira-profile.md`
+5. Save `project_key` to `docs/planning-artifacts/jira-profile.md`
 
 **Plane path:**
-1. Check `docs/plan/status.md` for `plane_project_id:` — if found, confirm silently
+1. Check `docs/planning-artifacts/status.md` for `plane_project_id:` — if found, confirm silently
 2. If not found → call `mcp_plane_list_projects()` and list
 3. User picks project OR:
    ```
@@ -94,13 +94,13 @@ Options:
      → Type "create" to scaffold a new one
    ```
 4. If "create" → delegate to `/bellosoft-plane setup` (CREATE_PROJECT command)
-5. Save `plane_project_id` and `project_identifier` to `docs/plan/status.md`
+5. Save `plane_project_id` and `project_identifier` to `docs/planning-artifacts/status.md`
 
 ---
 
 ### Step B5 — Save and proceed
 
-Append/update `docs/plan/status.md`:
+Append/update `docs/planning-artifacts/status.md`:
 ```markdown
 tracker: jira          # or plane, or none
 jira_project_key: PROJ # jira only
@@ -118,7 +118,7 @@ In any skill that needs tracker access, add this step:
 ```
 ## Step N — Tracker resolution (first-time only)
 Load and follow `references/tracker-bootstrap.md`.
-Skip if `docs/plan/status.md` already contains `tracker:`.
+Skip if `docs/planning-artifacts/status.md` already contains `tracker:`.
 ```
 
 The bootstrap is in the bellosoft-plane skill folder but is shared — all bellosoft

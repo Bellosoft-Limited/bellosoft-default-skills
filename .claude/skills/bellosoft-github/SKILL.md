@@ -26,7 +26,7 @@ Every command needs a `{ticket_id}`. Resolve in this order:
 
 1. **User provided** — e.g. `/bellosoft-github branch PROJ-42`
 2. **Current branch name** — parse `{type}/{ticket_id}-{slug}` pattern
-3. **Tracker lookup** — read `docs/plan/status.md` for `tracker:` then:
+3. **Tracker lookup** — read `docs/planning-artifacts/status.md` for `tracker:` then:
    - `tracker: jira` → `/bellosoft-jira get [key]`
    - `tracker: plane` → `/bellosoft-plane get [sequence_id]`
 4. **No tracker** — ask user: `"Enter ticket ID or press Enter to skip"`

@@ -1,23 +1,21 @@
 # Plane Lifecycle Workflow
 
-Sync Plane tickets with BMAD story lifecycle events. Uses Plane MCP for reads/simple updates and the Plane REST API via curl (with `X-API-Key`) for creating epics and typed work items.
+Sync Plane tickets with bellosoft skill lifecycle events. Uses Plane MCP for reads/simple updates and the Plane REST API via curl (with `X-API-Key`) for creating epics and typed work items.
 
 ---
 
 ## Setup
 
-**Config:** Load from `{project-root}/_bmad/bmm/config.yaml`:
-
-- `project_name` — used to auto-select the Plane project
-- `planning_artifacts` (default: `{project-root}/docs/planning-artifacts`) → `epics.md`
-- `implementation_artifacts` (default: `{project-root}/docs/implementation-artifacts`) → story files and `sprint-status.yaml`
+**Paths (defaults):**
+- Planning artifacts: `docs/planning-artifacts/` → `epics.md`, `status.md`, `plane-profile.md`
+- Implementation artifacts: `docs/implementation-artifacts/` → story files, `sprint-status.yaml`
 
 **API Key resolution:** The Plane REST API requires an `X-API-Key` header for creating epics, work items with custom types, and other write operations that MCP cannot handle.
 
-1. Check `_bmad/secrets/plane-api-key.txt` — if the file exists, read the key and use it.
+1. Check `.secrets/plane-api-key.txt` — if the file exists, read the key and use it.
 2. If not found, check the `PLANE_API_KEY` environment variable.
-3. If neither exists, prompt the user: `"Enter your Plane API key (or set PLANE_API_KEY env var, or save to _bmad/secrets/plane-api-key.txt):"`
-4. Once obtained, store it in `_bmad/secrets/plane-api-key.txt` for future sessions.
+3. If neither exists, prompt the user: `"Enter your Plane API key (or set PLANE_API_KEY env var, or save to .secrets/plane-api-key.txt):"`
+4. Once obtained, store it in `.secrets/plane-api-key.txt` for future sessions.
 
 The resolved key is used via `-H "X-API-Key: {key}"` in all curl commands throughout this workflow.
 
@@ -67,7 +65,7 @@ Store `project_id` and call `mcp_plane_list_states` once per session. Build the 
 
 ## Status Mapping
 
-| bmad status      | Plane state name (case-insensitive) |
+| bellosoft status | Plane state name (case-insensitive) |
 | ---------------- | ----------------------------------- |
 | `ready-for-dev`  | `Todo`                              |
 | `in-progress`    | `In Development`                    |
@@ -84,7 +82,7 @@ Detect intent from what the user says and the current story file state:
 
 | Signal                                                                         | Slash alias                 | Command        |
 | ------------------------------------------------------------------------------ | --------------------------- | -------------- |
-| `update plane` / `plane` / invoked after a BMAD skill                          | `/bellosoft-plane`          | AUTO_DETECT    |
+| `update plane` / `plane` / invoked after a bellosoft skill                          | `/bellosoft-plane`          | AUTO_DETECT    |
 | `sync epics to plane` / `plane sync epics` / `upload epics` / `upload stories` | `/bellosoft-plane-epics`    | SYNC_EPICS     |
 | `sync sprint to plane` / `plane sync sprint`                                   | `/bellosoft-plane-sprint`   | SYNC_SPRINT    |
 | `create plane project` / `scaffold plane project`                              | `/bellosoft-plane-scaffold` | CREATE_PROJECT |
@@ -95,7 +93,7 @@ If ambiguous, present the options and ask.
 
 ## AUTO_DETECT
 
-When the user says `"update plane"`, `"plane"`, or this skill is triggered after a BMAD skill completes, infer the lifecycle event automatically.
+When the user says `"update plane"`, `"plane"`, or this skill is triggered after a bellosoft skill completes, infer the lifecycle event automatically.
 
 **Story identification:** Use the provided story ID/path, or find the most recently modified `.md` in `{implementation_artifacts}`. Read the file fully.
 
@@ -122,7 +120,7 @@ Then execute the appropriate handler below.
 
 ## STORY_CREATED
 
-Triggered after `bmad-create-story` completes (`Status: ready-for-dev`).
+Triggered after `bellosoft-plan-epic` completes (story pushed to tracker).
 
 Find the Plane work item using the **reliable lookup sequence**:
 
@@ -273,7 +271,7 @@ Fetch all existing epics (paginate `mcp_plane_list_epics`) and work items (pagin
 **Important:** Store the full epic/work item objects (including `id`, `sequence_id`, `name`, `description_html`, `parent`) — needed for comparison in Steps 5, 7, and 8 to detect content changes.
 
 **Step 4 — Resolve label ID:**
-Fetch labels via `mcp_plane_list_labels`. Find `bmad-generated` label by name (case-insensitive). If not found, create it with color `#7C3AED` via `mcp_plane_create_label`. Store the label ID.
+Fetch labels via `mcp_plane_list_labels`. Find `ai-generated` label by name (case-insensitive). If not found, create it with color `#7C3AED` via `mcp_plane_create_label`. Store the label ID.
 
 **Step 5 — Parse epics.md:**
 
@@ -315,7 +313,7 @@ Build a map from the response. Store `USER_STORY_TYPE_ID` (the type named "User 
      curl -s -X POST "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/epics/" \
        -H "X-API-Key: {key}" \
        -H "Content-Type: application/json" \
-       -d '{"name":"{expected_name}","description_html":"{expected_description_html}","labels":["{bmad-generated label ID}"]}'
+       -d '{"name":"{expected_name}","description_html":"{expected_description_html}","labels":["{ai-generated label ID}"]}'
      ```
    - ⚠️ Do **NOT** use `mcp_plane_create_epic` — it may fail if no work item type with `is_epic=True` exists. The `/epics/` endpoint creates proper Plane epics with the correct internal type automatically.
    - Record the `sequence_id` from the response — needed in Step 8.
@@ -356,7 +354,7 @@ Build a map from the response. Store `USER_STORY_TYPE_ID` (the type named "User 
      curl -s -X POST "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/" \
        -H "X-API-Key: {key}" \
        -H "Content-Type: application/json" \
-       -d '{"name":"{expected_name}","description_html":"{expected_description_html}","parent":"{expected_parent_id}","state":"{backlog_state_id}","labels":["{bmad-generated label ID}"],"type_id":"{USER_STORY_TYPE_ID}"}'
+       -d '{"name":"{expected_name}","description_html":"{expected_description_html}","parent":"{expected_parent_id}","state":"{backlog_state_id}","labels":["{ai-generated label ID}"],"type_id":"{USER_STORY_TYPE_ID}"}'
      ```
    - ⚠️ `type_id` is **required** — omitting it creates a default "Task" type work item instead of "User Story". Always set it to the resolved User Story type ID.
    - ⚠️ Do **NOT** use `mcp_plane_create_work_item` for creating stories — it doesn't support the `type_id` parameter and always creates "Task" type items.
@@ -412,7 +410,7 @@ If yes → proceed with SYNC_EPICS using this new project.
 
 ## SYNC_SPRINT
 
-Bulk-update Plane states from `sprint-status.yaml` after `bmad-sprint-planning`.
+Bulk-update Plane states from `sprint-status.yaml` after sprint planning.
 
 Parse `development_status`. Skip `epic-N` and `epic-N-retrospective` keys. Process `N-M-*` keys as stories — derive story_id from first two segments.
 
@@ -517,7 +515,7 @@ Fetch existing labels via `mcp_plane_list_labels`. Create only those missing (ca
 | technical      | #d6d6d6 |
 | devops         | #d6d6d6 |
 | pr-review      | #d6d6d6 |
-| bmad-generated | #ff6900 |
+| ai-generated | #ff6900 |
 | ai-planned     | #ff6900 |
 | ai-spec        | #ff6900 |
 | ai-implemented | #ff6900 |
@@ -623,4 +621,4 @@ Otherwise ask for display name or email, call `mcp_plane_get_workspace_members`,
 - **When MCP tools for listing types/labels are unavailable**, use direct curl to the Plane REST API with the x-api-key header.
 - **Always create stories as "User Story" type** — use the Plane REST API `POST /work-items/` with `type_id` set to the User Story type ID. NEVER use `mcp_plane_create_work_item` for creating stories (it creates "Task" type items).
 - **Always create epics via the `/epics/` REST endpoint** — `POST /workspaces/{slug}/projects/{id}/epics/`. Do NOT use `mcp_plane_create_epic` (it may fail if no `is_epic=True` type exists) or create epics as work items with "Epic" type.
-- **Prompt for API key if missing** — whenever a REST API call is needed, ensure the key is available. If not, prompt the user before proceeding. Store the key in `_bmad/secrets/plane-api-key.txt` after first use.
+- **Prompt for API key if missing** — whenever a REST API call is needed, ensure the key is available. If not, prompt the user before proceeding. Store the key in `.secrets/plane-api-key.txt` after first use.

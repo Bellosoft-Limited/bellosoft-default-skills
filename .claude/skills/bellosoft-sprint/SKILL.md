@@ -6,7 +6,7 @@ description: >
   Triggers: /bellosoft-sprint, "what's in my sprint", "what should I work on",
   "show my tickets", "what's open this sprint", "morning standup", "what's left this sprint",
   "sprint status", "what are my stories". Fetches live data from Jira or Plane via MCP.
-  Falls back to docs/plan/status.md if no tracker is connected.
+  Falls back to docs/planning-artifacts/status.md if no tracker is connected.
 ---
 
 # Skill: bellosoft-sprint
@@ -39,7 +39,7 @@ bellosoft-plane handles pagination, active cycle detection, and grouping.
 bellosoft-jira handles JQL construction, field parsing, and status grouping.
 
 **If no tracker MCP connected:**
-Read `docs/plan/status.md` and filter for the current sprint.
+Read `docs/planning-artifacts/status.md` and filter for the current sprint.
 Note: `⚠️ No tracker connected — showing local plan state, which may be stale. Run /bellosoft-sync pull to refresh.`
 
 ---
@@ -98,7 +98,7 @@ If any story is blocked, flag it explicitly:
 
 ## Step 4 — Offer sync if status looks stale
 
-If local `docs/plan/status.md` exists but differs from tracker state:
+If local `docs/planning-artifacts/status.md` exists but differs from tracker state:
 ```
 ℹ️ Local plan is out of sync with tracker ([N] differences found).
 Run /bellosoft-sync pull to update it.

@@ -118,7 +118,7 @@ All description and comment fields require ADF — never pass plain strings.
 
 ## Custom Field IDs
 
-**Never hardcode these — always discover via `jira_get_fields()` and cache in `docs/plan/jira-profile.md`.**
+**Never hardcode these — always discover via `jira_get_fields()` and cache in `docs/planning-artifacts/jira-profile.md`.**
 
 Common field names to search for:
 
@@ -188,7 +188,7 @@ project = PROJ AND issuetype = Story AND parent = PROJ-5
 
 ### All issues by label
 ```
-project = PROJ AND labels = "bellosoft-generated"
+project = PROJ AND labels = "ai-generated"
 ```
 
 ### Epics only
@@ -292,12 +292,12 @@ curl -s -X POST \
 
 All issues created by bellosoft skills must have:
 ```json
-{ "labels": ["bellosoft-generated"] }
+{ "labels": ["ai-generated"] }
 ```
 
 This enables safe re-sync detection:
 ```
-jql = "project = {KEY} AND labels = bellosoft-generated"
+jql = "project = {KEY} AND labels = ai-generated"
 ```
 
 ---

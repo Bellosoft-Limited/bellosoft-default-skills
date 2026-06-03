@@ -74,7 +74,7 @@ If **edit in place**: load existing PRD content, ask what changed, update only t
 Read in parallel to understand the codebase:
 - `README.md`
 - `package.json` or `*.csproj` or `pyproject.toml`
-- `docs/plan/codebase-audit.md` (if exists — reveals tech stack, patterns, existing modules)
+- `docs/planning-artifacts/codebase-audit.md` (if exists — reveals tech stack, patterns, existing modules)
 
 Present what was understood:
 

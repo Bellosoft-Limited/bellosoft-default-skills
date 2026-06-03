@@ -25,8 +25,8 @@ call Plane MCP tools or REST API directly — route through this skill instead.
 /bellosoft-plane update          ← update state/comment (called by sync, dev-review)
 /bellosoft-plane get             ← fetch issue by ID (called by dev-plan, sprint)
 /bellosoft-plane list-sprint     ← list active sprint (called by bellosoft-sprint)
-/bellosoft-plane sync-epics      ← bulk push docs/plan/epics.md → Plane
-/bellosoft-plane import          ← import existing Plane project → docs/plan/
+/bellosoft-plane sync-epics      ← bulk push docs/planning-artifacts/epics.md → Plane
+/bellosoft-plane import          ← import existing Plane project → docs/planning-artifacts/
 ```
 
 ---
@@ -48,22 +48,22 @@ All Plane operations must follow the rules in that file.
 
 ### API key resolution (required for REST API calls)
 
-1. Check `_bmad/secrets/plane-api-key.txt` — if exists, read and use
+1. Check `.secrets/plane-api-key.txt` — if exists, read and use
 2. Else check `PLANE_API_KEY` env var
 3. Else prompt: `"Enter your Plane API key (get it from Plane → Profile → Personal Access Tokens):"`
-4. Once obtained, save to `_bmad/secrets/plane-api-key.txt` for future sessions
+4. Once obtained, save to `.secrets/plane-api-key.txt` for future sessions
 
 ### Workspace slug resolution
 
-1. Check `_bmad/secrets/plane-workspace.txt`
+1. Check `.secrets/plane-workspace.txt`
 2. Else check `PLANE_WORKSPACE` env var
 3. Else prompt: `"Enter your Plane workspace slug (e.g. 'my-team' from app.plane.so/my-team/)"`
-4. Save to `_bmad/secrets/plane-workspace.txt`
+4. Save to `.secrets/plane-workspace.txt`
 
 ### Project resolution
 
 Call `mcp_plane_list_projects`. Match project by name (case-insensitive) from
-`docs/plan/status.md` header or ask the user.
+`docs/planning-artifacts/status.md` header or ask the user.
 
 - Match found → use silently
 - No match, one project → default to it, notify user
@@ -79,10 +79,10 @@ Store `project_id` and `project_identifier` for the session.
 
 ### Member ID resolution (when assigning)
 
-Check `docs/plan/plane-profile.md` first. If `plane_member_id` exists, use it.
+Check `docs/planning-artifacts/plane-profile.md` first. If `plane_member_id` exists, use it.
 
 Otherwise call `mcp_plane_get_workspace_members`, match by display name or email,
-and save to `docs/plan/plane-profile.md`:
+and save to `docs/planning-artifacts/plane-profile.md`:
 ```markdown
 # Plane Profile
 - **display_name**: [name]
@@ -134,7 +134,7 @@ curl -s -X POST \
   "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/epics/" \
   -H "X-API-Key: {key}" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Epic {N}: {title}","description_html":"<div><p>{description}</p></div>","labels":["{bellosoft-generated label ID}"]}'
+  -d '{"name":"Epic {N}: {title}","description_html":"<div><p>{description}</p></div>","labels":["{ai-generated label ID}"]}'
 ```
 
 Save returned `id` and `sequence_id`.
@@ -157,7 +157,7 @@ cycle_id: string (optional — assign to sprint)
 estimate_hours: number
 priority: "urgent" | "high" | "medium" | "low" | "none"
 assignee_id: string (optional)
-labels: string[] (optional — e.g. ["backend", "bellosoft-generated"])
+labels: string[] (optional — e.g. ["backend", "ai-generated"])
 ```
 
 **Execution:**
@@ -191,7 +191,7 @@ curl -s -X POST \
 
 Add source comment:
 ```bash
-# comment_html: "<p><strong>Source:</strong> docs/plan/epics.md — Story {story_id}</p>"
+# comment_html: "<p><strong>Source:</strong> docs/planning-artifacts/epics.md — Story {story_id}</p>"
 mcp_plane_create_work_item_comment(project_id, work_item_id, comment_html=...)
 ```
 
@@ -335,8 +335,8 @@ Group by state group: `cancelled` (blocked), `started` (in progress), `unstarted
 
 Called by: `bellosoft-sync` (bulk push mode), or directly
 
-Upsert every epic and story from `docs/plan/epics.md` → Plane.
-`docs/plan/epics.md` is the source of truth — safe to re-run.
+Upsert every epic and story from `docs/planning-artifacts/epics.md` → Plane.
+`docs/planning-artifacts/epics.md` is the source of truth — safe to re-run.
 
 **Behavior:**
 - Creates epics/stories not yet in Plane
@@ -345,14 +345,14 @@ Upsert every epic and story from `docs/plan/epics.md` → Plane.
 - Never deletes
 
 **Steps:**
-1. Read `docs/plan/epics.md` — extract all epics and stories
+1. Read `docs/planning-artifacts/epics.md` — extract all epics and stories
 2. Print full list and ask: `"Push N epics, N stories to Plane? [y/n]"`
 3. Fetch all existing epics (paginate) + work items (paginate) — build name→ID lookup
-4. Resolve `bmad-generated` label ID (create if missing, color `#7C3AED`)
+4. Resolve `ai-generated` label ID (create if missing, color `#7C3AED`)
 5. Resolve User Story type ID (see workflow.md)
 6. Upsert epics via REST `/epics/` (see CREATE_EPIC — skip if already in sync)
 7. Upsert stories via REST `/work-items/` with `type_id` (see CREATE_STORY — skip if already in sync)
-8. Update `docs/plan/status.md` with Plane sequence IDs
+8. Update `docs/planning-artifacts/status.md` with Plane sequence IDs
 
 **Name matching rule:** strip `[PROJ-N]` suffix before comparing.
 Example: `Epic 1 [BEL-5]: Auth` → compare as `Epic 1: Auth`.
@@ -372,7 +372,7 @@ Example: `Epic 1 [BEL-5]: Auth` → compare as `Epic 1: Auth`.
 
 Called by: `bellosoft-sync import`
 
-Fetch existing Plane project structure → build `docs/plan/epics.md` + `docs/plan/status.md`.
+Fetch existing Plane project structure → build `docs/planning-artifacts/epics.md` + `docs/planning-artifacts/status.md`.
 
 See `bellosoft-sync` IMPORT mode for full flow — this operation handles the
 Plane-side fetching using correct pagination and tool calls.

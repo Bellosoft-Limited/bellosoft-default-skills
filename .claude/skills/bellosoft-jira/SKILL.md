@@ -25,8 +25,8 @@ call Atlassian MCP tools directly — route through this skill instead.
 /bellosoft-jira update          ← update state/comment (called by sync, dev-review)
 /bellosoft-jira get             ← fetch issue by key (called by dev-plan, sprint)
 /bellosoft-jira list-sprint     ← list active sprint (called by bellosoft-sprint)
-/bellosoft-jira sync-epics      ← bulk push docs/plan/epics.md → Jira
-/bellosoft-jira import          ← import existing Jira project → docs/plan/
+/bellosoft-jira sync-epics      ← bulk push docs/planning-artifacts/epics.md → Jira
+/bellosoft-jira import          ← import existing Jira project → docs/planning-artifacts/
 ```
 
 ---
@@ -65,13 +65,13 @@ On first run, call `mcp__atlassian__jira_get_myself()` and save:
 - **account_id**: [accountId]
 - **email**: [emailAddress]
 ```
-to `docs/plan/jira-profile.md`.
+to `docs/planning-artifacts/jira-profile.md`.
 
-On subsequent runs, read from `docs/plan/jira-profile.md` if it exists.
+On subsequent runs, read from `docs/planning-artifacts/jira-profile.md` if it exists.
 
 ### Project resolution
 
-1. Check `docs/plan/status.md` for `jira_project_key:` — use if found
+1. Check `docs/planning-artifacts/status.md` for `jira_project_key:` — use if found
 2. Else call `mcp__atlassian__jira_get_all_projects()` — list and ask user to pick
 3. If no projects exist OR user wants a new one:
    ```
@@ -80,7 +80,7 @@ On subsequent runs, read from `docs/plan/jira-profile.md` if it exists.
    ```
    → Delegate to CREATE_PROJECT operation
 4. Confirm selection: `"Using project {KEY} ({name}). Correct? [y/n]"`
-5. Store in `docs/plan/status.md` under `jira_project_key:`
+5. Store in `docs/planning-artifacts/status.md` under `jira_project_key:`
 
 ---
 
@@ -107,7 +107,7 @@ These rules are non-negotiable. Violating them causes Jira API errors:
 ```
 mcp__atlassian__jira_search(jql="project = {KEY} AND issuetype = Epic", max_results=1)
 ```
-Store detected type in `docs/plan/jira-profile.md`.
+Store detected type in `docs/planning-artifacts/jira-profile.md`.
 
 **ADF format for descriptions:**
 ```json
@@ -127,7 +127,7 @@ Always discover before first use — never assume field IDs:
 mcp__atlassian__jira_get_fields()
 ```
 Filter by name for: "Story Points", "Story point estimate", "Sprint", "Epic Link", "Epic Name".
-Cache results in session. Store discovered IDs in `docs/plan/jira-profile.md`.
+Cache results in session. Store discovered IDs in `docs/planning-artifacts/jira-profile.md`.
 
 ---
 
@@ -145,9 +145,9 @@ First-time project validation. Discovers and caches:
 3. `mcp__atlassian__jira_get_issue_types(project_key)` → save type IDs
 4. `mcp__atlassian__jira_get_fields()` → save custom field IDs
 5. Detect project type (search for Epic issues)
-6. Save all to `docs/plan/jira-profile.md`
+6. Save all to `docs/planning-artifacts/jira-profile.md`
 
-**Output `docs/plan/jira-profile.md`:**
+**Output `docs/planning-artifacts/jira-profile.md`:**
 ```markdown
 # Jira Profile
 - **display_name**: ...
@@ -233,7 +233,7 @@ lead_account_id: string  (from jira-profile.md — current user)
    ```
    ✅ Jira project created: {project_name} ({project_key})
       Board URL: {JIRA_URL}/jira/software/projects/{project_key}/boards
-      Setup complete — issue types, fields, and board ID saved to docs/plan/jira-profile.md
+      Setup complete — issue types, fields, and board ID saved to docs/planning-artifacts/jira-profile.md
    ```
 
 **Project template options (for Scrum teams):**
@@ -256,14 +256,14 @@ epic_number: string (e.g. "E1")
 
 **Execution:**
 
-Load `docs/plan/jira-profile.md`. Build ADF description:
+Load `docs/planning-artifacts/jira-profile.md`. Build ADF description:
 ```json
 {
   "type": "doc", "version": 1,
   "content": [
     { "type": "paragraph", "content": [{ "type": "text", "text": "{description}" }] },
     { "type": "paragraph", "content": [
-      { "type": "text", "text": "Source: docs/plan/epics.md — Epic {epic_number}",
+      { "type": "text", "text": "Source: docs/planning-artifacts/epics.md — Epic {epic_number}",
         "marks": [{"type": "em"}] }
     ]}
   ]
@@ -277,7 +277,7 @@ mcp__atlassian__jira_create_issue(
   summary = "Epic {N}: {title}",
   issue_type = "Epic",
   description = {ADF object},
-  additional_fields = { "labels": ["bellosoft-generated"] }
+  additional_fields = { "labels": ["ai-generated"] }
 )
 ```
 
@@ -341,7 +341,7 @@ Add source comment after creation:
 ```
 mcp__atlassian__jira_add_comment(
   issue_key = "{key}",
-  comment = "Created by bellosoft-plan-epic from docs/plan/epics.md"
+  comment = "Created by bellosoft-plan-epic from docs/planning-artifacts/epics.md"
 )
 ```
 
@@ -534,8 +534,8 @@ Issues with "Blocked" label or active blocker links → 🔴.
 
 Called by: `bellosoft-sync` (bulk push mode), or directly
 
-Upsert every epic and story from `docs/plan/epics.md` → Jira.
-`docs/plan/epics.md` is the source of truth — safe to re-run.
+Upsert every epic and story from `docs/planning-artifacts/epics.md` → Jira.
+`docs/planning-artifacts/epics.md` is the source of truth — safe to re-run.
 
 **Behavior:**
 - Creates epics/stories not yet in Jira
@@ -544,13 +544,13 @@ Upsert every epic and story from `docs/plan/epics.md` → Jira.
 - Never deletes
 
 **Steps:**
-1. Read `docs/plan/epics.md` — extract all epics and stories
+1. Read `docs/planning-artifacts/epics.md` — extract all epics and stories
 2. Print full list: `"Push N epics, N stories to Jira? [y/n]"`
-3. Search existing: `jql="project={KEY} AND labels=bellosoft-generated"`
+3. Search existing: `jql="project={KEY} AND labels=ai-generated"`
    Build summary → key lookup map
 4. Upsert epics (CREATE_EPIC for new, `jira_update_issue` for changed summary)
 5. Upsert stories (CREATE_STORY for new, update for changed)
-6. Update `docs/plan/status.md` with Jira keys (e.g. `jira_epic_E1: PROJ-5`)
+6. Update `docs/planning-artifacts/status.md` with Jira keys (e.g. `jira_epic_E1: PROJ-5`)
 
 **Name matching:** strip `[PROJ-N]` suffix before comparing.
 
@@ -569,16 +569,16 @@ Upsert every epic and story from `docs/plan/epics.md` → Jira.
 
 Called by: `bellosoft-sync import`
 
-Fetch existing Jira project structure → build `docs/plan/epics.md` + `docs/plan/status.md`.
+Fetch existing Jira project structure → build `docs/planning-artifacts/epics.md` + `docs/planning-artifacts/status.md`.
 
 **Steps:**
 1. Fetch all epics: `jql="project={KEY} AND issuetype=Epic ORDER BY created ASC"`
 2. For each epic, fetch stories: `jql="project={KEY} AND issuetype=Story AND parent={epic_key}"`
-3. Build `docs/plan/epics.md` in bellosoft format
-4. Build `docs/plan/status.md` with all Jira keys
-5. Update `docs/plan/jira-profile.md` with project metadata
+3. Build `docs/planning-artifacts/epics.md` in bellosoft format
+4. Build `docs/planning-artifacts/status.md` with all Jira keys
+5. Update `docs/planning-artifacts/jira-profile.md` with project metadata
 
-Ask before overwriting if `docs/plan/` already exists.
+Ask before overwriting if `docs/planning-artifacts/` already exists.
 
 ---
 
@@ -586,7 +586,7 @@ Ask before overwriting if `docs/plan/` already exists.
 
 When both Jira and Plane may be configured:
 
-1. Check `docs/plan/status.md` for `tracker:` field
+1. Check `docs/planning-artifacts/status.md` for `tracker:` field
 2. `tracker: jira` → delegate here
 3. `tracker: plane` → delegate to `bellosoft-plane`
 4. Not set → check which profile files exist

@@ -42,7 +42,7 @@ approach upfront is worth the time investment.
 ## Step 0.5 — Tracker resolution (first-time only)
 
 Before fetching or creating any ticket:
-- If `docs/plan/status.md` contains `tracker:` → skip this step
+- If `docs/planning-artifacts/status.md` contains `tracker:` → skip this step
 - If not → load and follow `.claude/skills/bellosoft-plane/references/tracker-bootstrap.md`
 
 ---
@@ -54,7 +54,7 @@ Determine the input type and load accordingly:
 ### A) Jira ticket ID (e.g. `PROJ-123`, `BEL-42`)
 Detect: matches pattern `[A-Z]+-\d+`
 
-Check tracker from `docs/plan/status.md`. If `tracker: jira`:
+Check tracker from `docs/planning-artifacts/status.md`. If `tracker: jira`:
 Delegate to `/bellosoft-jira get [issue_key]`.
 
 If tracker check needed and not yet configured, follow Step 0.5 first.
@@ -119,7 +119,7 @@ Should I create a ticket for this in your tracker before planning?
   3. No — plan only, I'll create the ticket manually (or not at all)
 ```
 
-Only show options for trackers configured in `docs/plan/status.md`. If `tracker: none` or no status file, skip this prompt and proceed to Step 2.
+Only show options for trackers configured in `docs/planning-artifacts/status.md`. If `tracker: none` or no status file, skip this prompt and proceed to Step 2.
 
 For Jira → delegate to `/bellosoft-jira create-story`.
 For Plane → delegate to `/bellosoft-plane create-story`.
@@ -146,7 +146,7 @@ Continue anyway? (yes / define ACs first)
 
 ## Step 2 — Analyse the Codebase
 
-**If `docs/plan/codebase-audit.md` exists**, load it first:
+**If `docs/planning-artifacts/codebase-audit.md` exists**, load it first:
 - Read the Module Inventory to find which modules this story touches
 - Read Established Conventions — all new code MUST follow them
 - Read the Tech Debt Register for anything that affects this story

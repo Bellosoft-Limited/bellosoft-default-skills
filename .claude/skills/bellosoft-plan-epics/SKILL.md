@@ -5,7 +5,7 @@ description: >
   changes, or import an existing plan from Jira/Plane. Triggers: /bellosoft-plan-epics,
   "identify epics", "parse this PRD", "PRD changed", "update epics", "re-read the PRD".
   For teams already in Jira/Plane without a PRD, use /bellosoft-sync import instead —
-  it bootstraps docs/plan/ directly from the tracker. Does NOT decompose stories or tasks
+  it bootstraps docs/planning-artifacts/ directly from the tracker. Does NOT decompose stories or tasks
   — that is /bellosoft-plan-epic. Run this first, or re-run whenever the PRD changes.
 ---
 
@@ -22,11 +22,11 @@ the start, then re-run it whenever the PRD changes.
 
 ```
 /bellosoft-plan-epics [path/to/prd.md]     ← new PRD
-/bellosoft-plan-epics                       ← re-reads PRD from docs/plan/prd-source.md if saved
+/bellosoft-plan-epics                       ← re-reads PRD from docs/planning-artifacts/prd-source.md if saved
 ```
 
 > **Already have tickets in Jira/Plane?** Skip this skill and run `/bellosoft-sync import` instead.
-> It bootstraps `docs/plan/` from your existing tracker project — no PRD needed.
+> It bootstraps `docs/planning-artifacts/` from your existing tracker project — no PRD needed.
 
 ---
 
@@ -36,19 +36,19 @@ Before reading the PRD, run these checks in order:
 
 ```bash
 # 1. Check for existing audit
-cat docs/plan/codebase-audit.md 2>/dev/null | head -5
+cat docs/planning-artifacts/codebase-audit.md 2>/dev/null | head -5
 
 # 2. Get audit file age (if it exists)
-stat docs/plan/codebase-audit.md 2>/dev/null
+stat docs/planning-artifacts/codebase-audit.md 2>/dev/null
 
 # 3. Count files changed since audit was written
 # (proxy: files newer than the audit file)
-find . -newer docs/plan/codebase-audit.md \
+find . -newer docs/planning-artifacts/codebase-audit.md \
   -not -path '*/.git/*' \
   -not -path '*/node_modules/*' \
   -not -path '*/bin/*' \
   -not -path '*/obj/*' \
-  -not -path '*/docs/plan/*' \
+  -not -path '*/docs/planning-artifacts/*' \
   -name "*.cs" -o -name "*.ts" -o -name "*.vue" \
   2>/dev/null | wc -l
 
@@ -91,7 +91,7 @@ If option 2 chosen → add visible warning to all output:
 Audit is considered **stale** if ANY of these are true:
 - Audit file is older than **14 days**
 - More than **20 source files** have been modified since the audit was written
-- The audit's `**Audited:**` date header is older than the last entry in `docs/plan/status.md`
+- The audit's `**Audited:**` date header is older than the last entry in `docs/planning-artifacts/status.md`
   (meaning sprints have been delivered since the audit — implementation has moved on)
 
 If stale, show:
@@ -134,7 +134,7 @@ Show a single line confirmation at the end of the output:
 Check whether the file is in the correct location (`docs/prd/`):
 
 - Path is already under `docs/prd/` → load it, proceed.
-- Path is anywhere else (e.g. `docs/my-feature.md`, `prd.md`, `docs/plan/prd.md`) → file is in the wrong place. Show:
+- Path is anywhere else (e.g. `docs/my-feature.md`, `prd.md`, `docs/planning-artifacts/prd.md`) → file is in the wrong place. Show:
 
 ```
 ⚠️  PRD found at [given path] — this should live under docs/prd/.
@@ -168,12 +168,12 @@ After the user decides, perform the file operation (move/copy/rename) before pro
    find docs/prd/ -name "*.md" 2>/dev/null | sort -r | head -20
    ```
 2. If files found → show the list and ask which to use, or offer "paste content / provide a path"
-3. If `docs/plan/prd-source.md` exists (from a previous run) → offer it as a fallback
+3. If `docs/planning-artifacts/prd-source.md` exists (from a previous run) → offer it as a fallback
 4. If nothing found anywhere → ask: "Please provide the PRD path, drop a file in docs/prd/, or paste the content."
 
 ### 2b — Save canonical reference
 
-Once the PRD is resolved and in `docs/prd/`, save a reference (not a copy) to `docs/plan/prd-source.md`:
+Once the PRD is resolved and in `docs/prd/`, save a reference (not a copy) to `docs/planning-artifacts/prd-source.md`:
 
 ```markdown
 # PRD Source Reference
@@ -181,15 +181,15 @@ Once the PRD is resolved and in `docs/prd/`, save a reference (not a copy) to `d
 **Loaded:** [today's date]
 ```
 
-This keeps `docs/plan/` lightweight — the PRD itself always lives in `docs/prd/`.
+This keeps `docs/planning-artifacts/` lightweight — the PRD itself always lives in `docs/prd/`.
 
 ---
 
 ## Step 2c — Detect changes (if re-running)
 
-If `docs/plan/epics.md` already exists from a previous run:
+If `docs/planning-artifacts/epics.md` already exists from a previous run:
 
-1. Read the PRD path from `docs/plan/prd-source.md`, load the actual PRD from `docs/prd/`
+1. Read the PRD path from `docs/planning-artifacts/prd-source.md`, load the actual PRD from `docs/prd/`
 2. Compare the new PRD against the previously loaded version
 2. Identify what changed:
    - New requirements added
@@ -216,7 +216,7 @@ If `docs/plan/epics.md` already exists from a previous run:
 Proceed to update epic register? (yes / no)
 ```
 
-If no `docs/plan/epics.md` exists → skip diff, proceed as first run.
+If no `docs/planning-artifacts/epics.md` exists → skip diff, proceed as first run.
 
 ---
 
@@ -353,9 +353,9 @@ Reply with:
 
 ## Step 8 — Save state (after approval)
 
-Write `docs/plan/epics.md` with the approved epic register.
-Write `docs/plan/prd-source.md` with the current PRD content.
-Write `docs/plan/status.md`:
+Write `docs/planning-artifacts/epics.md` with the approved epic register.
+Write `docs/planning-artifacts/prd-source.md` with the current PRD content.
+Write `docs/planning-artifacts/status.md`:
 
 ```markdown
 # Planning Status — [Product Name]
@@ -369,7 +369,7 @@ Write `docs/plan/status.md`:
 
 Then output:
 ```
-✅ Epic register saved to docs/plan/epics.md
+✅ Epic register saved to docs/planning-artifacts/epics.md
 
 Next steps:
   /bellosoft-plan-epic E1    ← decompose E1 into stories and tasks

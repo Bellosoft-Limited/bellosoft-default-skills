@@ -5,7 +5,7 @@ description: >
   /bellosoft-audit-codebase, "read the project", "understand what's built", "what already
   exists", "analyse the code", "what's implemented", "map the codebase". Produces
   a structured inventory of what is already built, what is partial, what is missing,
-  and what technical patterns are in use. Saves the result to docs/plan/codebase-audit.md
+  and what technical patterns are in use. Saves the result to docs/planning-artifacts/codebase-audit.md
   so bellosoft-plan-epics and bellosoft-plan-epic can use it. Run this before /bellosoft-plan-epics on any
   existing project. Safe to re-run — detects changes since last audit.
 ---
@@ -54,7 +54,7 @@ Also read:
 - `README.md` (if exists)
 - `*.sln`, `*.csproj`, `package.json`, `pyproject.toml` — whatever defines the project
 - `docker-compose*.yml` — services and infra
-- Any existing `docs/plan/` state files from prior runs
+- Any existing `docs/planning-artifacts/` state files from prior runs
 
 ---
 
@@ -165,7 +165,7 @@ New code should use repository pattern.
 
 ## Step 6 — Produce the Audit Report
 
-Output the full report and save to `docs/plan/codebase-audit.md`:
+Output the full report and save to `docs/planning-artifacts/codebase-audit.md`:
 
 ```markdown
 # Codebase Audit — [Project Name]
@@ -256,14 +256,14 @@ Based on this audit, before adding new features:
 
 ---
 
-## Step 7 — Check for existing docs/plan/ state
+## Step 7 — Check for existing docs/planning-artifacts/ state
 
-If `docs/plan/epics.md` already exists, cross-reference:
+If `docs/planning-artifacts/epics.md` already exists, cross-reference:
 - Are any planned epics already fully implemented? → Mark as ✅ Done
 - Are any planned epics partially done? → Update status
 - Are there implemented features NOT in any epic? → Flag as undocumented work
 
-Output a reconciliation note if `docs/plan/` state exists:
+Output a reconciliation note if `docs/planning-artifacts/` state exists:
 ```
 ## Reconciliation with existing plan
 
@@ -278,11 +278,11 @@ Output a reconciliation note if `docs/plan/` state exists:
 
 ## Step 8 — Save and hand off
 
-Save the report to `docs/plan/codebase-audit.md`.
+Save the report to `docs/planning-artifacts/codebase-audit.md`.
 
 Output:
 ```
-✅ Audit complete. Saved to docs/plan/codebase-audit.md
+✅ Audit complete. Saved to docs/planning-artifacts/codebase-audit.md
 
 Summary:
   ✅ Complete modules: N
@@ -301,5 +301,5 @@ Next steps:
 - Read actual code — do not guess or hallucinate implementations
 - Never mark something ✅ Complete without reading the implementation
 - Always check for TODOs and NotImplementedException
-- Save to `docs/plan/codebase-audit.md` before finishing
+- Save to `docs/planning-artifacts/codebase-audit.md` before finishing
 - If codebase is too large to read fully, prioritise: DbContext → Services → Controllers → Router → Stores
