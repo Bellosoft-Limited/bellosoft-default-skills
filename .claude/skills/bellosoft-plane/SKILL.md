@@ -46,60 +46,69 @@ All Plane operations must follow the rules in that file.
 
 ## Step 1 — Setup and auth
 
-**Goal: resolve everything from MCP first. Only ask for what cannot be auto-detected.**
+**Goal: resolve workspace slug, API key, project, and member ID upfront. Never mid-operation.**
 
-### Step 1a — MCP connectivity
+### Step 1a — Workspace slug
 
-Call `mcp_plane_list_projects` silently.
+**Resolution order (stop at first success):**
 
-- Succeeds → MCP is connected. Extract workspace slug from the returned project URLs
-  or API base URL. Save to `.secrets/plane-workspace.txt`.
-- Fails → stop and tell the user:
-  `"Plane MCP is not connected. Please configure it in your MCP settings and retry."`
-  Do NOT ask for API key or workspace manually — nothing else can proceed without MCP.
+1. Check `.secrets/plane-workspace.txt` — if exists, read and use silently
+2. Check `docs/planning-artifacts/plane-profile.md` — if `workspace_slug` present, use it and save to `.secrets/plane-workspace.txt`
+3. Try MCP: call `mcp_plane_list_projects` — if succeeds, extract slug from project URLs and save to `.secrets/plane-workspace.txt`
+4. If all above fail, prompt once:
+   `"What is your Plane workspace slug? (visible in the URL: app.plane.so/{slug}/...)"`
+   Save to `.secrets/plane-workspace.txt`.
 
-### Step 1b — Project resolution
+**Never proceed without a workspace slug.** All REST API calls and MCP calls require it.
 
-Use the projects already returned in Step 1a (no extra call needed).
-
-- One project → use it silently, notify: `"Using project: {name}"`
-- Project name in `docs/planning-artifacts/status.md` → match and use silently
-- Multiple projects → list and ask which to use
-- No projects or user wants a new one → offer:
-  `"No projects found. Type 'create' to scaffold one."`
-  → Delegate to SETUP (CREATE_PROJECT) operation
-
-Store `project_id` and `project_identifier` for the session.
-
-### Step 1c — Member ID resolution
-
-Call `mcp_plane_get_workspace_members` silently. Match current user by display name or email.
-If already saved in `docs/planning-artifacts/plane-profile.md` → use silently, skip the call.
-
-Save result:
-```markdown
-# Plane Profile
-- **display_name**: [name]
-- **plane_member_id**: [uuid]
-- **workspace_slug**: [slug]
-```
-
-### Step 1d — API key (resolved during setup)
+### Step 1b — API key (resolved during setup)
 
 The API key is required for all write operations MCP cannot handle: creating epics
 (`POST /epics/`) and typed work items (`POST /work-items/` with `type_id`).
+It is also the fallback for all read operations when MCP is unavailable.
 
-**Resolve the API key during every setup, before any operation:**
+**Resolve upfront, before any operation:**
 
 1. Check `.secrets/plane-api-key.txt` — if exists, use silently
 2. Check `PLANE_API_KEY` env var — if set, use silently
-3. If neither found, prompt once during setup (not mid-operation):
+3. If neither found, prompt once:
    `"A Plane API key is needed. Get it from Plane → Profile → Personal Access Tokens:"`
 4. Save to `.secrets/plane-api-key.txt` immediately
 5. Ensure `.secrets/` is gitignored — append if missing:
    ```bash
    grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
    ```
+
+### Step 1c — MCP connectivity (optional enhancement)
+
+Try `mcp_plane_list_projects` silently. If it succeeds, use MCP tools for reads (faster).
+If it fails or is unavailable, fall back to REST API for all operations — **do not stop**.
+MCP is a convenience, not a requirement.
+
+### Step 1d — Project resolution
+
+**Resolution order:**
+
+1. Check `docs/planning-artifacts/status.md` for `plane_project_id` and `plane_project_identifier` → use silently
+2. If not found, call REST: `GET /api/v1/workspaces/{slug}/projects/` with API key
+   - One project → use silently, notify: `"Using project: {name}"`
+   - Multiple projects → list and ask which to use
+   - No projects → offer: `"No projects found. Type 'create' to scaffold one."` → SETUP
+
+Store `project_id` and `project_identifier` for the session.
+
+### Step 1e — Member ID resolution
+
+1. Check `docs/planning-artifacts/plane-profile.md` — if `plane_member_id` present, use silently
+2. Otherwise call REST: `GET /api/v1/workspaces/{slug}/members/` with API key. Match by email or display name.
+3. Save result to `docs/planning-artifacts/plane-profile.md`:
+
+```markdown
+# Plane Profile
+- **display_name**: [name]
+- **plane_member_id**: [uuid]
+- **workspace_slug**: [slug]
+```
 
 **Never defer this to mid-operation.** Interrupting a create/update flow to ask for the
 key causes failures and confusion. Resolve it once, upfront, and reuse throughout the session.
@@ -316,6 +325,7 @@ Called by: `bellosoft-dev-plan`, `bellosoft-sprint`
 
 **Input:** `issue_identifier: number`
 
+**Try MCP first:**
 ```
 mcp_plane_retrieve_work_item_by_identifier(
   issue_identifier={N},
@@ -323,7 +333,16 @@ mcp_plane_retrieve_work_item_by_identifier(
 )
 ```
 
-Extract: title, description, acceptance criteria, state, assignee, cycle, labels.
+**If MCP unavailable, fall back to REST:**
+```bash
+curl -s "https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/?sequence_id={N}" \
+  -H "X-API-Key: {key}"
+```
+Filter `results` array for the item where `sequence_id == N`.
+
+Note: The `/work-items/{N}/` path (using sequence number directly) does NOT work — Plane requires the UUID. Always list and filter by `sequence_id`.
+
+Extract: title, description_html, acceptance criteria, state, assignee, cycle, labels.
 
 **Returns:** structured story object ready for `bellosoft-dev-plan` to consume.
 
