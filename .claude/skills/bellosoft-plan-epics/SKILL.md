@@ -131,30 +131,30 @@ Show a single line confirmation at the end of the output:
 
 **If a path is given:**
 
-Check whether the file is in the correct location (`docs/prd/`):
+Check whether the file is in the correct location (`docs/planning-artifacts/prd/`):
 
-- Path is already under `docs/prd/` → load it, proceed.
+- Path is already under `docs/planning-artifacts/prd/` → load it, proceed.
 - Path is anywhere else (e.g. `docs/my-feature.md`, `prd.md`, `docs/planning-artifacts/prd.md`) → file is in the wrong place. Show:
 
 ```
-⚠️  PRD found at [given path] — this should live under docs/prd/.
+⚠️  PRD found at [given path] — this should live under docs/planning-artifacts/prd/.
 
 Before planning, I need to sort this out:
-  1. Move and rename to docs/prd/YYYY-MM-DD-[feature-name].md (recommended)
-  2. Copy (keep original in place, also register in docs/prd/)
-  3. Use as-is without moving (planning will work, but docs/prd/ stays unorganised)
+  1. Move and rename to docs/planning-artifacts/prd/YYYY-MM-DD-[feature-name].md (recommended)
+  2. Copy (keep original in place, also register in docs/planning-artifacts/prd/)
+  3. Use as-is without moving (planning will work, but docs/planning-artifacts/prd/ stays unorganised)
 
-Also: does this PRD already exist in docs/prd/ under a different name?
+Also: does this PRD already exist in docs/planning-artifacts/prd/ under a different name?
 ```
 
-Scan `docs/prd/` for files with similar names or overlapping content (compare titles/executive summaries). If a likely match is found:
+Scan `docs/planning-artifacts/prd/` for files with similar names or overlapping content (compare titles/executive summaries). If a likely match is found:
 
 ```
 ⚠️  This looks similar to an existing PRD:
-  docs/prd/2026-04-10-campaign-scheduling.md
+  docs/planning-artifacts/prd/2026-04-10-campaign-scheduling.md
 
 Options:
-  1. This is an amendment — merge as a new version (docs/prd/YYYY-MM-DD-campaign-scheduling-v2.md)
+  1. This is an amendment — merge as a new version (docs/planning-artifacts/prd/YYYY-MM-DD-campaign-scheduling-v2.md)
   2. This is a separate feature — save as a new file
   3. Replace the existing file entirely
 ```
@@ -163,25 +163,25 @@ After the user decides, perform the file operation (move/copy/rename) before pro
 
 **If no path is given:**
 
-1. Scan `docs/prd/` for PRD files:
+1. Scan `docs/planning-artifacts/prd/` for PRD files:
    ```bash
-   find docs/prd/ -name "*.md" 2>/dev/null | sort -r | head -20
+   find docs/planning-artifacts/prd/ -name "*.md" 2>/dev/null | sort -r | head -20
    ```
 2. If files found → show the list and ask which to use, or offer "paste content / provide a path"
 3. If `docs/planning-artifacts/prd-source.md` exists (from a previous run) → offer it as a fallback
-4. If nothing found anywhere → ask: "Please provide the PRD path, drop a file in docs/prd/, or paste the content."
+4. If nothing found anywhere → ask: "Please provide the PRD path, drop a file in docs/planning-artifacts/prd/, or paste the content."
 
 ### 2b — Save canonical reference
 
-Once the PRD is resolved and in `docs/prd/`, save a reference (not a copy) to `docs/planning-artifacts/prd-source.md`:
+Once the PRD is resolved and in `docs/planning-artifacts/prd/`, save a reference (not a copy) to `docs/planning-artifacts/prd-source.md`:
 
 ```markdown
 # PRD Source Reference
-**File:** docs/prd/YYYY-MM-DD-feature-name.md
+**File:** docs/planning-artifacts/prd/YYYY-MM-DD-feature-name.md
 **Loaded:** [today's date]
 ```
 
-This keeps `docs/planning-artifacts/` lightweight — the PRD itself always lives in `docs/prd/`.
+This keeps `docs/planning-artifacts/` lightweight — the PRD itself always lives in `docs/planning-artifacts/prd/`.
 
 ---
 
@@ -189,7 +189,7 @@ This keeps `docs/planning-artifacts/` lightweight — the PRD itself always live
 
 If `docs/planning-artifacts/epics.md` already exists from a previous run:
 
-1. Read the PRD path from `docs/planning-artifacts/prd-source.md`, load the actual PRD from `docs/prd/`
+1. Read the PRD path from `docs/planning-artifacts/prd-source.md`, load the actual PRD from `docs/planning-artifacts/prd/`
 2. Compare the new PRD against the previously loaded version
 2. Identify what changed:
    - New requirements added

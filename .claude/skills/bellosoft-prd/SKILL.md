@@ -5,7 +5,7 @@ description: >
   /bellosoft-prd, "create a PRD", "write a PRD", "document requirements", "I have a feature
   to spec", "new feature", "product requirements", "write up this idea". Scans existing
   PRDs, asks if this is new or an amendment, gathers requirements through scored dialogue,
-  and saves to docs/prd/YYYY-MM-DD-feature-name.md. Hands off to /bellosoft-plan-epics
+  and saves to docs/planning-artifacts/prd/YYYY-MM-DD-feature-name.md. Hands off to /bellosoft-plan-epics
   when done.
 ---
 
@@ -27,7 +27,7 @@ Interactive requirements gathering that produces a professional PRD ready for
 Before anything else, check what PRDs already exist:
 
 ```bash
-find docs/prd/ -name "*.md" 2>/dev/null | sort -r | head -20
+find docs/planning-artifacts/prd/ -name "*.md" 2>/dev/null | sort -r | head -20
 ```
 
 **If PRDs exist**, show them and ask:
@@ -53,7 +53,7 @@ Is this a new PRD or an amendment to an existing one?
 Load the existing PRD and ask:
 
 ```
-Loaded: docs/prd/2026-05-15-campaign-scheduling.md
+Loaded: docs/planning-artifacts/prd/2026-05-15-campaign-scheduling.md
 Current version: 1.0
 
 What changed?
@@ -63,7 +63,7 @@ What changed?
 Which would you prefer?
 ```
 
-If **new version file**: proceed through full requirements flow, pre-populate from existing PRD, let the user describe what changed. Save as `docs/prd/YYYY-MM-DD-campaign-scheduling-v2.md`.
+If **new version file**: proceed through full requirements flow, pre-populate from existing PRD, let the user describe what changed. Save as `docs/planning-artifacts/prd/YYYY-MM-DD-campaign-scheduling-v2.md`.
 
 If **edit in place**: load existing PRD content, ask what changed, update only the affected sections, append a changelog entry at the bottom. Skip the full quality scoring flow — jump straight to edits.
 
@@ -172,12 +172,12 @@ Before generating, derive a clean feature name from the title:
 Confirm:
 ```
 This PRD will be saved as:
-  docs/prd/2026-06-03-campaign-scheduling.md
+  docs/planning-artifacts/prd/2026-06-03-campaign-scheduling.md
 
 Correct? (yes / [suggest a different name])
 ```
 
-Create `docs/prd/` if it doesn't exist.
+Create `docs/planning-artifacts/prd/` if it doesn't exist.
 
 ---
 
@@ -338,7 +338,7 @@ can surface them during epic planning]
 
 ### References
 - [Design mockups / Figma link]
-- [Related PRDs: docs/prd/...]
+- [Related PRDs: docs/planning-artifacts/prd/...]
 - [Technical specs / API docs]
 
 ---
@@ -353,7 +353,7 @@ can surface them during epic planning]
 After saving:
 
 ```
-✅ PRD saved: docs/prd/2026-06-03-campaign-scheduling.md
+✅ PRD saved: docs/planning-artifacts/prd/2026-06-03-campaign-scheduling.md
    Quality score: [SCORE]/100
    [N] user stories | [N] features | [N] open questions
 
@@ -361,7 +361,7 @@ After saving:
 ⚠️ [N] open questions remain — plan-epics will surface these during epic planning.
 
 Next step:
-  /bellosoft-plan-epics docs/prd/2026-06-03-campaign-scheduling.md
+  /bellosoft-plan-epics docs/planning-artifacts/prd/2026-06-03-campaign-scheduling.md
 ```
 
 ---
@@ -371,5 +371,5 @@ Next step:
 - If user overrides quality gate, add an `## Open Questions` section with every gap flagged
 - Never skip Step 1 (existing PRD scan) — prevents accidental duplicates
 - Always confirm the filename before saving
-- Save to `docs/prd/` only — never at project root or `docs/` root
+- Save to `docs/planning-artifacts/prd/` only — never at project root or `docs/` root
 - Do not include "Think in English, respond in Chinese" or any language instructions — respond in the user's language
