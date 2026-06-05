@@ -32,6 +32,7 @@ approach upfront is worth the time investment.
 ```
 /bellosoft-dev-plan PROJ-123                        ← fetch from Jira by ticket ID
 /bellosoft-dev-plan NOKEY-42                        ← fetch from Plane by ticket ID
+/bellosoft-dev-plan https://org.atlassian.net/...   ← paste a full Jira URL — ID is extracted
 /bellosoft-dev-plan path/to/story.md                ← load from local file
 /bellosoft-dev-plan "add password reset to login"   ← typed free-form description
 /bellosoft-dev-plan                                 ← paste story content, or find most recent .md
@@ -51,26 +52,21 @@ Before fetching or creating any ticket:
 
 Determine the input type and load accordingly:
 
-### A) Jira ticket ID (e.g. `PROJ-123`, `BEL-42`)
-Detect: matches pattern `[A-Z]+-\d+`
+### A) Jira ticket ID or URL
+Detect:
+- Plain ticket ID: matches pattern `[A-Z]+-\d+` (e.g. `AP-29`, `PROJ-123`)
+- Full Jira URL: contains `atlassian.net` or `jira` — extract ticket ID from URL:
+  - `?selectedIssue=AP-29` → `AP-29`
+  - `/browse/AP-29` → `AP-29`
+  - Find first `[A-Z]+-\d+` match in the URL string
 
 Check tracker from `docs/planning-artifacts/status.md`. If `tracker: jira`:
 Delegate to `/bellosoft-jira get [issue_key]`.
 
+The bellosoft-jira GET operation handles MCP and REST fallback automatically —
+**do not show a "no connection" error here**; let the jira skill resolve it.
+
 If tracker check needed and not yet configured, follow Step 0.5 first.
-
-Legacy direct Jira check — if available:
-```
-Fetching PROJ-123 from Jira...
-```
-Extract: summary, description, acceptance criteria, story points, labels.
-
-If Jira MCP not available:
-```
-No Jira connection found. Options:
-  1. Paste the story content here
-  2. Provide a local file path
-```
 
 ### B) Plane ticket ID (e.g. `NOKEY-42`, `BEL-7`)
 Detect: matches Plane sequence number pattern or explicit Plane URL.

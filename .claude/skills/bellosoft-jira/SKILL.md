@@ -554,10 +554,26 @@ from `bellosoft-dev-review` or explicit user instruction.
 
 Called by: `bellosoft-dev-plan`, `bellosoft-sprint`
 
-**Input:** `issue_key: string` (e.g. PROJ-42)
+**Input:** `issue_key: string` (e.g. PROJ-42 or a full Jira URL)
 
+**If a full Jira URL is given**, extract the issue key first:
+- `selectedIssue=AP-29` → `AP-29`
+- `/browse/AP-29` → `AP-29`
+- Pattern: find `[A-Z]+-\d+` anywhere in the URL
+
+**Try MCP first:**
 ```
 mcp__atlassian__jira_get_issue(issue_key)
+```
+
+**If MCP unavailable, fall back to REST:**
+```bash
+# On Windows (PowerShell):
+$creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(Get-Content .secrets/jira-username.txt -Raw):$(Get-Content .secrets/jira-api-token.txt -Raw)"))
+Invoke-RestMethod -Uri "$(Get-Content .secrets/jira-url.txt -Raw)/rest/api/3/issue/{issue_key}" -Headers @{Authorization="Basic $creds"; Accept="application/json"}
+# On Mac/Linux (bash):
+curl -s -u "$(cat .secrets/jira-username.txt):$(cat .secrets/jira-api-token.txt)" \
+  "$(cat .secrets/jira-url.txt)/rest/api/3/issue/{issue_key}"
 ```
 
 Parse and return structured object:

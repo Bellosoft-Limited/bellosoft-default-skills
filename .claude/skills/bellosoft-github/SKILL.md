@@ -162,15 +162,40 @@ git push --set-upstream origin {branch_name}
 
 ## Command: PR
 
-### Step 1 — Check GitHub CLI
+### Step 1 — GitHub auth (resolved before anything else)
+
+**Always read token file first. Run this exact command:**
 
 ```bash
-gh auth status
+# On Windows (PowerShell):
+if (Test-Path ".secrets/github-token.txt") { Get-Content ".secrets/github-token.txt" -Raw }
+# On Mac/Linux (bash):
+cat .secrets/github-token.txt 2>/dev/null
 ```
 
-If not installed or not authenticated → halt:
-```
-⚠️ GitHub CLI not ready. Run: gh auth login
+**Resolution order (stop at first success):**
+
+1. **Read `.secrets/github-token.txt`** — run the command above; if non-empty, authenticate:
+   ```bash
+   $env:GH_TOKEN = (Get-Content ".secrets/github-token.txt" -Raw).Trim()  # PowerShell
+   export GH_TOKEN=$(cat .secrets/github-token.txt)                        # bash
+   ```
+   Then verify: `gh auth status`
+2. Check `GH_TOKEN` or `GITHUB_TOKEN` env vars — if set, `gh` will use them automatically
+3. Run `gh auth status` — if already authenticated, proceed silently
+4. Only if all above fail, prompt:
+   ```
+   ⚠️ GitHub CLI not authenticated.
+   Options:
+     1. Run: gh auth login
+     2. Save a personal access token to .secrets/github-token.txt
+        (create at github.com → Settings → Developer settings → Personal access tokens)
+   ```
+   Once authenticated, save token to `.secrets/github-token.txt` for future sessions.
+
+Ensure `.secrets/` is gitignored:
+```bash
+grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
 ```
 
 ### Step 2 — Resolve ticket ID and story context
