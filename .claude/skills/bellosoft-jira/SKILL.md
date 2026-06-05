@@ -91,7 +91,12 @@ MCP is a convenience, not a requirement.
 
 **Resolution order:**
 
-1. Check `docs/planning-artifacts/jira-profile.md` — if `account_id` present, use silently
+1. Check `docs/planning-artifacts/jira-profile.md` — if `account_id` present, use silently.
+   **Also check if `jira_url` is present in that file.** If missing, append it now:
+   ```
+   - **jira_url**: {resolved_jira_url}
+   ```
+   This patches profiles created before `jira_url` was added to the template.
 2. MCP available → use identity from Step 1b result
 3. REST fallback:
    ```bash
@@ -201,6 +206,7 @@ SETUP is silent and automatic. It does not ask the user any questions.
 - **display_name**: ...
 - **account_id**: ...
 - **email**: ...
+- **jira_url**: https://yourorg.atlassian.net
 - **project_key**: PROJ
 - **project_type**: next-gen | classic
 - **board_id**: 42
