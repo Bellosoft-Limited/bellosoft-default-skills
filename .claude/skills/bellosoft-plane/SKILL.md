@@ -218,6 +218,7 @@ curl -s -X POST \
     "state": "{backlog_state_id}",
     "priority": "{priority}",
     "type_id": "{USER_STORY_TYPE_ID}",
+    "estimate_point": {estimate_hours},
     "labels": ["{label_ids}"]
   }'
 ```
@@ -275,6 +276,7 @@ curl -s -X POST \
     "parent": "{parent_story_id}",
     "state": "{backlog_state_id}",
     "type_id": "{TASK_TYPE_ID}",
+    "estimate_point": {estimate_hours},
     "labels": ["{label_ids}"]
   }'
 ```

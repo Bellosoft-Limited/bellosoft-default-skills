@@ -365,11 +365,25 @@ Build `additional_fields`:
 ```json
 {
   "{story_points_field}": {estimate_hours},
+  "timetracking": { "originalEstimate": "{estimate_hours}h" },
   "customfield_10020": {sprint_id},
   "labels": {labels},
   "priority": {"name": "{priority}"},
   "assignee": {"accountId": "{assignee_id}"}
 }
+```
+
+⚠️ **`{story_points_field}` must be resolved before this call.** If `jira-profile.md` does not contain `story_points` under `custom_fields`, run:
+```
+mcp__atlassian__jira_get_fields()
+```
+or REST:
+```bash
+curl -s -u "{username}:{api-token}" "{jira_url}/rest/api/3/field" | ConvertFrom-Json | Where-Object { $_.name -match "story point|estimate" }
+```
+Cache the field ID in `jira-profile.md`. **Never skip this — a missing field ID silently drops the estimate.**
+
+```json
 ```
 
 For **next-gen**: add `"parent": {"key": "{epic_key}"}` to additional_fields.
@@ -445,6 +459,7 @@ mcp__atlassian__jira_create_issue(
   additional_fields = {
     "parent": {"key": "{parent_story_key}"},
     "{story_points_field}": {estimate_hours},
+    "timetracking": { "originalEstimate": "{estimate_hours}h" },
     "labels": {labels}
   }
 )
