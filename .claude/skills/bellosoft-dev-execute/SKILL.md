@@ -75,8 +75,13 @@ For each step:
 
 After all tests pass:
 1. Review the new code for obvious duplication, naming clarity, missing edge-case guards
-2. Make refactor changes — **tests must remain green throughout**
-3. Run the full test suite one final time
+2. **Check cyclomatic complexity** — for every method/function written in this story:
+   - Count decision points (each `if`, `else if`, `for`, `foreach`, `while`, `case`, `catch`, `&&`, `||`, `??`, ternary `?:` adds 1; start from 1)
+   - **Threshold: > 10 is a warning, > 15 must be refactored before proceeding**
+   - If over threshold: extract private methods, introduce early returns, replace conditionals with polymorphism or strategy pattern — whatever fits the existing codebase conventions
+   - Re-run tests after each refactor to confirm green
+3. Make other refactor changes — **tests must remain green throughout**
+4. Run the full test suite one final time
 
 ---
 

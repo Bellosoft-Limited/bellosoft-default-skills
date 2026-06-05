@@ -70,6 +70,17 @@ For each acceptance criterion:
 ### Out-of-Scope Check
 [Confirm no unintended changes were made outside the story scope]
 
+### Cyclomatic Complexity
+For every method/function added or modified by this story:
+- Count: start at 1, add 1 for each `if`, `else if`, `for`, `foreach`, `while`, `case`, `catch`, `&&`, `||`, `??`, ternary `?:`
+- Report any method exceeding threshold:
+
+| Method | Complexity | Threshold | Status |
+|--------|-----------|-----------|--------|
+| `MethodName` | N | 10 | ✅ OK / ⚠️ Warning (>10) / ❌ Must refactor (>15) |
+
+If any method scores > 15: mark verdict as ⚠️ NEEDS WORK regardless of AC status.
+
 ### Code Quality Notes
 [Optional: naming, structure, anything worth a comment — keep brief]
 
@@ -116,3 +127,4 @@ Issues listed above. Options:
 - Never silently pass an AC that has no test. Mark it ⚠️ at minimum.
 - Do not rewrite code during review — only report.
 - If tests cannot be run, say so clearly and mark all test-dependent ACs as ⚠️ unverified.
+- Any method with cyclomatic complexity > 15 **blocks** a ✅ READY verdict — must be reported as ❌ in the complexity table and flagged in Issues Found.

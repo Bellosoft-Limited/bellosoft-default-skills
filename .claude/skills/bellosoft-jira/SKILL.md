@@ -45,42 +45,78 @@ issue type hierarchy, and JQL patterns. **Never skip this.**
 
 ## Step 1 — Setup and auth
 
-### Step 1a — MCP connectivity
+**Goal: resolve all credentials and identifiers upfront. Never ask mid-operation.**
 
-Call `mcp__atlassian__jira_get_myself()` silently.
+### Step 1a — Credentials (resolved during setup)
 
-- Succeeds → MCP is connected. Capture identity (display name, account ID, email).
-- Fails → stop and tell the user:
-  `"Jira MCP is not connected. Please configure the Atlassian MCP
-  (https://github.com/sooperset/mcp-atlassian) and set JIRA_URL, JIRA_USERNAME,
-  JIRA_API_TOKEN, then retry."`
-  Do NOT ask for credentials manually — nothing else can proceed without MCP.
+Jira REST API requires `JIRA_URL`, `JIRA_USERNAME` (email), and `JIRA_API_TOKEN` for all curl fallback calls.
 
-### Step 1b — User identity
+**Always read credential files first. Run these exact commands:**
 
-Use the result from Step 1a (no extra call needed).
-If already saved in `docs/planning-artifacts/jira-profile.md` → use silently, skip the call.
-
-Save to `docs/planning-artifacts/jira-profile.md`:
-```markdown
-# Jira Profile
-- **display_name**: [name]
-- **account_id**: [accountId]
-- **email**: [emailAddress]
-```
-Also ensure `.secrets/` is gitignored (in case API keys are ever stored there):
 ```bash
-grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
+# On Windows (PowerShell):
+if (Test-Path ".secrets/jira-url.txt")      { Get-Content ".secrets/jira-url.txt" -Raw }
+if (Test-Path ".secrets/jira-username.txt") { Get-Content ".secrets/jira-username.txt" -Raw }
+if (Test-Path ".secrets/jira-api-token.txt"){ Get-Content ".secrets/jira-api-token.txt" -Raw }
+# On Mac/Linux (bash):
+cat .secrets/jira-url.txt 2>/dev/null
+cat .secrets/jira-username.txt 2>/dev/null
+cat .secrets/jira-api-token.txt 2>/dev/null
 ```
 
-### Step 1c — Project resolution
+**Resolution order for each value (stop at first success):**
+
+1. **Read from `.secrets/jira-{url,username,api-token}.txt`** — run the commands above first
+2. Check env vars: `JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN`
+3. Check `docs/planning-artifacts/jira-profile.md` for `jira_url` and `email` fields
+4. Only if all above are missing, prompt once per missing value:
+   - URL: `"What is your Jira URL? (e.g. https://yourorg.atlassian.net)"`
+   - Username: `"What is your Jira email address?"`
+   - API token: `"What is your Jira API token? (get it from id.atlassian.com → Security → API tokens)"`
+5. Save each to its respective `.secrets/jira-{url,username,api-token}.txt` immediately
+6. Ensure `.secrets/` is gitignored:
+   ```bash
+   grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
+   ```
+
+All subsequent curl calls use: `-u "{username}:{api-token}" "{jira_url}/rest/api/3/..."`
+
+### Step 1b — MCP connectivity (optional enhancement)
+
+Try `mcp__atlassian__jira_get_myself()` silently. If it succeeds, use MCP tools for reads (faster).
+If it fails or is unavailable, fall back to REST API for all operations — **do not stop**.
+MCP is a convenience, not a requirement.
+
+### Step 1c — User identity
+
+**Resolution order:**
+
+1. Check `docs/planning-artifacts/jira-profile.md` — if `account_id` present, use silently
+2. MCP available → use identity from Step 1b result
+3. REST fallback:
+   ```bash
+   curl -s -u "{username}:{api-token}" "{jira_url}/rest/api/3/myself"
+   ```
+   Extract: `displayName`, `accountId`, `emailAddress`
+4. Save to `docs/planning-artifacts/jira-profile.md`:
+   ```markdown
+   # Jira Profile
+   - **display_name**: [name]
+   - **account_id**: [accountId]
+   - **email**: [emailAddress]
+   - **jira_url**: [url]
+   ```
+
+### Step 1d — Project resolution
 
 1. Check `docs/planning-artifacts/status.md` for `jira_project_key:` — use silently if found
-2. Else call `mcp__atlassian__jira_get_all_projects()`:
-   - One project → use it silently, notify: `"Using project: {KEY} ({name})"`
+2. Else list projects via MCP (`mcp__atlassian__jira_get_all_projects()`) or REST:
+   ```bash
+   curl -s -u "{username}:{api-token}" "{jira_url}/rest/api/3/project/search"
+   ```
+   - One project → use silently, notify: `"Using project: {KEY} ({name})"`
    - Multiple → list and ask which to use
-   - None or user wants a new one → offer: `"No projects found. Type 'create' to scaffold one."`
-     → Delegate to CREATE_PROJECT operation
+   - None → offer: `"No projects found. Type 'create' to scaffold one."` → CREATE_PROJECT
 3. Store in `docs/planning-artifacts/status.md` under `jira_project_key:`
 
 ---
