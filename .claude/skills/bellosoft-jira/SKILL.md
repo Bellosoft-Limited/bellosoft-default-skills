@@ -51,33 +51,42 @@ issue type hierarchy, and JQL patterns. **Never skip this.**
 
 Jira REST API requires `JIRA_URL`, `JIRA_USERNAME` (email), and `JIRA_API_TOKEN` for all curl fallback calls.
 
-**Always read credential files first. Run these exact commands:**
+**Always check all credential sources first — in this exact order:**
 
+**1. Individual secret files:**
 ```bash
-# On Windows (PowerShell):
-if (Test-Path ".secrets/jira-url.txt")      { Get-Content ".secrets/jira-url.txt" -Raw }
-if (Test-Path ".secrets/jira-username.txt") { Get-Content ".secrets/jira-username.txt" -Raw }
-if (Test-Path ".secrets/jira-api-token.txt"){ Get-Content ".secrets/jira-api-token.txt" -Raw }
-# On Mac/Linux (bash):
+# Windows (PowerShell):
+if (Test-Path ".secrets/jira-url.txt")       { Get-Content ".secrets/jira-url.txt" -Raw }
+if (Test-Path ".secrets/jira-username.txt")  { Get-Content ".secrets/jira-username.txt" -Raw }
+if (Test-Path ".secrets/jira-api-token.txt") { Get-Content ".secrets/jira-api-token.txt" -Raw }
+# Mac/Linux:
 cat .secrets/jira-url.txt 2>/dev/null
 cat .secrets/jira-username.txt 2>/dev/null
 cat .secrets/jira-api-token.txt 2>/dev/null
 ```
 
-**Resolution order for each value (stop at first success):**
+**2. Combined credentials file** — check `.secrets/jira-credentials.txt` (any format):
+```bash
+cat .secrets/jira-credentials.txt 2>/dev/null
+# Also check common variants:
+cat .secrets/jira-credential.txt 2>/dev/null
+cat .secrets/jira.txt 2>/dev/null
+```
+Parse whatever format is present — look for URL, email/username, and token/password values.
 
-1. **Read from `.secrets/jira-{url,username,api-token}.txt`** — run the commands above first
-2. Check env vars: `JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN`
-3. Check `docs/planning-artifacts/jira-profile.md` for `jira_url` and `email` fields
-4. Only if all above are missing, prompt once per missing value:
+**3. Profile file** — read `docs/planning-artifacts/jira-profile.md` for `jira_url` and `email` fields (these are saved by previous runs).
+
+**4. Env vars** — `JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN`
+
+**5. Only if a value is still missing after all above** — prompt once:
    - URL: `"What is your Jira URL? (e.g. https://yourorg.atlassian.net)"`
    - Username: `"What is your Jira email address?"`
    - API token: `"What is your Jira API token? (get it from id.atlassian.com → Security → API tokens)"`
-5. Save each to its respective `.secrets/jira-{url,username,api-token}.txt` immediately
-6. Ensure `.secrets/` is gitignored:
-   ```bash
-   grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
-   ```
+
+**6. After obtaining any missing value** — save to `.secrets/jira-{url,username,api-token}.txt` and ensure `.secrets/` is gitignored:
+```bash
+grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
+```
 
 All subsequent curl calls use: `-u "{username}:{api-token}" "{jira_url}/rest/api/3/..."`
 
