@@ -161,7 +161,7 @@ These rules are non-negotiable. Violating them causes Jira API errors:
 **Sub-task field quirks (classic projects):**
 - `description` — Jira's create-meta incorrectly reports `"type": "string"`. Always send ADF. Sending plain text causes 400.
 - `customfield_10033` (Story Points) — **Not available** on Sub-tasks. Omit entirely or you get 400.
-- `timetracking` — **Not available** on Sub-tasks. Omit entirely or you get 400.
+- `timetracking` — **Supported** on Sub-tasks. Always set `originalEstimate`. If create rejects it, set via update immediately after. Never skip it.
 - `parent` — Required. Must be `{"key": "PROJ-123"}` — do NOT use `{"id": "..."}` or a bare string.
 - All other Sub-task fields (priority, labels, sprint) work normally.
 
@@ -495,12 +495,20 @@ mcp__atlassian__jira_create_issue(
   description = {ADF},
   additional_fields = {
     "parent": {"key": "{parent_story_key}"},
+    "timetracking": {"originalEstimate": "{estimate_hours}h"},
     "labels": {labels}
   }
 )
 ```
-⚠️ Do NOT include `timetracking` or story-points field in sub-task additional_fields — these
-fields do not exist on Sub-tasks and will cause HTTP 400. The estimate is in the description.
+⚠️ Do NOT include story-points (`customfield_10033`) for Sub-tasks — not available, causes 400.
+`timetracking` IS supported on Sub-tasks and must always be set.
+If create returns 400 on `timetracking`, create without it then immediately call:
+```
+mcp__atlassian__jira_update_issue(
+  issue_key = "{task_key}",
+  fields = {"timetracking": {"originalEstimate": "{estimate_hours}h"}}
+)
+```
 
 **If issue_type is "Task" (standalone, no parent):**
 ```

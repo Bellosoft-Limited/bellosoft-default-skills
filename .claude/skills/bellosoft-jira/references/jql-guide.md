@@ -267,8 +267,9 @@ curl -s -X POST \
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `Field 'description' requires ADF` | Passed plain string | Wrap in ADF doc object |
-| `400 Bad Request` on sub-task create | Sent `timetracking` or story-points — not available on Sub-tasks | Remove both fields; put estimate in description text only |
+| `400 Bad Request` on sub-task create | Sent story-points (`customfield_10033`) — not available on Sub-tasks | Remove story-points field only; `timetracking` IS valid and must stay |
 | `400 Bad Request` on sub-task description | Jira create-meta reports `type: string` but API requires ADF | Always use ADF for description, even when meta says string |
+| Sub-task has no original estimate | Assumed `timetracking` not supported (it is) | Always set `timetracking.originalEstimate`; update after create if needed |
 | `customfield_10014 is not on screen` | Wrong project type | Use `parent` field for next-gen |
 | `Issue type 'Sub-task' not found` | Classic project, wrong name | Use `jira_get_issue_types` to find exact name |
 | `Parent issue type is not valid` | Sub-task parent must be Story/Task | Check parent issue type |
