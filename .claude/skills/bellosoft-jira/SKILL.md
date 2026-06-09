@@ -74,7 +74,7 @@ cat .secrets/jira.txt 2>/dev/null
 ```
 Parse whatever format is present — look for URL, email/username, and token/password values.
 
-**3. Profile file** — read `docs/planning-artifacts/jira-profile.md` for `jira_url` and `email` fields (these are saved by previous runs).
+**3. Profile file** — read `docs/planning-artifacts/jira-profile.md` for `jira_url` (project config). Read `.secrets/jira-identity.txt` for `email` and `account_id` (personal identity, saved by previous runs).
 
 **4. Env vars** — `JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN`
 
@@ -90,35 +90,39 @@ grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
 
 All subsequent curl calls use: `-u "{username}:{api-token}" "{jira_url}/rest/api/3/..."`
 
-### Step 1b — MCP connectivity (optional enhancement)
+### Step 1b — MCP connectivity
 
-Try `mcp__atlassian__jira_get_myself()` silently. If it succeeds, use MCP tools for reads (faster).
-If it fails or is unavailable, fall back to REST API for all operations — **do not stop**.
-MCP is a convenience, not a requirement.
+**MCP is the PRIMARY path. Always try MCP first.**
+
+```
+mcp__atlassian__jira_get_myself()
+```
+
+- **Succeeds → use MCP for ALL operations** (create, update, search, transition). Do not fall back to REST unless a specific operation is unavailable in MCP.
+- **Fails or tool not found → fall back to REST** for all operations (curl commands in each operation section).
+
+> ⚠️ Never skip the MCP check and go straight to REST/curl. If MCP is connected it is faster,
+> more reliable, and avoids encoding issues. The REST fallback exists for cases where MCP
+> genuinely isn't available — not as a convenience alternative.
 
 ### Step 1c — User identity
 
+Identity is **personal** — save to `.secrets/`, not to `docs/planning-artifacts/jira-profile.md`.
+
 **Resolution order:**
 
-1. Check `docs/planning-artifacts/jira-profile.md` — if `account_id` present, use silently.
-   **Also check if `jira_url` is present in that file.** If missing, append it now:
-   ```
-   - **jira_url**: {resolved_jira_url}
-   ```
-   This patches profiles created before `jira_url` was added to the template.
-2. MCP available → use identity from Step 1b result
+1. Read `.secrets/jira-identity.txt` — if `account_id` line present, use silently.
+2. MCP available → read identity from Step 1b result (`accountId`, `displayName`, `emailAddress`)
 3. REST fallback:
    ```bash
    curl -s -u "{username}:{api-token}" "{jira_url}/rest/api/3/myself"
    ```
    Extract: `displayName`, `accountId`, `emailAddress`
-4. Save to `docs/planning-artifacts/jira-profile.md`:
-   ```markdown
-   # Jira Profile
-   - **display_name**: [name]
-   - **account_id**: [accountId]
-   - **email**: [emailAddress]
-   - **jira_url**: [url]
+4. Save to `.secrets/jira-identity.txt` (ensure `.secrets/` is gitignored):
+   ```
+   account_id={accountId}
+   display_name={displayName}
+   email={emailAddress}
    ```
 
 ### Step 1d — Project resolution
@@ -154,6 +158,13 @@ These rules are non-negotiable. Violating them causes Jira API errors:
 - **Next-gen (team-managed):** Epics are issues with type "Epic"; stories use `parent` field
 - **Classic (company-managed):** Epics use `customfield_10014`; subtasks need `parent` field
 
+**Sub-task field quirks (classic projects):**
+- `description` — Jira's create-meta incorrectly reports `"type": "string"`. Always send ADF. Sending plain text causes 400.
+- `customfield_10033` (Story Points) — **Not available** on Sub-tasks. Omit entirely or you get 400.
+- `timetracking` — **Not available** on Sub-tasks. Omit entirely or you get 400.
+- `parent` — Required. Must be `{"key": "PROJ-123"}` — do NOT use `{"id": "..."}` or a bare string.
+- All other Sub-task fields (priority, labels, sprint) work normally.
+
 **Always detect project type at setup:**
 ```
 mcp__atlassian__jira_search(jql="project = {KEY} AND issuetype = Epic", max_results=1)
@@ -188,13 +199,13 @@ Runs automatically on first use (triggered by Step 1 above). Discovers and cache
 everything needed so subsequent operations never need to ask questions.
 
 **ALREADY CONFIGURED CHECK — run this first:**
-1. Check if `docs/planning-artifacts/jira-profile.md` exists and contains `project_key`, `account_id`, and `issue_types`
+1. Check if `docs/planning-artifacts/jira-profile.md` exists and contains `project_key` and `issue_types`, and `.secrets/jira-identity.txt` contains `account_id`
 2. If complete → **stop immediately** and report:
    ```
    ✅ Jira already configured:
      Project: {project_key} ({project_name})
      Type: {project_type}
-     User: {display_name} ({email})
+     User: (from .secrets/jira-identity.txt)
      Issue types: Epic, Story, Task, Sub-task, Bug
    No setup needed. To refresh, delete docs/planning-artifacts/jira-profile.md first.
    ```
@@ -209,12 +220,11 @@ everything needed so subsequent operations never need to ask questions.
 
 SETUP is silent and automatic. It does not ask the user any questions.
 
-**Output `docs/planning-artifacts/jira-profile.md`:**
+**Output — two separate files:**
+
+`docs/planning-artifacts/jira-profile.md` — project config only (safe to commit):
 ```markdown
 # Jira Profile
-- **display_name**: ...
-- **account_id**: ...
-- **email**: ...
 - **jira_url**: https://yourorg.atlassian.net
 - **project_key**: PROJ
 - **project_type**: next-gen | classic
@@ -229,6 +239,17 @@ SETUP is silent and automatic. It does not ask the user any questions.
   - story_points: customfield_10058
   - sprint: customfield_10020
   - epic_link: customfield_10014 (classic only)
+- **global_statuses**:
+  - To Do: 10007
+  - In Progress: 3
+  - Done: 10010
+```
+
+`.secrets/jira-identity.txt` — personal identity only (gitignored, never committed):
+```
+account_id={accountId}
+display_name={displayName}
+email={emailAddress}
 ```
 
 ---
@@ -450,7 +471,7 @@ Example: `E1-S1-T1 [FW] Update TargetFramework to net10.0 in all 4 .csproj files
 
 **Execution:**
 
-Build ADF description:
+Build ADF description (always ADF, even for Sub-tasks — plain text causes 400):
 ```json
 {
   "type": "doc", "version": 1,
@@ -465,6 +486,7 @@ Build ADF description:
 }
 ```
 
+**If issue_type is "Sub-task" (has a parent story):**
 ```
 mcp__atlassian__jira_create_issue(
   project_key = "{KEY}",
@@ -473,6 +495,21 @@ mcp__atlassian__jira_create_issue(
   description = {ADF},
   additional_fields = {
     "parent": {"key": "{parent_story_key}"},
+    "labels": {labels}
+  }
+)
+```
+⚠️ Do NOT include `timetracking` or story-points field in sub-task additional_fields — these
+fields do not exist on Sub-tasks and will cause HTTP 400. The estimate is in the description.
+
+**If issue_type is "Task" (standalone, no parent):**
+```
+mcp__atlassian__jira_create_issue(
+  project_key = "{KEY}",
+  summary = "{task_id} [{TAG}] {title}",
+  issue_type = "Task",
+  description = {ADF},
+  additional_fields = {
     "{story_points_field}": {estimate_hours},
     "timetracking": { "originalEstimate": "{estimate_hours}h" },
     "labels": {labels}
