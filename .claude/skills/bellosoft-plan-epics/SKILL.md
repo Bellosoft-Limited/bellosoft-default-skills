@@ -25,8 +25,13 @@ the start, then re-run it whenever the PRD changes.
 /bellosoft-plan-epics                       ← re-reads PRD from docs/planning-artifacts/prd-source.md if saved
 ```
 
-> **Already have tickets in Jira/Plane?** Skip this skill and run `/bellosoft-sync import` instead.
-> It bootstraps `docs/planning-artifacts/` from your existing tracker project — no PRD needed.
+> **Already have tickets in Jira/Plane and no PRD?** Use `/bellosoft-sync import` to bootstrap
+> `docs/planning-artifacts/` from your tracker — no PRD needed.
+>
+> **Replanning existing tickets** (e.g. BMAD → Bellosoft format, or adding task breakdowns)?
+> Run this skill regardless — it cross-references the PRD with the codebase audit and produces
+> a properly structured epic register. Follow up with `/bellosoft-plan-epic` for each epic.
+> For a full tracker migration with replanning, use `/bellosoft-sync replan-and-migrate`.
 
 ---
 
@@ -134,17 +139,18 @@ Show a single line confirmation at the end of the output:
 Check whether the file is in the correct location (`docs/planning-artifacts/prd/`):
 
 - Path is already under `docs/planning-artifacts/prd/` → load it, proceed.
-- Path is anywhere else (e.g. `docs/my-feature.md`, `prd.md`, `docs/planning-artifacts/prd.md`) → file is in the wrong place. Show:
+- Path is `docs/planning-artifacts/prd.md` → accepted directly, no move required. Save a
+  reference to `docs/planning-artifacts/prd-source.md` and proceed.
+- Path is anywhere else (e.g. `docs/my-feature.md`, `prd.md`, `src/PRD.md`) → file is in an
+  unexpected place. Show:
 
 ```
-⚠️  PRD found at [given path] — this should live under docs/planning-artifacts/prd/.
+⚠️  PRD found at [given path] — this should live under docs/planning-artifacts/prd/ or docs/planning-artifacts/prd.md.
 
 Before planning, I need to sort this out:
   1. Move and rename to docs/planning-artifacts/prd/YYYY-MM-DD-[feature-name].md (recommended)
-  2. Copy (keep original in place, also register in docs/planning-artifacts/prd/)
-  3. Use as-is without moving (planning will work, but docs/planning-artifacts/prd/ stays unorganised)
-
-Also: does this PRD already exist in docs/planning-artifacts/prd/ under a different name?
+  2. Copy (keep original in place)
+  3. Use as-is without moving (planning will work)
 ```
 
 Scan `docs/planning-artifacts/prd/` for files with similar names or overlapping content (compare titles/executive summaries). If a likely match is found:
