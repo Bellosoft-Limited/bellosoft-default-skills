@@ -183,6 +183,31 @@ Store detected type in `docs/planning-artifacts/jira-profile.md`.
 ```
 See `references/jql-guide.md` for full ADF patterns.
 
+**⚠️ PowerShell REST fallback — ADF serialization pitfall:**
+When building Jira request bodies in PowerShell, do NOT construct ADF as nested hashtables
+and pass through `ConvertTo-Json`. Deep nesting is silently truncated at the default `-Depth 2`.
+
+```powershell
+# ❌ Wrong — ConvertTo-Json silently truncates nested ADF content
+$body = @{ fields = @{ description = @{ type="doc"; version=1; content=@(...) } } }
+$json = $body | ConvertTo-Json          # WRONG: loses nested content
+
+# ✅ Correct — build the entire JSON as a raw here-string
+$json = @"
+{
+  "fields": {
+    "description": {
+      "type": "doc", "version": 1,
+      "content": [{"type":"paragraph","content":[{"type":"text","text":"..."}]}]
+    }
+  }
+}
+"@
+Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $json -ContentType "application/json"
+```
+
+Or use `ConvertTo-Json -Depth 10` minimum if you must use hashtables.
+
 **Custom field discovery:**
 Always discover before first use — never assume field IDs:
 ```

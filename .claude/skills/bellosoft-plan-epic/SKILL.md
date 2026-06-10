@@ -1,12 +1,12 @@
 ---
 name: bellosoft-plan-epic
 description: >
-  Use this skill to decompose a single epic into stories and atomic tasks.
+  Use this skill to decompose a single epic into stories and atomic tasks, OR to repair
+  an already-pushed epic whose tasks have missing/weak acceptance criteria.
   Triggers: /bellosoft-plan-epic E1, /bellosoft-plan-epic E3, "break down epic 2", "create stories
-  for E1", "decompose E3 into tasks". Requires /bellosoft-plan-epics to have been run first
-  (reads docs/planning-artifacts/epics.md). Works on ONE epic at a time — you choose which, and when.
-  After approval, optionally pushes to Jira or Plane via MCP. Can be re-run on the
-  same epic if requirements changed.
+  for E1", "decompose E3 into tasks", "fix E5 tasks", "re-decompose E5", "E5 tasks are missing ACs",
+  "repair epic tasks in Jira". Requires /bellosoft-plan-epics to have been run first
+  (reads docs/planning-artifacts/epics.md). Works on ONE epic at a time.
 ---
 
 # Skill: plan-epic
@@ -23,8 +23,12 @@ You decide which epic to decompose and when.
 ```
 /bellosoft-plan-epic E1          ← decompose epic E1
 /bellosoft-plan-epic E3          ← decompose epic E3 (later, different week)
-/bellosoft-plan-epic E2 redo     ← re-decompose E2 after PRD changes
+/bellosoft-plan-epic E2 redo     ← re-decompose E2 after PRD changes (start from scratch)
+/bellosoft-plan-epic E5 fix      ← repair existing tasks (missing ACs, bad estimates, gaps vs PRD)
 ```
+
+> Use `fix` when the epic is already in the tracker but tasks are incomplete.
+> Use `redo` when the PRD changed and you want a completely fresh decomposition.
 
 ---
 
@@ -54,6 +58,7 @@ If the epic is already decomposed (status.md shows stories exist):
 ```
 Epic E[N] already has stories created.
 Options:
+  /bellosoft-plan-epic E[N] fix     ← repair existing tasks (missing ACs, gaps vs PRD)
   /bellosoft-plan-epic E[N] redo    ← re-decompose from scratch (PRD changed)
   /bellosoft-plan-epic E[N] add     ← add more stories to existing epic
 ```
@@ -416,6 +421,104 @@ To re-read the PRD after changes: /bellosoft-plan-epics
 
 ---
 
+---
+
+## Operation: FIX (repair existing tracker tasks)
+
+Triggered by: `/bellosoft-plan-epic E[N] fix`
+
+Use when the epic is already in the tracker but tasks have weak or missing acceptance
+criteria, wrong estimates, or are missing coverage for PRD requirements.
+
+### Step F1 — Read tracker state
+
+Read `docs/planning-artifacts/status.md` to find all Jira/Plane keys for this epic:
+```bash
+grep "jira_epic_E5\|jira_story_5\." docs/planning-artifacts/status.md
+```
+Then delegate to `bellosoft-jira get [EPIC-KEY]` to fetch all sub-tasks with their
+current summaries and descriptions.
+
+### Step F2 — Load PRD requirements for this epic
+
+Read `docs/planning-artifacts/prd.md`. Find the Functional Requirements section that
+maps to Epic E[N] (use the coverage map in `docs/planning-artifacts/epics.md`).
+List the FRs this epic covers — these are the ground truth.
+
+### Step F3 — Load codebase audit module section
+
+Read `docs/planning-artifacts/codebase-audit.md`. Find the module entries for this
+epic's feature area. Note: what is already implemented, what is stubbed, what is missing.
+
+### Step F4 — Gap analysis
+
+Compare existing sub-tasks against the PRD FRs:
+
+```
+Gap Analysis — Epic E[N]
+
+  Existing sub-tasks: N
+  PRD FRs covered by this epic: N
+
+  ✅ Good tasks (has AC, correct estimate):
+    [PROJ-XX] E[N]-S1-T1 [FE] ...
+
+  ⚠️  Weak tasks (missing or vague AC):
+    [PROJ-XX] E[N]-S2-T1 [BE] ... — no acceptance criterion
+    [PROJ-XX] E[N]-S2-T2 [FE] ... — description is a plain string, not ADF
+
+  ❌ Uncovered FRs (no task exists):
+    FR-42: ...
+    FR-43: ...
+
+  🔀 Tasks to split (>8h or covering multiple FRs):
+    [PROJ-XX] E[N]-S3-T1 — covers FR-10 and FR-11, should be two tasks
+```
+
+### Step F5 — Produce repair plan
+
+Show a full repair plan:
+- For each weak task: proposed new summary + AC + estimate
+- For each missing FR: proposed new task with summary, AC, area tag, estimate, parent story
+- For each task to split: two replacement tasks
+
+Present the plan for approval exactly like Step 6 (approval gate) in the main flow.
+
+### Step F6 — Apply after approval
+
+For each **existing task** that needs updating:
+```
+→ bellosoft-jira update [PROJ-XX] description={new ADF} summary={new summary}
+```
+
+For each **new task**:
+```
+→ bellosoft-jira create-task ... parent_story_key=[PROJ-YY]
+```
+
+Update `docs/planning-artifacts/status.md` with any new task keys.
+
+Report:
+```
+✅ FIX complete — Epic E[N]
+  Updated: N tasks
+  Created: N new tasks
+  Unchanged: N tasks (already good)
+```
+
+---
+
+## Save path for decomposition plans
+
+Always save the approved decomposition to:
+```
+docs/planning-artifacts/epic-plans/E{N}-plan.md
+```
+Create the `epic-plans/` directory if it doesn't exist. Never save to a project-specific name
+like `epic-E4-redecomposition.md` — use the standard path so other skills can find it.
+
+---
+
 ## Hard rules
 - Never decompose more than one epic per invocation
 - Never push without approval
@@ -423,3 +526,4 @@ To re-read the PRD after changes: /bellosoft-plan-epics
 - No task over 8h — split without exception
 - Every task has exactly one AC
 - Every task has exactly one area tag (two only if inseparable)
+- `fix` mode never deletes existing tasks — only updates or adds
