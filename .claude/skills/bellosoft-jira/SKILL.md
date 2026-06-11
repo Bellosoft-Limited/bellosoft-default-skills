@@ -134,9 +134,14 @@ Identity is **personal** — save to `.secrets/`, not to `docs/planning-artifact
 2. MCP available → read identity from Step 1b result (`accountId`, `displayName`, `emailAddress`)
 3. REST fallback:
    ```bash
-   curl -s -u "{username}:{api-token}" "{jira_url}/rest/api/3/myself"
+   JIRA_URL=$(cat .secrets/jira-url.txt | tr -d '\n')
+   JIRA_USER=$(cat .secrets/jira-username.txt | tr -d '\n')
+   JIRA_TOKEN=$(cat .secrets/jira-api-token.txt | tr -d '\n')
+   curl -s -u "$JIRA_USER:$JIRA_TOKEN" -H "Accept: application/json" \
+     "$JIRA_URL/rest/api/3/myself" > /tmp/jira_myself.json
+   cat /tmp/jira_myself.json
    ```
-   Extract: `displayName`, `accountId`, `emailAddress`
+   Read the output file and extract: `displayName`, `accountId`, `emailAddress`
 4. Save to `.secrets/jira-identity.txt` (ensure `.secrets/` is gitignored):
    ```
    account_id={accountId}
@@ -149,7 +154,12 @@ Identity is **personal** — save to `.secrets/`, not to `docs/planning-artifact
 1. Check `docs/planning-artifacts/status.md` for `jira_project_key:` — use silently if found
 2. Else list projects via MCP (`mcp__atlassian__jira_get_all_projects()`) or REST:
    ```bash
-   curl -s -u "{username}:{api-token}" "{jira_url}/rest/api/3/project/search"
+   JIRA_URL=$(cat .secrets/jira-url.txt | tr -d '\n')
+   JIRA_USER=$(cat .secrets/jira-username.txt | tr -d '\n')
+   JIRA_TOKEN=$(cat .secrets/jira-api-token.txt | tr -d '\n')
+   curl -s -u "$JIRA_USER:$JIRA_TOKEN" -H "Accept: application/json" \
+     "$JIRA_URL/rest/api/3/project/search" > /tmp/jira_projects.json
+   cat /tmp/jira_projects.json
    ```
    - One project → use silently, notify: `"Using project: {KEY} ({name})"`
    - Multiple → list and ask which to use
@@ -671,17 +681,34 @@ mcp__atlassian__jira_get_issue(issue_key)
 ```
 
 **If MCP unavailable, fall back to REST:**
+
+> ⚠️ **Critical: save to a temp file, then read it.** Do NOT pipe curl output to `jq`,
+> `python3`, `node`, or any external formatter — these are unreliable or absent on Windows.
+> Write the response to a temp file and `cat` it so you can read the raw JSON directly.
+
 ```bash
-# On Windows (PowerShell):
-$creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(Get-Content .secrets/jira-username.txt -Raw):$(Get-Content .secrets/jira-api-token.txt -Raw)"))
-$issue = Invoke-RestMethod -Uri "$((Get-Content .secrets/jira-url.txt -Raw).Trim())/rest/api/3/issue/{issue_key}" -Headers @{Authorization="Basic $creds"; Accept="application/json"}
-# On Mac/Linux (bash):
-curl -s -u "$(cat .secrets/jira-username.txt | tr -d '\n'):$(cat .secrets/jira-api-token.txt | tr -d '\n')" \
-  "$(cat .secrets/jira-url.txt | tr -d '\n')/rest/api/3/issue/{issue_key}"
+# On Mac/Linux (bash) — save to temp file then read:
+JIRA_URL=$(cat .secrets/jira-url.txt | tr -d '\n')
+JIRA_USER=$(cat .secrets/jira-username.txt | tr -d '\n')
+JIRA_TOKEN=$(cat .secrets/jira-api-token.txt | tr -d '\n')
+curl -s -u "$JIRA_USER:$JIRA_TOKEN" \
+  -H "Accept: application/json" \
+  "$JIRA_URL/rest/api/3/issue/{issue_key}" > /tmp/jira_issue.json
+cat /tmp/jira_issue.json
 ```
-> ⚠️ **REST output:** Parse the raw JSON response directly. Do NOT pipe to `jq`, `python3`,
-> or any external formatter — these tools are often unavailable in terminal environments.
-> Read the JSON string and extract fields programmatically or in-memory.
+
+```powershell
+# On Windows (PowerShell) — Invoke-RestMethod returns a parsed object directly:
+$url   = (Get-Content .secrets/jira-url.txt -Raw).Trim()
+$user  = (Get-Content .secrets/jira-username.txt -Raw).Trim()
+$token = (Get-Content .secrets/jira-api-token.txt -Raw).Trim()
+$creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${user}:${token}"))
+$issue = Invoke-RestMethod -Uri "$url/rest/api/3/issue/{issue_key}" \
+           -Headers @{Authorization="Basic $creds"; Accept="application/json"}
+# $issue is now a parsed object — access $issue.fields.summary etc. directly
+```
+
+After running the bash version, read the `/tmp/jira_issue.json` file and extract fields from the raw JSON string yourself — no external parser needed.
 
 Parse and return structured object:
 - `key`, `summary`, `description` (extract text from ADF)
