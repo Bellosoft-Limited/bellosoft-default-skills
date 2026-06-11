@@ -82,15 +82,17 @@ Read enough of the code to identify the logical modules/domains:
 
 For **.NET** projects:
 - Read folder structure under `src/`
-- Read each `*Service.cs`, `*Controller.cs`, `*Repository.cs` — just the class signature + public methods, not full bodies
+- Read each `*Service.cs`, `*Controller.cs`, `*Repository.cs` — **read full method bodies**, not just signatures. A method that exists but returns `Ok()` with no logic, or throws `NotImplementedException`, is NOT implemented.
 - Read `DbContext` — all `DbSet<>` declarations reveal the data model
 - Read any `*.cs` files in `Domain/`, `Entities/`, `Models/`
+- Scan test projects (`*.Tests/`) for test files corresponding to each service/controller
 
 For **Vue/TS** projects:
 - Read `src/router/index.ts` — all routes reveal all pages
-- Read `src/stores/` — all Pinia/Vuex stores reveal all state domains
+- Read `src/stores/` — read full store bodies, not just the store name. A store with empty actions or `// TODO` comments is 🔶 Partial or 🔲 Stub, not ✅ Complete.
 - Read `src/api/` or `src/services/` — all API calls reveal backend surface used
-- Scan `src/components/` and `src/views/` — names reveal UI coverage
+- Read `src/views/` and key components — not just names, but enough to see if there's real logic or just placeholder templates
+- Scan `src/**/__tests__/`, `*.spec.ts`, `*.test.ts` for test coverage per module
 
 For **databases**:
 - Read all migration files (just `Up()` method) — reveals full schema history
@@ -104,19 +106,25 @@ For each module/area discovered, classify:
 
 | Status | Meaning |
 |--------|---------|
-| ✅ Complete | Implemented, has tests, used in production paths |
-| 🔶 Partial | Scaffolded or started but missing key functionality |
-| 🔲 Stub | Placeholder exists (empty class, TODO comment, route with no handler) |
-| ❌ Missing | Referenced in config/types/routes but not implemented |
-| ⚠️ Tech debt | Implemented but with known issues (hardcoded values, missing validation, no tests) |
+| ✅ Complete | Core functionality implemented AND readable in code AND has corresponding tests |
+| 🔶 Partial | Started and partially working, but missing key functionality or tests |
+| 🔲 Stub | File/class/route exists but body is empty, returns placeholder, or has no logic |
+| ❌ Missing | Referenced in config/types/routes/schema but file doesn't exist at all |
+| ⚠️ Tech debt | Functional but with known issues: hardcoded values, missing validation, no tests, inconsistent patterns |
 
-Signals to look for:
-- `// TODO`, `// FIXME`, `// HACK`, `throw new NotImplementedException()`
-- Empty controller actions returning `Ok()` with no logic
-- Routes defined in router but no corresponding view component
-- `DbSet<>` in context with no migrations or no services referencing it
-- Services registered in DI but never injected anywhere
-- `.env.example` keys with no corresponding implementation
+**When in doubt, use 🔶 Partial.** Do not upgrade to ✅ Complete unless you have read the implementation and confirmed it works end-to-end. It is much safer to underestimate completeness than to plan around code that doesn't actually work.
+
+**Signals that PREVENT ✅ Complete — if any of these are true, cap at 🔶 Partial or 🔲 Stub:**
+- `// TODO`, `// FIXME`, `// HACK` in the implementation
+- `throw new NotImplementedException()` anywhere in the class
+- Empty controller action: `return Ok()` / `return NoContent()` with no actual logic
+- Store action that's defined but has an empty body or only sets a loading flag
+- Route defined in router with no corresponding view file or view has only `<template><div/></template>`
+- `DbSet<>` in context but no service or repository reads/writes it
+- Method exists but all logic is commented out
+- File is <10 lines and contains only a class declaration
+
+**Evidence requirement:** Each ✅ Complete or 🔶 Partial classification must cite the specific file (and function if relevant) that justifies the status. Do not classify based on folder name or file name alone — read the code.
 
 ---
 
