@@ -226,14 +226,17 @@ If the audit defined conventions, every task description MUST reference them:
 - Test tasks reference the actual test project name and existing test patterns
 
 If no audit exists, derive conventions from Step 2 findings.
-| `[BE]` | API endpoints, business logic, services, controllers |
-| `[FE]` | Vue components, pages, composables, UI state |
-| `[FW]` | .NET config, middleware, DI, program.cs, startup |
-| `[DB]` | Migrations, schema, seed data, pgvector, indexes |
-| `[INFRA]` | Docker, Dokploy, Hetzner, Proxmox, Nginx, WireGuard |
-| `[QA]` | Unit tests, integration tests, E2E, test fixtures |
-| `[DEVOPS]` | CI/CD, GitHub Actions, environment vars, secrets |
-| `[MOB]` | Mobile UI, PWA, push notifications |
+
+Each task carries exactly one tag identifying its work domain:
+
+| Tag | Scope |
+|-----|-------|
+| `[BE]` | Everything backend: API endpoints, controllers, services, business logic, migrations, schema changes, middleware, DI config, .NET startup |
+| `[FE]` | Everything frontend: Vue components, views, composables, UI state (Pinia), responsive/mobile, PWA |
+| `[DEVOPS]` | Everything infrastructure: Docker, CI/CD, GitHub Actions, Nginx, Dokploy, env vars, secrets |
+| `[QA]` | One task per story — manual QA sign-off. NOT for writing tests (tests are written inside `[BE]`/`[FE]` tasks). The QA person verifies the full story end-to-end and marks it done. |
+
+**Test writing rule:** Unit, integration, and E2E tests are always included inside the `[BE]` or `[FE]` task that implements the feature — never as a separate `[QA]` task. The `[QA]` task is for human verification only.
 
 ### Estimation guide
 
@@ -273,10 +276,9 @@ If no audit exists, derive conventions from Step 2 findings.
 
 | ID | Tag | Title | Est | Depends on | Acceptance Criterion |
 |----|-----|-------|-----|------------|----------------------|
-| E1-S1-T1 | [DB] | [Specific, concrete title] | 2h | — | [One verifiable criterion] |
-| E1-S1-T2 | [BE] | [Specific, concrete title] | 3h | E1-S1-T1 | [One verifiable criterion] |
-| E1-S1-T3 | [FE] | [Specific, concrete title] | 3h | E1-S1-T2 | [One verifiable criterion] |
-| E1-S1-T4 | [QA] | [Specific, concrete title] | 2h | E1-S1-T3 | [One verifiable criterion] |
+| E1-S1-T1 | [BE] | [Specific, concrete title] | 3h | — | [One verifiable criterion] |
+| E1-S1-T2 | [FE] | [Specific, concrete title] | 3h | E1-S1-T1 | [One verifiable criterion] |
+| E1-S1-T3 | [QA] | Test [Story title] | 1h | E1-S1-T2 | QA verified: all ACs pass, no regressions |
 
 ---
 
@@ -298,12 +300,12 @@ If no audit exists, derive conventions from Step 2 findings.
 |-----|-------|-------|
 | [BE] | N | Xh |
 | [FE] | N | Xh |
-| [DB] | N | Xh |
-| [QA] | N | Xh |
+| [DEVOPS] | N | Xh |
+| [QA] | N (1 per story) | Xh |
 | **Total** | **N** | **Xh** |
 
 ## Dependency graph (critical path)
-E1-S1-T1 [DB] → E1-S1-T2 [BE] → E1-S1-T3 [FE] → E1-S1-T4 [QA]
+E1-S1-T1 [BE] → E1-S1-T2 [FE] → E1-S1-T3 [QA]
 [...]
 
 ## Risk register

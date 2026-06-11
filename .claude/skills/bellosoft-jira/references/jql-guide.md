@@ -319,9 +319,5 @@ Standalone Task (type: Task, no parent)
 Area tags map to labels:
 - `[BE]` → label: "backend"
 - `[FE]` → label: "frontend"
-- `[DB]` → label: "database"
-- `[QA]` → label: "qa"
-- `[INFRA]` → label: "infra"
 - `[DEVOPS]` → label: "devops"
-- `[MOB]` → label: "mobile"
-- `[FW]` → label: "fullstack"
+- `[QA]` → label: "qa"

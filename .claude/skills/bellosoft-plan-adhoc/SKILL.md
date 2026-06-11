@@ -73,7 +73,7 @@ For **Unplanned / Tech Debt**:
 
 Apply the same atomicity rules as `/bellosoft-plan-epic`:
 - Each task: 2-8h, max 3-5 files, one AC, one area tag
-- For bugs: always include a `[QA]` task for the regression test
+- For bugs: always include a `[QA]` task for manual QA sign-off (verify fix and no regressions — NOT for writing tests)
 
 ### Bug task template:
 ```markdown
@@ -96,7 +96,7 @@ Apply the same atomicity rules as `/bellosoft-plan-epic`:
 |----|-----|-------|-----|------------|----------------------|
 | BUG-N-T1 | [BE/FE/DB] | Investigate and identify root cause | 1-2h | — | Root cause documented in ticket |
 | BUG-N-T2 | [BE/FE/DB] | Fix: [specific fix description] | Xh | BUG-N-T1 | [Observed behaviour no longer occurs] |
-| BUG-N-T3 | [QA] | Add regression test for this bug | 1h | BUG-N-T2 | Test fails on unfixed code, passes on fix |
+| BUG-N-T3 | [QA] | QA sign-off: verify fix and no regressions | 1h | BUG-N-T2 | QA confirmed: bug is gone, no related breakage |
 
 **Total estimate:** Xh
 **Suggested sprint:** Current sprint (hotfix) / Next sprint / Backlog
@@ -118,7 +118,7 @@ Apply the same atomicity rules as `/bellosoft-plan-epic`:
 | ID | Tag | Title | Est | Depends on | Acceptance Criterion |
 |----|-----|-------|-----|------------|----------------------|
 | UNPL-N-T1 | [TAG] | [Task] | Xh | — | [AC] |
-| UNPL-N-T2 | [QA] | Test for UNPL-N | 1h | UNPL-N-T1 | [AC] |
+| UNPL-N-T2 | [QA] | QA sign-off: verify UNPL-N | 1h | UNPL-N-T1 | QA confirmed: all ACs pass |
 
 **Total estimate:** Xh
 **Impact if deferred:** [from Step 2]
@@ -202,7 +202,7 @@ This item follows the same dev workflow as any story:
 
   Option B — without AI:
     Work directly from the ticket in Jira/Plane
-    The [QA] regression test task is mandatory regardless of approach
+    The [QA] sign-off task is mandatory regardless of approach — this is manual QA verification, not test code
 
 Note: for hotfixes, the regression test task (BUG-N-T3) should be
 completed in the same PR as the fix — never deferred.
@@ -226,7 +226,7 @@ Append to `docs/planning-artifacts/status.md` under a separate section:
 ---
 
 ## Hard rules
-- Every bug gets a `[QA]` regression test task — no exceptions
+- Every bug gets a `[QA]` sign-off task (manual QA verification) — no exceptions. Test code goes inside the `[BE]`/`[FE]` fix task.
 - Hotfixes go to current sprint — do not defer
 - Classification is always explicit (Bug / Hotfix / Unplanned / Debt / Security)
 - Same atomicity rules as plan-epic: no task over 8h, one AC per task
