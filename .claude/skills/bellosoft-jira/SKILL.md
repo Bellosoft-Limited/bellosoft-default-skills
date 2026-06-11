@@ -512,12 +512,15 @@ task_id: string              (e.g. "E1-S1-T1" — epic.story.task numbers)
 acceptance_criterion: string
 estimate_hours: number
 parent_story_key: string     (e.g. PROJ-12)
-area_tag: string             (BE/FE/DB/QA/INFRA/etc.)
+area_tag: string             (BE | FE | DEVOPS | QA)
 labels: string[]             (optional)
 ```
 
-**Task summary format:** `{task_id} [{TAG}] {title}`
-Example: `E1-S1-T1 [FW] Update TargetFramework to net10.0 in all 4 .csproj files`
+**Task summary format:** `{task_id} [{area_tag}] {title}`
+- `task_id` = the decomposition ID (e.g. `E1-S1-T1`)
+- `area_tag` = the tag from the `area_tag` parameter (e.g. `BE`, `FE`, `DEVOPS`, `QA`)
+- `title` = the clean task description with NO tag prefix — tag comes ONLY from `area_tag`
+Example: `E8-S2-T1 [BE] Add ScheduleAsync method to CampaignService`
 
 **Issue type selection:**
 - Parent provided → use "Sub-task" type with `parent` field
@@ -544,8 +547,8 @@ Build ADF description (always ADF, even for Sub-tasks — plain text causes 400)
 ```
 mcp__atlassian__jira_create_issue(
   project_key = "{KEY}",
-  summary = "{task_id} [{TAG}] {title}",
-  issue_type = "Sub-task",
+  summary = "{task_id} [{area_tag}] {title}",
+  issue_type = "Sub-task",  // {area_tag} comes from the area_tag parameter
   description = {ADF},
   additional_fields = {
     "parent": {"key": "{parent_story_key}"},
@@ -568,8 +571,8 @@ mcp__atlassian__jira_update_issue(
 ```
 mcp__atlassian__jira_create_issue(
   project_key = "{KEY}",
-  summary = "{task_id} [{TAG}] {title}",
-  issue_type = "Task",
+  summary = "{task_id} [{area_tag}] {title}",
+  issue_type = "Task",  // {area_tag} comes from the area_tag parameter
   description = {ADF},
   additional_fields = {
     "{story_points_field}": {estimate_hours},
@@ -819,7 +822,7 @@ When both Jira and Plane may be configured:
 → bellosoft-jira: create-sprint "Sprint 3" 2026-06-10 2026-06-24
 → bellosoft-jira: create-epic E1 "User Auth" "Handles login, registration, JWT"
 → bellosoft-jira: create-story E1-S1 ... epic_key=PROJ-5 sprint_id=42
-→ bellosoft-jira: create-task E1-S1-T1 "[DB] Add users table" parent=PROJ-12
+→ bellosoft-jira: create-task E1-S1-T1 "Add users table migration" parent=PROJ-12 area_tag=BE
 ```
 
 **bellosoft-sync** after dev-review ✅ READY:

@@ -361,9 +361,10 @@ HTML formatting, type resolution, and error handling.
    → returns story_work_item_id
 
 4. For each Task under that Story:
-   /bellosoft-plane create-task [task_id] "[TAG] [title]" "[AC]"
+   /bellosoft-plane create-task [task_id] "[title]" "[AC]"
      parent_story_id=[story_work_item_id] estimate=[Xh] area_tag=[TAG]
-   (task_id is the ID from the decomposition table: E1-S1-T1, E1-S1-T2, etc.)
+   (task_id = e.g. E1-S1-T1; title = clean description WITHOUT the tag; area_tag = BE|FE|DEVOPS|QA)
+   bellosoft-plane assembles the full name as: {task_id} [{area_tag}] {title}
 ```
 
 ### Option 2 — Jira
@@ -385,9 +386,10 @@ custom field discovery, project type detection, and error handling.
    → returns story_key (e.g. PROJ-12)
 
 4. For each Task under that Story:
-   /bellosoft-jira create-task [task_id] "[TAG] [title]" "[AC]"
+   /bellosoft-jira create-task [task_id] "[title]" "[AC]"
      parent_story_key=[story_key] estimate=[Xh] area_tag=[TAG]
-   (task_id is the ID from the decomposition table: E1-S1-T1, E1-S1-T2, etc.)
+   (task_id = e.g. E1-S1-T1; title = clean description WITHOUT the tag; area_tag = BE|FE|DEVOPS|QA)
+   bellosoft-jira assembles the Jira summary as: {task_id} [{area_tag}] {title}
 ```
 
 ### Error handling (all options)

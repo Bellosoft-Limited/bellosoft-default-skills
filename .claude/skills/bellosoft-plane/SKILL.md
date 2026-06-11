@@ -258,8 +258,11 @@ depends_on: string[]         (optional — Plane work item IDs)
 labels: string[]             (optional)
 ```
 
-**Task name format:** `{task_id} [{TAG}] {title}`
-Example: `E1-S1-T1 [FW] Update TargetFramework to net10.0 in all 4 .csproj files`
+**Task name format:** `{task_id} [{area_tag}] {title}`
+- `task_id` = decomposition ID (e.g. `E1-S1-T1`)
+- `area_tag` = tag from the `area_tag` parameter (`BE`, `FE`, `DEVOPS`, `QA`)
+- `title` = clean description with NO tag prefix
+Example: `E8-S2-T1 [BE] Add ScheduleAsync method to CampaignService`
 
 **Execution:**
 
@@ -509,7 +512,7 @@ operation needed and this skill executes it. Examples:
 → bellosoft-plane: create-cycle "Sprint 3" 2026-06-10 2026-06-24
 → bellosoft-plane: create-epic E1 "User Auth" "Handles login, registration, JWT"
 → bellosoft-plane: create-story E1-S1 ... epic_id=... cycle_id=...
-→ bellosoft-plane: create-task E1-S1-T1 "[DB] Add users table" ...
+→ bellosoft-plane: create-task E1-S1-T1 "Add users table migration" ... area_tag=BE
 ```
 
 **bellosoft-sync** after dev-review ✅ READY:
