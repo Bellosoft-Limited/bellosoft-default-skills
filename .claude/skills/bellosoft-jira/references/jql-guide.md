@@ -171,6 +171,20 @@ else → classic (check for customfield_10014)
 
 ## JQL Patterns
 
+> ⚠️ **REST endpoint — breaking change:** The old `/rest/api/3/search` endpoint has been
+> **removed** by Atlassian. All REST JQL searches MUST use `/rest/api/3/search/jql`.
+> Using the old endpoint returns: `"The requested API has been removed"`.
+>
+> ```powershell
+> # ✅ Correct
+> Invoke-RestMethod -Uri "$jiraUrl/rest/api/3/search/jql?jql=..." ...
+>
+> # ❌ Wrong — removed, will always 404/error
+> Invoke-RestMethod -Uri "$jiraUrl/rest/api/3/search?jql=..." ...
+> ```
+>
+> The MCP tool `mcp__atlassian__jira_search` handles this correctly automatically.
+
 ### Active sprint issues
 ```
 project = PROJ AND sprint in openSprints() ORDER BY priority DESC
@@ -206,11 +220,23 @@ project = PROJ AND updated >= "2026-01-01"
 project = PROJ AND labels = Blocked AND sprint in openSprints()
 ```
 
-### Pagination
+### Pagination (MCP)
 ```
 mcp__atlassian__jira_search(jql=..., max_results=100, start_at=0)
 ```
 Increment `start_at` by `max_results` until `start_at >= total`.
+
+### Pagination (REST fallback)
+```powershell
+# Use /rest/api/3/search/jql — NOT /rest/api/3/search (that endpoint is removed)
+$url = "$jiraUrl/rest/api/3/search/jql"
+Invoke-RestMethod -Uri "${url}?jql={JQL}&maxResults=50&startAt=0&fields=summary,status,issuetype,parent" `
+  -Headers @{Authorization="Basic $base64"; Accept="application/json"}
+```
+```bash
+# bash:
+curl -s -u "$JIRA_USER:$JIRA_TOKEN" -H "Accept: application/json"   "$JIRA_URL/rest/api/3/search/jql?jql={JQL}&maxResults=50&startAt=0&fields=summary,status"   > /tmp/jira_search.json && cat /tmp/jira_search.json
+```
 
 ---
 
