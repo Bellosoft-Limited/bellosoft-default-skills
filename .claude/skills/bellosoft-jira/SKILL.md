@@ -41,6 +41,12 @@ references/jql-guide.md
 This file contains the Jira API quirks, ADF format rules, custom field names,
 issue type hierarchy, and JQL patterns. **Never skip this.**
 
+> **Subagent / terminal context:** If you were spawned as a Task subagent or are running
+> in a bash/terminal session, `mcp__atlassian__*` tools will NOT be in your tool list.
+> This is normal and expected. Skip the MCP path in Step 1b and go straight to REST.
+> Do NOT try to detect MCP availability by reading `mcp.json`, `.claude/settings.json`,
+> or any config file — tool availability is determined by what's in your tool list only.
+
 ---
 
 ## Step 1 — Setup and auth
@@ -53,16 +59,20 @@ Jira REST API requires `JIRA_URL`, `JIRA_USERNAME` (email), and `JIRA_API_TOKEN`
 
 **Always check all credential sources first — in this exact order:**
 
+> ⚠️ **Use direct file reads, not glob search.** Run the `cat`/`Get-Content` commands below.
+> Do NOT use file-search or glob tools (e.g. searching `**/.secrets/**`) — that pattern does
+> not match files directly inside `.secrets/` and will return no results.
+
 **1. Individual secret files:**
 ```bash
 # Windows (PowerShell):
-if (Test-Path ".secrets/jira-url.txt")       { Get-Content ".secrets/jira-url.txt" -Raw }
-if (Test-Path ".secrets/jira-username.txt")  { Get-Content ".secrets/jira-username.txt" -Raw }
-if (Test-Path ".secrets/jira-api-token.txt") { Get-Content ".secrets/jira-api-token.txt" -Raw }
-# Mac/Linux:
-cat .secrets/jira-url.txt 2>/dev/null
-cat .secrets/jira-username.txt 2>/dev/null
-cat .secrets/jira-api-token.txt 2>/dev/null
+if (Test-Path ".secrets/jira-url.txt")       { (Get-Content ".secrets/jira-url.txt" -Raw).Trim() }
+if (Test-Path ".secrets/jira-username.txt")  { (Get-Content ".secrets/jira-username.txt" -Raw).Trim() }
+if (Test-Path ".secrets/jira-api-token.txt") { (Get-Content ".secrets/jira-api-token.txt" -Raw).Trim() }
+# Mac/Linux (bash):
+cat .secrets/jira-url.txt 2>/dev/null | tr -d '\n'
+cat .secrets/jira-username.txt 2>/dev/null | tr -d '\n'
+cat .secrets/jira-api-token.txt 2>/dev/null | tr -d '\n'
 ```
 
 **2. Combined credentials file** — check `.secrets/jira-credentials.txt` (any format):
@@ -92,18 +102,27 @@ All subsequent curl calls use: `-u "{username}:{api-token}" "{jira_url}/rest/api
 
 ### Step 1b — MCP connectivity
 
-**MCP is the PRIMARY path. Always try MCP first.**
+**MCP is the PRIMARY path when available — but only available in the main session.**
+
+> ⚠️ **Subagent check:** If you were spawned as a Task subagent or are running via bash/terminal,
+> MCP tools (`mcp__atlassian__*`) are NOT in your tool list. Do not attempt to call them.
+> Check your available tools list — if `mcp__atlassian__jira_get_myself` is not present,
+> skip directly to the REST fallback path. Do not read `mcp.json` or any config file —
+> MCP availability is determined by whether the tool exists in your tool list, not by config.
+
+**If `mcp__atlassian__jira_get_myself` IS in your tool list:**
 
 ```
 mcp__atlassian__jira_get_myself()
 ```
 
 - **Succeeds → use MCP for ALL operations** (create, update, search, transition). Do not fall back to REST unless a specific operation is unavailable in MCP.
-- **Fails or tool not found → fall back to REST** for all operations (curl commands in each operation section).
+- **Fails → fall back to REST** for all operations.
 
-> ⚠️ Never skip the MCP check and go straight to REST/curl. If MCP is connected it is faster,
-> more reliable, and avoids encoding issues. The REST fallback exists for cases where MCP
-> genuinely isn't available — not as a convenience alternative.
+**If `mcp__atlassian__jira_get_myself` is NOT in your tool list → use REST for all operations.**
+
+> MCP is faster and more reliable than REST. But REST is correct when MCP is unavailable —
+> don't treat it as a failure.
 
 ### Step 1c — User identity
 
@@ -655,11 +674,14 @@ mcp__atlassian__jira_get_issue(issue_key)
 ```bash
 # On Windows (PowerShell):
 $creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(Get-Content .secrets/jira-username.txt -Raw):$(Get-Content .secrets/jira-api-token.txt -Raw)"))
-Invoke-RestMethod -Uri "$(Get-Content .secrets/jira-url.txt -Raw)/rest/api/3/issue/{issue_key}" -Headers @{Authorization="Basic $creds"; Accept="application/json"}
+$issue = Invoke-RestMethod -Uri "$((Get-Content .secrets/jira-url.txt -Raw).Trim())/rest/api/3/issue/{issue_key}" -Headers @{Authorization="Basic $creds"; Accept="application/json"}
 # On Mac/Linux (bash):
-curl -s -u "$(cat .secrets/jira-username.txt):$(cat .secrets/jira-api-token.txt)" \
-  "$(cat .secrets/jira-url.txt)/rest/api/3/issue/{issue_key}"
+curl -s -u "$(cat .secrets/jira-username.txt | tr -d '\n'):$(cat .secrets/jira-api-token.txt | tr -d '\n')" \
+  "$(cat .secrets/jira-url.txt | tr -d '\n')/rest/api/3/issue/{issue_key}"
 ```
+> ⚠️ **REST output:** Parse the raw JSON response directly. Do NOT pipe to `jq`, `python3`,
+> or any external formatter — these tools are often unavailable in terminal environments.
+> Read the JSON string and extract fields programmatically or in-memory.
 
 Parse and return structured object:
 - `key`, `summary`, `description` (extract text from ADF)
