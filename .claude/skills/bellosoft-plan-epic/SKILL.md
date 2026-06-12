@@ -274,11 +274,41 @@ Each task carries exactly one tag identifying its work domain:
 
 #### Tasks
 
-| ID | Tag | Title | Est | Depends on | Acceptance Criterion |
-|----|-----|-------|-----|------------|----------------------|
-| E1-S1-T1 | [BE] | [Specific, concrete title] | 3h | — | [One verifiable criterion] |
-| E1-S1-T2 | [FE] | [Specific, concrete title] | 3h | E1-S1-T1 | [One verifiable criterion] |
-| E1-S1-T3 | [QA] | Test [Story title] | 1h | E1-S1-T2 | QA verified: all ACs pass, no regressions |
+> **Title rule:** max ~60 characters — short action verb phrase only.
+> All implementation specifics (file paths, method names, field lists) go in the **Description**, not the title.
+
+| ID | Tag | Title (short) | Est | Depends on |
+|----|-----|---------------|-----|------------|
+| E1-S1-T1 | [BE] | [Short action phrase] | 3h | — |
+| E1-S1-T2 | [FE] | [Short action phrase] | 3h | E1-S1-T1 |
+| E1-S1-T3 | [QA] | QA: test [Story title] | 1h | E1-S1-T2 |
+
+For each task, include a detail block immediately below the table row (in a sub-section when saving to file, or inline when pushing to tracker):
+
+```
+E1-S1-T1 [BE]
+  Title:       Create Tenant entity
+  Description: Create `Tenant.cs` in `Core/Entities/`. Fields: Id (Guid), Name, Slug,
+               IsActive, CreatedAt, UpdatedAt. Pure POCO — no EF attributes, no base class.
+  AC:          Tenant.cs compiles with no EF/Infrastructure references; all properties public get/set.
+  Estimate:    3h
+  Depends on:  —
+
+E1-S1-T2 [FE]
+  Title:       Tenant settings form
+  Description: Add settings form component in `src/views/Settings.vue`. Binds to tenant
+               store. Uses existing Vuetify form patterns from ContactDetailView.
+  AC:          Form saves successfully; validation errors shown inline.
+  Estimate:    3h
+  Depends on:  E1-S1-T1
+
+E1-S1-T3 [QA]
+  Title:       QA: test tenant settings story
+  Description: Manually verify all ACs for story E1-S1 end-to-end on staging.
+  AC:          QA confirmed: all story ACs pass, no regressions in related flows.
+  Estimate:    1h
+  Depends on:  E1-S1-T2
+```
 
 ---
 

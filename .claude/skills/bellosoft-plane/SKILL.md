@@ -261,8 +261,9 @@ labels: string[]             (optional)
 **Task name format:** `{task_id} [{area_tag}] {title}`
 - `task_id` = decomposition ID (e.g. `E1-S1-T1`)
 - `area_tag` = tag from the `area_tag` parameter (`BE`, `FE`, `DEVOPS`, `QA`)
-- `title` = clean description with NO tag prefix
-Example: `E8-S2-T1 [BE] Add ScheduleAsync method to CampaignService`
+- `title` = **short action phrase, max ~60 chars** — NO file paths, method names, or long details
+- All implementation specifics go in the task `description` field, before the AC
+Example: `E8-S2-T1 [BE] Add campaign scheduling method`
 
 **Execution:**
 

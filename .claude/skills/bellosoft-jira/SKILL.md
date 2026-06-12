@@ -507,7 +507,8 @@ Called by: `bellosoft-plan-epic` (sub-tasks), `bellosoft-plan-adhoc`
 
 **Input:**
 ```
-title: string                (task description, without tag prefix)
+title: string                (short action phrase, max ~60 chars — NO implementation details here)
+implementation_notes: string (the specifics: file paths, method names, field lists, patterns to follow)
 task_id: string              (e.g. "E1-S1-T1" — epic.story.task numbers)
 acceptance_criterion: string
 estimate_hours: number
@@ -516,11 +517,19 @@ area_tag: string             (BE | FE | DEVOPS | QA)
 labels: string[]             (optional)
 ```
 
+**Title rule:** Keep `title` short — it is the Jira summary field shown in board/list views.
+Move all specifics (file paths, method names, field lists) to `implementation_notes`.
+
+| ❌ Too long (don't do this) | ✅ Correct |
+|---|---|
+| `Create Tenant.cs POCO in 123auto.Core/Entities/Tenant.cs with fields: Id (Guid), Name, Slug...` | `Create Tenant entity` |
+| `Add ScheduleAsync(campaignId, runAt) method to CampaignService.cs following SendAsync pattern` | `Add campaign scheduling method` |
+
 **Task summary format:** `{task_id} [{area_tag}] {title}`
 - `task_id` = the decomposition ID (e.g. `E1-S1-T1`)
 - `area_tag` = the tag from the `area_tag` parameter (e.g. `BE`, `FE`, `DEVOPS`, `QA`)
-- `title` = the clean task description with NO tag prefix — tag comes ONLY from `area_tag`
-Example: `E8-S2-T1 [BE] Add ScheduleAsync method to CampaignService`
+- `title` = short action phrase, NO tag prefix
+Example: `E8-S2-T1 [BE] Add campaign scheduling method`
 
 **Issue type selection:**
 - Parent provided → use "Sub-task" type with `parent` field
@@ -534,14 +543,18 @@ Build ADF description (always ADF, even for Sub-tasks — plain text causes 400)
   "type": "doc", "version": 1,
   "content": [
     { "type": "heading", "attrs": {"level": 3},
+      "content": [{"type": "text", "text": "Description"}] },
+    { "type": "paragraph", "content": [{"type": "text", "text": "{implementation_notes}"}] },
+    { "type": "heading", "attrs": {"level": 3},
       "content": [{"type": "text", "text": "Acceptance Criterion"}] },
-    { "type": "paragraph", "content": [{"type": "text", "text": "{AC}"}] },
+    { "type": "paragraph", "content": [{"type": "text", "text": "{acceptance_criterion}"}] },
     { "type": "paragraph", "content": [
-      {"type": "text", "text": "Estimate: {N}h", "marks": [{"type": "strong"}]}
+      {"type": "text", "text": "Estimate: {estimate_hours}h", "marks": [{"type": "strong"}]}
     ]}
   ]
 }
 ```
+If `implementation_notes` is empty, omit the Description heading and paragraph entirely.
 
 **If issue_type is "Sub-task" (has a parent story):**
 ```
