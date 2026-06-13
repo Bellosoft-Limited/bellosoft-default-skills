@@ -215,6 +215,7 @@ Epic (from register)
 - [ ] Have **exactly one acceptance criterion** (pass/fail, no ambiguity)
 - [ ] Be **independently committable** or have explicit `Depends on` declared
 - [ ] Be something a developer can pick up without asking questions
+- [ ] Include **Gherkin test scenarios** (happy path + edge cases) in the task detail block for every `[BE]` and `[FE]` task
 
 ### Conventions (MUST follow)
 
@@ -237,6 +238,29 @@ Each task carries exactly one tag identifying its work domain:
 | `[QA]` | One task per story — manual QA sign-off. NOT for writing tests (tests are written inside `[BE]`/`[FE]` tasks). The QA person verifies the full story end-to-end and marks it done. |
 
 **Test writing rule:** Unit, integration, and E2E tests are always included inside the `[BE]` or `[FE]` task that implements the feature — never as a separate `[QA]` task. The `[QA]` task is for human verification only.
+
+### Gherkin test scenarios
+
+Every `[BE]` and `[FE]` task detail block MUST include Gherkin scenarios that serve as the test specification for the developer implementing it. These define what automated tests must cover:
+
+| Aspect | Requirement |
+|--------|-------------|
+| **Happy path** | One scenario covering the expected successful flow |
+| **Edge cases** | At least one scenario covering a boundary, error, or unusual condition (null, empty, unauthorized, max values, overflow, etc.) |
+| **Manual-only flag** | If a scenario is too complex to automate (requires human judgment, visual inspection, or interconnected parts with variable results) but quick to test manually, append `🔶 [manual test only]` to its name. Developers skip writing automated tests and leave these for QA verification. |
+
+Format:
+```gherkin
+Scenario: [short name] 🔶 [manual test only] (if applicable)
+  Given [preconditions]
+  When [action]
+  Then [expected outcome]
+```
+
+Rules:
+- Keep each scenario to one `Given`/`When`/`Then` triplet (use `And` for additional conditions)
+- Use quoted values for parameters: `Given user "admin" is logged in`
+- Scenarios at the task level are more detailed than story ACs — they describe what the test code should assert
 
 ### Estimation guide
 
@@ -291,6 +315,10 @@ E1-S1-T1 [BE]
   Description: Create `Tenant.cs` in `Core/Entities/`. Fields: Id (Guid), Name, Slug,
                IsActive, CreatedAt, UpdatedAt. Pure POCO — no EF attributes, no base class.
   AC:          Tenant.cs compiles with no EF/Infrastructure references; all properties public get/set.
+  Test Scenarios:
+    - Given valid name and slug, when creating a Tenant, then all properties are set correctly
+    - Given empty slug, when creating a Tenant, then validation throws
+    - Given slug exceeds max length, when creating a Tenant, then validation throws
   Estimate:    3h
   Depends on:  —
 
@@ -299,6 +327,11 @@ E1-S1-T2 [FE]
   Description: Add settings form component in `src/views/Settings.vue`. Binds to tenant
                store. Uses existing Vuetify form patterns from ContactDetailView.
   AC:          Form saves successfully; validation errors shown inline.
+  Test Scenarios:
+    - Given valid form data, when user clicks Save, then tenant is updated and success message shown
+    - Given empty required field, when user clicks Save, then inline validation error displayed
+    - Given Redis connection failure, when user opens form, then tenant data should load from application's own database 🔶 [manual test only]
+    - Given network failure, when user clicks Save, then error toast shown and form data preserved
   Estimate:    3h
   Depends on:  E1-S1-T1
 
