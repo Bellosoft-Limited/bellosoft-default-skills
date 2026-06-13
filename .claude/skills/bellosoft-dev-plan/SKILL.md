@@ -140,6 +140,81 @@ Continue anyway? (yes / define ACs first)
 
 ---
 
+## Step 1.5 — Load Parent Context
+
+After loading the primary ticket, determine its issue type and walk up the hierarchy.
+This context is critical for understanding WHY the task exists and WHAT patterns to follow.
+
+### If the loaded ticket is a Task / Sub-task
+
+Fetch its parent **Story**:
+```
+/bellosoft-jira get [parent_story_key]      ← parent key is in the task's `parent` field
+/bellosoft-plane get [parent_story_id]
+```
+
+Then fetch the parent **Epic** of that story:
+```
+/bellosoft-jira get [epic_key]              ← epic key is in story's `parent` or `Epic Link` field
+/bellosoft-plane get [epic_id]
+```
+
+Also check `docs/planning-artifacts/epic-plans/E{N}-plan.md` if it exists — this contains
+the full decomposition with all stories and tasks for this epic, giving useful cross-task context.
+
+### If the loaded ticket is a Story
+
+Fetch its parent **Epic**:
+```
+/bellosoft-jira get [epic_key]
+/bellosoft-plane get [epic_id]
+```
+
+Check `docs/planning-artifacts/epic-plans/E{N}-plan.md` for the full epic decomposition.
+
+### If the loaded ticket is already an Epic
+
+No parent to fetch. Load `docs/planning-artifacts/epics.md` for the full epic register context.
+
+### What to extract from parent context
+
+From the **Story** (if fetched):
+- Full user story statement (As a... I want... so that...)
+- All acceptance criteria — the implementation must satisfy ALL of them, not just the task's AC
+- Any technical notes or constraints
+
+From the **Epic** (if fetched):
+- Epic goal — the business outcome this feature delivers
+- Conventions and patterns established for this epic (from epic-plan.md if available)
+- Other stories in the epic — understand what's already done and what comes next
+- Dependencies — does this task's story depend on other stories?
+
+### Context summary before planning
+
+Before moving to Step 2, output a brief context block:
+
+```
+## Context loaded
+
+**Epic E[N]:** [Epic title]
+Goal: [one sentence]
+
+**Story E[N]-S[N]:** [Story title]
+User story: As a [persona], I want [action] so that [outcome].
+Story ACs:
+  1. [AC]
+  2. [AC]
+
+**Task [task_id]:** [Task title]
+Description: [implementation notes from task]
+Task AC: [task-level AC]
+```
+
+If any parent cannot be fetched (MCP unavailable, ticket not found), note it and proceed
+with what's available — do NOT block the plan on missing parent context.
+
+---
+
 ## Step 2 — Analyse the Codebase
 
 **If `docs/planning-artifacts/codebase-audit.md` exists**, load it first:
@@ -164,10 +239,15 @@ note it and do a targeted re-read of only the affected files.
 Output a structured plan in this exact format:
 
 ```
-## Implementation Plan — [STORY-ID]: [Title]
+## Implementation Plan — [TASK/STORY-ID]: [Title]
+
+### Context
+Epic: [E-N title] — [one-line epic goal]
+Story: [story title] — [one-line user story]
+This task: [what this specific task contributes to the story]
 
 ### Summary
-[2-3 sentences explaining what will be built and why]
+[2-3 sentences: what will be built, how it fits the story goal, and which story ACs it satisfies]
 
 ### Files to Create
 - `path/to/new/file` — [purpose]
