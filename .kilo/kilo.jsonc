@@ -42,23 +42,5 @@
     "task": "allow",
   },
   "model": "litellm/bellosoft-medium",
-  "disabled_providers": [],
-  "provider": {
-    "litellm": {
-      "name": "LiteLLM",
-      "npm": "@ai-sdk/openai-compatible",
-      "options": {
-        "baseURL": "https://litellm.bellosoft.dev/v1",
-      },
-      "models": {
-        "bellosoft-medium": { "name": "bellosoft-medium" },
-        "bellosoft-complex": { "name": "bellosoft-complex" },
-        "bellosoft-simple": { "name": "bellosoft-simple" },
-        "bellosoft-reasoning": {
-          "name": "bellosoft-reasoning",
-          "reasoning": true,
-        },
-      },
-    },
-  },
+  "disabled_providers": []  
 }

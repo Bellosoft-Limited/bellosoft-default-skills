@@ -22,6 +22,24 @@ directly into the dev workflow skills.
 
 ---
 
+## Step 0 — Load epic context for the current sprint
+
+Before fetching tracker state, load the planning artifacts to understand what was *intended*
+for the epics active in this sprint. This surfaces scope drift and course changes early.
+
+1. Read `docs/planning-artifacts/epics.md` — get the epic register (IDs, titles, status)
+2. Identify which epics are **In Progress** (status: `active` or equivalent)
+3. For each active epic, check if `docs/planning-artifacts/epic-plans/E{N}-plan.md` exists
+   - If it does, read it and extract: total stories planned, stories marked done, any notes
+4. After fetching the sprint board in Step 1, compare planned vs actual:
+   - Stories in sprint not in the epic plan → scope was added after planning
+   - Stories in epic plan not yet started but epic is nearly done → may be missing from sprint
+   - Epic plan notes indicating changed direction → flag explicitly
+
+If no `docs/planning-artifacts/` folder exists, skip this step silently.
+
+---
+
 ## Step 1 — Detect tracker and sprint
 
 **Plane — delegate to `/bellosoft-plane`:**
@@ -74,6 +92,23 @@ Default view: issues assigned to current user that are not Done.
 ---
 Sprint progress: N/N stories | Xh remaining | [N] days left
 ```
+
+If Step 0 found any drift between the epic plan and the sprint, add a **Course changes** section
+after the board:
+
+```
+### ⚠️ Epic scope changes detected
+
+**E3 — [Epic title]**
+- E3-S4 "[story title]" is in the epic plan but not in this sprint — was it postponed?
+- PROJ-51 is in sprint but not in the epic plan — scope was added after planning
+
+**E5 — [Epic title]**
+- Epic plan notes: "Authentication flow changed to OAuth-only in week 3"
+  → Confirm implementation reflects this before closing remaining stories.
+```
+
+Only show this section if real differences are found. Skip it if everything aligns.
 
 ---
 
