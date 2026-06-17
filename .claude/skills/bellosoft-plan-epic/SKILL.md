@@ -446,6 +446,7 @@ custom field discovery, project type detection, and error handling.
 3. For each Story:
    /bellosoft-jira create-story [story_id] "[title]" [user_story] [ACs...]
      epic_key=[epic_key] sprint_id=[sprint_id] estimate=[Xh] priority=[High|Medium|Low]
+   ⚠️ estimate=[Xh] must equal the sum of all subtask estimates. This sets the story's originalEstimate in Jira.
    → returns story_key (e.g. PROJ-12)
 
 4. For each Task under that Story:
@@ -453,6 +454,7 @@ custom field discovery, project type detection, and error handling.
      parent_story_key=[story_key] estimate=[Xh] area_tag=[TAG]
    (task_id = e.g. E1-S1-T1; title = clean description WITHOUT the tag; area_tag = BE|FE|DEVOPS|QA)
    bellosoft-jira assembles the Jira summary as: {task_id} [{area_tag}] {title}
+   Each task's estimate=[Xh] sets its own originalEstimate in Jira.
 ```
 
 ### Error handling (all options)

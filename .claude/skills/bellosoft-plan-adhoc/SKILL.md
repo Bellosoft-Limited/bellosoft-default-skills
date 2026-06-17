@@ -73,7 +73,7 @@ For **Unplanned / Tech Debt**:
 
 Apply the same atomicity rules as `/bellosoft-plan-epic`:
 - Each task: 2-8h, max 3-5 files, one AC, one area tag
-- **Estimates:** Single hours only (2h, 3h, not ranges). Total = sum of all task estimates. When pushed to Jira, each task gets its own timetracking, and parent gets the total.
+- **Estimates:** Single hours only (2h, 3h, not ranges). Total = sum of all task estimates. When pushed to Jira: (a) each task gets its own timetracking (originalEstimate), and (b) the parent story gets originalEstimate set to the total estimate.
 
 **QA requirements by work type:**
 - **Bugs / Hotfixes:** Always include a `[QA]` sign-off task (mandatory)
@@ -104,6 +104,7 @@ Apply the same atomicity rules as `/bellosoft-plan-epic`:
 | BUG-N-T3 | [QA] | QA sign-off: verify fix and no regressions | 1h | BUG-N-T2 | QA confirmed: bug is gone, no related breakage |
 
 **Total estimate:** 6h (example; adjust per bug complexity)
+**Push note:** The parent story's originalEstimate must be set to the total (6h) in Jira, not just the subtasks.
 **Suggested sprint:** Current sprint (hotfix) / Next sprint / Backlog
 ```
 
@@ -126,6 +127,7 @@ Apply the same atomicity rules as `/bellosoft-plan-epic`:
 | UNPL-N-T2 | [QA] | QA sign-off: verify UNPL-N | 1h | UNPL-N-T1 | QA confirmed: all ACs pass |
 
 **Total estimate:** 2h (no QA) or 3h (with QA if user-visible)
+**Push note:** The parent story's originalEstimate must be set to the total in Jira.
 **Impact if deferred:** [from Step 2]
 
 ⚠️ **Include T2 [QA] task only if this affects user-visible behavior (UI, API, workflow).** Omit for internal refactors or invisible improvements.
@@ -181,8 +183,8 @@ Push to whichever tracker is configured in `docs/planning-artifacts/status.md`:
 - Task/Tech debt: `/bellosoft-plane create-task`
 
 **Jira** → delegate to `/bellosoft-jira`:
-- Bug/Hotfix: `/bellosoft-jira create-story` with issue_type=Bug, priority=Highest
-- Task/Tech debt: `/bellosoft-jira create-task` (standalone, no parent)
+- Bug/Hotfix: `/bellosoft-jira create-story` with issue_type=Bug, priority=Highest, estimate_hours=[total estimate]
+- Task/Tech debt: `/bellosoft-jira create-task` (standalone, no parent, with estimate_hours if applicable)
 
 **None** → markdown only
 
@@ -233,7 +235,7 @@ Append to `docs/planning-artifacts/status.md` under a separate section:
 ---
 
 ## Hard rules
-- **Estimates:** Single hours only (2h, 3h, not ranges). No task over 8h. Total = sum of all task estimates (enforced at Jira push time).
+- **Estimates:** Single hours only (2h, 3h, not ranges). No task over 8h. Total = sum of all task estimates. Parent Jira story must have originalEstimate set to the total (enforced at Jira push time).
 - **QA requirement:** Bugs/hotfixes MUST have `[QA]` task. Unplanned/tech debt have `[QA]` ONLY if user-visible (as defined in Step 3). QA scope is manual verification only — test code goes in `[BE]`/`[FE]` task.
 - **Hotfixes:** Go to current sprint — do not defer. QA sign-off must complete in same PR as fix.
 - **Classification:** Always explicit (Bug / Hotfix / Unplanned / Debt / Security)
