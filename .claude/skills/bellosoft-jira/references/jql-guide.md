@@ -120,15 +120,17 @@ All description and comment fields require ADF — never pass plain strings.
 
 **Never hardcode these — always discover via `jira_get_fields()` and cache in `docs/planning-artifacts/jira-profile.md`.**
 
-Common field names to search for:
+### Field availability by issue type
 
-| Purpose | Common field name(s) |
-|---------|---------------------|
-| Story points | "Story Points", "Story point estimate" |
-| Sprint | "Sprint" |
-| Epic link (classic) | "Epic Link" |
-| Epic name (classic) | "Epic Name" |
-| Original estimate | "Original Estimate" |
+| Purpose | Field Name(s) | Typical ID | Epic | Story | Task | Sub-task | Bug |
+|---------|-------------------|------------|------|-------|------|----------|-----|
+| Story points | "Story Points", "Story point estimate" | `customfield_10058` (classic) or `customfield_10016` (next-gen) | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Sprint | "Sprint" | `customfield_10020` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Epic link | "Epic Link" (classic) | `customfield_10014` | — | ✅ | — | — | — |
+| Epic name | "Epic Name" (classic) | `customfield_10011` | ✅ | — | — | — | — |
+| Original estimate | "Original Estimate" | `timetracking` | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+⚠️ **IDs vary per instance — always verify via `jira_get_fields()`.**
 
 ### Field discovery pattern
 ```
@@ -136,13 +138,6 @@ fields = mcp__atlassian__jira_get_fields()
 story_points_field = first field where name in ["Story Points", "Story point estimate"]
 sprint_field = first field where name == "Sprint"
 ```
-
-Typical IDs (vary per instance — always verify):
-- `customfield_10058` — Story Points (Jira Software classic)
-- `customfield_10016` — Story point estimate (next-gen)
-- `customfield_10020` — Sprint
-- `customfield_10014` — Epic Link (classic only)
-- `customfield_10011` — Epic Name (classic only)
 
 ---
 
@@ -293,7 +288,8 @@ curl -s -X POST \
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `Field 'description' requires ADF` | Passed plain string | Wrap in ADF doc object |
-| `400 Bad Request` on sub-task create | Sent story-points (`customfield_10033`) — not available on Sub-tasks | Remove story-points field only; `timetracking` IS valid and must stay |
+| `Specify a valid value for Original estimate` | Used range format (e.g. "2-3h") instead of single value | Always use single hours: "2h", "3h", never "2-3h" |
+| `Field 'customfield_XXXXX' cannot be set. It is not on the appropriate screen` | Field not available on this issue type | Check field availability in "Custom Field IDs" table above. Always verify which fields work for your issue type before setting them. |
 | `400 Bad Request` on sub-task description | Jira create-meta reports `type: string` but API requires ADF | Always use ADF for description, even when meta says string |
 | Sub-task has no original estimate | Assumed `timetracking` not supported (it is) | Always set `timetracking.originalEstimate`; update after create if needed |
 | `customfield_10014 is not on screen` | Wrong project type | Use `parent` field for next-gen |

@@ -73,7 +73,12 @@ For **Unplanned / Tech Debt**:
 
 Apply the same atomicity rules as `/bellosoft-plan-epic`:
 - Each task: 2-8h, max 3-5 files, one AC, one area tag
-- For bugs: always include a `[QA]` task for manual QA sign-off (verify fix and no regressions — NOT for writing tests)
+- **Estimates:** Single hours only (2h, 3h, not ranges). Total = sum of all task estimates. When pushed to Jira, each task gets its own timetracking, and parent gets the total.
+
+**QA requirements by work type:**
+- **Bugs / Hotfixes:** Always include a `[QA]` sign-off task (mandatory)
+- **Unplanned / Tech debt:** Include `[QA]` only if affects user-visible behavior (e.g., UI, API, workflow changes)
+- **QA scope:** Manual verification and regression testing only. Test code for fixes goes in `[BE]`/`[FE]` implementation task.
 
 ### Bug task template:
 ```markdown
@@ -94,11 +99,11 @@ Apply the same atomicity rules as `/bellosoft-plan-epic`:
 
 | ID | Tag | Title | Est | Depends on | Acceptance Criterion |
 |----|-----|-------|-----|------------|----------------------|
-| BUG-N-T1 | [BE/FE/DB] | Investigate and identify root cause | 1-2h | — | Root cause documented in ticket |
-| BUG-N-T2 | [BE/FE/DB] | Fix: [specific fix description] | Xh | BUG-N-T1 | [Observed behaviour no longer occurs] |
+| BUG-N-T1 | [BE/FE/DB] | Investigate and identify root cause | 2h | — | Root cause documented in ticket |
+| BUG-N-T2 | [BE/FE/DB] | Fix: [specific fix description] | 3h | BUG-N-T1 | [Observed behaviour no longer occurs] |
 | BUG-N-T3 | [QA] | QA sign-off: verify fix and no regressions | 1h | BUG-N-T2 | QA confirmed: bug is gone, no related breakage |
 
-**Total estimate:** Xh
+**Total estimate:** 6h (example; adjust per bug complexity)
 **Suggested sprint:** Current sprint (hotfix) / Next sprint / Backlog
 ```
 
@@ -117,11 +122,13 @@ Apply the same atomicity rules as `/bellosoft-plan-epic`:
 
 | ID | Tag | Title | Est | Depends on | Acceptance Criterion |
 |----|-----|-------|-----|------------|----------------------|
-| UNPL-N-T1 | [TAG] | [Task] | Xh | — | [AC] |
+| UNPL-N-T1 | [TAG] | [Task] | 2h | — | [AC] |
 | UNPL-N-T2 | [QA] | QA sign-off: verify UNPL-N | 1h | UNPL-N-T1 | QA confirmed: all ACs pass |
 
-**Total estimate:** Xh
+**Total estimate:** 2h (no QA) or 3h (with QA if user-visible)
 **Impact if deferred:** [from Step 2]
+
+⚠️ **Include T2 [QA] task only if this affects user-visible behavior (UI, API, workflow).** Omit for internal refactors or invisible improvements.
 ```
 
 ---
@@ -226,9 +233,9 @@ Append to `docs/planning-artifacts/status.md` under a separate section:
 ---
 
 ## Hard rules
-- Every bug gets a `[QA]` sign-off task (manual QA verification) — no exceptions. Test code goes inside the `[BE]`/`[FE]` fix task.
-- Hotfixes go to current sprint — do not defer
-- Classification is always explicit (Bug / Hotfix / Unplanned / Debt / Security)
-- Same atomicity rules as plan-epic: no task over 8h, one AC per task
-- Always update docs/planning-artifacts/status.md
-- Never skip the dev handoff block — devs need to know they can work with or without AI
+- **Estimates:** Single hours only (2h, 3h, not ranges). No task over 8h. Total = sum of all task estimates (enforced at Jira push time).
+- **QA requirement:** Bugs/hotfixes MUST have `[QA]` task. Unplanned/tech debt have `[QA]` ONLY if user-visible (as defined in Step 3). QA scope is manual verification only — test code goes in `[BE]`/`[FE]` task.
+- **Hotfixes:** Go to current sprint — do not defer. QA sign-off must complete in same PR as fix.
+- **Classification:** Always explicit (Bug / Hotfix / Unplanned / Debt / Security)
+- **Documentation:** Always update docs/planning-artifacts/status.md with Jira IDs after pushing.
+- **Dev handoff:** Never skip — devs need to know they can work with or without AI.

@@ -40,7 +40,6 @@
       "*": "allow",
     },
     "task": "allow",
-  },
-  "model": "litellm/bellosoft-medium",
+  },  
   "disabled_providers": []  
 }
