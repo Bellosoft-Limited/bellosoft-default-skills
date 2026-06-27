@@ -8,60 +8,88 @@ description: >
 
 # Skill: bellosoft-dora
 
-**DORA (DevOps Research & Assessment) metrics** — the four key measures of software delivery performance identified by Forsgren, Humble & Kim (2018).
+**DORA (DevOps Research & Assessment) metrics** — the four key measures of software delivery performance.
 
-| Metric | What it measures | Elite | High | Medium | Low |
-|--------|-----------------|-------|------|--------|-----|
-| **Deployment Frequency** | How often code ships to production | On demand (multiple/d) | Between 1/d and 1/wk | Between 1/wk and 1/mo | Less than 1/mo |
-| **Lead Time for Changes** | Time from commit to production | < 1 hour | < 1 week | < 1 month | > 1 month |
-| **Change Failure Rate** | % of deploys causing failures | 0–15% | 0–15% | 16–30% | > 30% |
-| **Mean Time to Restore** | Time to recover from failure | < 1 hour | < 1 day | < 1 week | > 1 week |
-
-> ⚠️ In the 2021+ DORA reports, Elite and High bands were merged for CFR — both are 0–15%.
+| Metric | Elite | High | Medium | Low |
+|--------|-------|------|--------|-----|
+| **Deployment Frequency** | >1/day | 1/day–1/wk | 1/wk–1/mo | <1/mo |
+| **Lead Time for Changes** | < 1 hour | < 1 week | < 1 month | > 1 month |
+| **Change Failure Rate** | 0–15% | 0–15% | 16–30% | > 30% |
+| **Mean Time to Restore** | < 1 hour | < 1 day | < 1 week | > 1 week |
 
 ---
 
-## Quick Start
+## How Claude runs this skill
 
+**Step 1 — Check config**
+
+Always run `--check-config` first. It prints JSON with no prompts:
+
+```bash
+python .claude/skills/bellosoft-dora/scripts/dora_metrics.py --project AP --check-config
 ```
-/bellosoft-dora AP --days 30    # AutomaPost, last 30 days
-/bellosoft-dora AU --days 90    # 123auto, 90 days
-/bellosoft-dora --setup         # One-time credential + project setup
+
+Output shape:
+```json
+{
+  "project_configured": true,
+  "project": "AP",
+  "missing_credentials": {
+    "dokploy": ["dokploy_url", "dokploy_token"]
+  },
+  "skip_flags": { "jira": false, "github": false, "dokploy": false }
+}
 ```
+
+**Step 2 — Fill gaps by asking the user (not the script)**
+
+For each item in `missing_credentials`, ask the user directly in the conversation using `AskUserQuestion`. Never rely on the script's `input()` prompts — those are for terminal use only.
+
+- `jira_url` → "What is your Jira URL? (e.g. https://yourorg.atlassian.net)"
+- `jira_user` → "What is your Jira email address?"
+- `jira_token` → "What is your Jira API token?" (remind user: Atlassian → Profile → Security → API tokens)
+- `dokploy_url` → "What is your Dokploy URL?"
+- `dokploy_token` → "What is your Dokploy API token?"
+
+If a service is entirely missing and the user doesn't want to connect it, write the skip flag:
+```bash
+echo "opted-out" > .secrets/skip-dokploy.txt   # or skip-jira.txt / skip-github.txt
+```
+
+**Step 3 — Write credentials to `.secrets/`**
+
+Write each answer as a plain text file (no quotes, trailing newline):
+```bash
+echo "https://yourorg.atlassian.net" > .secrets/jira-url.txt
+echo "user@example.com" > .secrets/jira-username.txt
+echo "ATATT3x..." > .secrets/jira-api-token.txt
+echo "https://dokploy.example.com" > .secrets/dokploy-url.txt
+echo "dk_..." > .secrets/dokploy-api-token.txt
+```
+
+**Step 4 — Run `--check-config` again** to confirm everything is set, then run the full script:
+
+```bash
+python .claude/skills/bellosoft-dora/scripts/dora_metrics.py --project AP --days 30
+```
+
+Use `python` not `python3` on Windows.
+
+**Step 5 — Handle `project_configured: false`**
+
+If the project key isn't in `docs/planning-artifacts/project-dora-config.md`, ask the user:
+- Project name
+- Jira board ID (integer)
+- GitHub repo (e.g. Org/repo, or "none")
+
+Then write the config file section and re-run.
 
 ---
 
-## Credential & Project Setup
+## Project config format
 
-Run setup once before first use:
+`docs/planning-artifacts/project-dora-config.md`:
 
-```
-python3 scripts/dora_metrics.py --setup
-```
-
-Setup will ask whether to connect each service. Saying **no** records an opt-out so
-it won't ask again. Saying **yes** prompts for credentials.
-
-**Credentials saved to `.secrets/`:**
-- Jira: `jira-url.txt`, `jira-username.txt`, `jira-api-token.txt`
-- GitHub: uses `gh` CLI auth (run `gh auth login` separately)
-- Dokploy: `dokploy-url.txt`, `dokploy-api-token.txt`
-
-**Opt-out flags (written when user skips a service):**
-- `.secrets/skip-jira.txt`
-- `.secrets/skip-github.txt`
-- `.secrets/skip-dokploy.txt`
-
-Delete the relevant skip file to re-enable a service.
-
----
-
-## Project Configuration
-
-Projects are stored in `docs/planning-artifacts/project-dora-config.md`.
-**There are no hardcoded defaults** — if a project key is not in that file, setup runs automatically.
-
-Example config file:
 ```markdown
 ## AP (AutomaPost)
 - name: AutomaPost
@@ -69,92 +97,39 @@ Example config file:
 - github_repo: Bellosoft-Limited/AutomaPost
 - dokploy_app_ids: []
 - dokploy_compose_ids: [Vvs8EzlgIAv4xjHJHOWg3]
-
-## AU (123auto)
-- name: 123auto
-- jira_board: 5
-- github_repo: Bellosoft-Limited/123auto
-- dokploy_app_ids: []
-- dokploy_compose_ids: []
 ```
-
-When Dokploy credentials exist but no compose IDs are configured, the script
-auto-discovers them by querying Dokploy for projects matching the project key.
 
 ---
 
-## Data Sources & Collection
+## Credential files in `.secrets/`
 
-### 1. Deployment Frequency
+| File | Purpose |
+|------|---------|
+| `jira-url.txt` | Jira base URL |
+| `jira-username.txt` | Jira email |
+| `jira-api-token.txt` | Jira API token |
+| `dokploy-url.txt` | Dokploy base URL |
+| `dokploy-api-token.txt` | Dokploy API token |
+| `skip-jira.txt` | Any content = opted out |
+| `skip-github.txt` | Any content = opted out |
+| `skip-dokploy.txt` | Any content = opted out |
 
-Collected from 3 sources:
-- **Jira Sprints**: closed sprints in period (`/rest/agile/1.0/board/{id}/sprint`)
-- **GitHub Actions**: deploy/release workflow runs (`repos/{repo}/actions/runs`)
-- **Dokploy**: compose deployments (`/api/deployment.allByCompose?composeId={id}`)
-
-### 2. Lead Time for Changes
-
-Two proxies:
-- **Jira cycle time**: In Progress → Done transition (via changelog API)
-- **PR cycle time**: PR creation → merge (`gh api repos/{repo}/pulls`)
-
-### 3. Change Failure Rate
-
-```
-CFR = bugs_done / total_done * 100
-```
-
-### 4. Mean Time to Restore (MTTR)
-
-Bug creation → resolution for completed Jira Bugs.
+GitHub uses `gh` CLI auth — no file needed.
 
 ---
 
-## Execution
+## Data sources
 
-```bash
-python3 .claude/skills/bellosoft-dora/scripts/dora_metrics.py --project AP --days 30
-```
-
-The script:
-1. Reads credentials and skip flags from `.secrets/`
-2. Loads project config from `docs/planning-artifacts/project-dora-config.md`
-3. If project missing → runs project setup interactively
-4. If credentials missing for a non-skipped service → offers to run setup
-5. Fetches from each data source (gracefully skips opted-out/unconfigured ones)
-6. Computes metrics and classifies into DORA bands
-7. Prints formatted report and saves to `docs/dora/dora-report-{project}-{date}.md`
-
----
-
-## Output Format
-
-```text
-╔══════════════════════════════════════════════════════════════════════════╗
-║  📊 DORA METRICS — AP (AutomaPost)  •  2026-05-28 → 2026-06-27  (30d)  ║
-╚══════════════════════════════════════════════════════════════════════════╝
-
-  Metric                          Value        DORA Band
-  1. Deployment Frequency    0.2/wk       🥈 Medium
-     Sources: 1 sprints + 0 GH deploys + 0 Dokploy
-  2. Lead Time (Jira cycle)  1.3d         🥇 High
-  3. Change Failure Rate     0.0%         🏆🥇 Elite/High
-  4. Mean Time to Restore    0m           🏆 Elite
-```
+- **Deployment Frequency**: Jira closed sprints + GitHub deploy workflow runs + Dokploy compose deployments
+- **Lead Time**: Jira In Progress→Done changelog + PR creation→merge time
+- **Change Failure Rate**: `bugs_done / total_done * 100` from Jira
+- **MTTR**: Bug creation→resolution time from Jira
 
 ---
 
 ## Pitfalls
 
-- **Jira REST `/rest/api/3/search`** may return 410 Gone — use Agile API instead
-- **Dokploy auth**: `x-api-key: {token}` header, NOT Bearer
-- **CFR = 0%** is misleading if production bugs aren't tracked as Jira Bug issues
-- **MTTR = 0** means no resolved bugs in period, not fast recovery
-- **GitHub rate limits** — 5000 req/hr; if exceeded, commit-count-only mode
-
----
-
-## References
-
-- `references/dora-bands.md` — Full DORA performance band definitions
-- `scripts/dora_metrics.py` — The collector script
+- Use `python` not `python3` on Windows
+- Dokploy auth uses `x-api-key` header, not Bearer
+- CFR = 0% may undercount if production bugs aren't tracked as Jira Bug type
+- MTTR = 0 means no resolved bugs in period, not fast recovery
