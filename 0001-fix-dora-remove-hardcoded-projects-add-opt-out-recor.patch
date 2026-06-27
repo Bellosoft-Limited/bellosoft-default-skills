@@ -1,0 +1,961 @@
+From f5d5945f01a87f248170779598bce48799c9288e Mon Sep 17 00:00:00 2001
+From: Mateus Bellozupko <mateus.bellozupko@bellosoft.com>
+Date: Sat, 27 Jun 2026 12:12:12 +0000
+Subject: [PATCH] fix(dora): remove hardcoded projects, add opt-out recording,
+ auto-setup flow
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Remove DEFAULT_PROJECTS dict — no hardcoded keys, board IDs, repos, or
+  Dokploy compose IDs. All project config lives in
+  docs/planning-artifacts/project-dora-config.md only.
+- load_project_config() returns None if project not in file → triggers
+  interactive setup_project() rather than silently using stale defaults.
+- run_setup() now asks Y/n per service (Jira / GitHub / Dokploy). Saying
+  no writes .secrets/skip-{service}.txt so it is never asked again.
+- collect_* functions check skip flags first; missing-credential warnings
+  now say 'run --setup' instead of just printing and continuing.
+- main() checks for missing creds on non-skipped services and offers to
+  run setup inline before proceeding.
+- Updated SKILL.md to document skip flags and remove hardcoded project table.
+---
+ .claude/skills/bellosoft-dora/SKILL.md        | 105 ++--
+ .../bellosoft-dora/scripts/dora_metrics.py    | 530 +++++++++++-------
+ 2 files changed, 374 insertions(+), 261 deletions(-)
+
+diff --git a/.claude/skills/bellosoft-dora/SKILL.md b/.claude/skills/bellosoft-dora/SKILL.md
+index cac1edf..878b37d 100644
+--- a/.claude/skills/bellosoft-dora/SKILL.md
++++ b/.claude/skills/bellosoft-dora/SKILL.md
+@@ -24,98 +24,106 @@ description: >
+ ## Quick Start
+ 
+ ```
+-/bellosoft-dora                         # AP project, last 30 days
+-/bellosoft-dora AP --days 90            # AutomaPost, 90 days
+-/bellosoft-dora AU --days 30            # 123auto, 30 days
++/bellosoft-dora AP --days 30    # AutomaPost, last 30 days
++/bellosoft-dora AU --days 90    # 123auto, 90 days
++/bellosoft-dora --setup         # One-time credential + project setup
+ ```
+ 
+-The skill auto-discovers board IDs, repo names, and Dokploy project mappings.
+-
+ ---
+ 
+-## Credential Setup
++## Credential & Project Setup
+ 
+-Run setup once:
++Run setup once before first use:
+ 
+ ```
+-/bellosoft-dora setup
++python3 scripts/dora_metrics.py --setup
+ ```
+ 
+-**Required (saved to `.secrets/`):**
++Setup will ask whether to connect each service. Saying **no** records an opt-out so
++it won't ask again. Saying **yes** prompts for credentials.
++
++**Credentials saved to `.secrets/`:**
+ - Jira: `jira-url.txt`, `jira-username.txt`, `jira-api-token.txt`
+-- GitHub: uses `gh` CLI auth
+-- Dokploy (optional): `dokploy-url.txt`, `dokploy-api-token.txt`
++- GitHub: uses `gh` CLI auth (run `gh auth login` separately)
++- Dokploy: `dokploy-url.txt`, `dokploy-api-token.txt`
++
++**Opt-out flags (written when user skips a service):**
++- `.secrets/skip-jira.txt`
++- `.secrets/skip-github.txt`
++- `.secrets/skip-dokploy.txt`
+ 
+-If missing, the skill prompts for them.
++Delete the relevant skip file to re-enable a service.
+ 
+ ---
+ 
+ ## Project Configuration
+ 
+-Projects are mapped in `.claude/skills/bellosoft-dora/references/projects.yaml` or in `docs/planning-artifacts/project-dora-config.md`.
+-
+-Default mappings:
+-
+-| Project | Key | Jira Board | GitHub Repo | Dokploy Apps |
+-|---------|-----|------------|-------------|--------------|
+-| AutomaPost | AP | 4 | Bellosoft-Limited/AutomaPost | — |
+-| 123auto | AU | 5 | Bellosoft-Limited/123auto | — |
+-| AutomaLead | AUT | 8 | Bellosoft-Limited/automaLead | — |
++Projects are stored in `docs/planning-artifacts/project-dora-config.md`.
++**There are no hardcoded defaults** — if a project key is not in that file, setup runs automatically.
+ 
+-To configure Dokploy app IDs for a project, add to `docs/planning-artifacts/project-dora-config.md`:
++Example config file:
+ ```markdown
+ ## AP (AutomaPost)
++- name: AutomaPost
+ - jira_board: 4
+ - github_repo: Bellosoft-Limited/AutomaPost
+-- dokploy_app_ids: [automa-post, automa-post-api]
++- dokploy_app_ids: []
++- dokploy_compose_ids: [Vvs8EzlgIAv4xjHJHOWg3]
++
++## AU (123auto)
++- name: 123auto
++- jira_board: 5
++- github_repo: Bellosoft-Limited/123auto
++- dokploy_app_ids: []
++- dokploy_compose_ids: []
+ ```
+ 
++When Dokploy credentials exist but no compose IDs are configured, the script
++auto-discovers them by querying Dokploy for projects matching the project key.
++
+ ---
+ 
+ ## Data Sources & Collection
+ 
+ ### 1. Deployment Frequency
+ 
+-Collect from 3 sources (in priority order):
+-- **GitHub Actions**: query `repos/{repo}/actions/runs?status=success`, filter workflows with "deploy" or "release"
+-- **Dokploy**: `POST /api/deployment.all?applicationId={id}` with `Authorization: api-key *** header
+-- **Jira Sprints**: `GET /rest/agile/1.0/board/{id}/sprint`, count closed sprints in period
++Collected from 3 sources:
++- **Jira Sprints**: closed sprints in period (`/rest/agile/1.0/board/{id}/sprint`)
++- **GitHub Actions**: deploy/release workflow runs (`repos/{repo}/actions/runs`)
++- **Dokploy**: compose deployments (`/api/deployment.allByCompose?composeId={id}`)
+ 
+ ### 2. Lead Time for Changes
+ 
+ Two proxies:
+-- **Jira cycle time**: fetch changelogs for Done issues, measure In Progress → Done transition
+-- **PR cycle time**: from `gh api repos/{repo}/pulls`, measure time from PR creation → merge
++- **Jira cycle time**: In Progress → Done transition (via changelog API)
++- **PR cycle time**: PR creation → merge (`gh api repos/{repo}/pulls`)
+ 
+ ### 3. Change Failure Rate
+ 
+-Count bugs completed vs total completed issues on the Jira board:
+ ```
+ CFR = bugs_done / total_done * 100
+ ```
+ 
+ ### 4. Mean Time to Restore (MTTR)
+ 
+-Measure time from bug creation → resolution for completed bugs in Jira.
++Bug creation → resolution for completed Jira Bugs.
+ 
+ ---
+ 
+ ## Execution
+ 
+-The preferred way to compute metrics is via the collector script:
+-
+ ```bash
+-python3 scripts/dora_metrics.py --project AP --days 30
++python3 .claude/skills/bellosoft-dora/scripts/dora_metrics.py --project AP --days 30
+ ```
+ 
+-If the script is unavailable, execute the collection steps manually using `curl` and `gh` CLI queries as described in the references section.
+-
+ The script:
+-1. Checks all credential files
+-2. Fetches from each data source (gracefully skips unavailable ones)
+-3. Computes metrics and classifies into DORA bands
+-4. Outputs a formatted table with recommendations
+-5. Saves detailed report to `docs/dora/dora-report-{project}-{date}.md`
++1. Reads credentials and skip flags from `.secrets/`
++2. Loads project config from `docs/planning-artifacts/project-dora-config.md`
++3. If project missing → runs project setup interactively
++4. If credentials missing for a non-skipped service → offers to run setup
++5. Fetches from each data source (gracefully skips opted-out/unconfigured ones)
++6. Computes metrics and classifies into DORA bands
++7. Prints formatted report and saves to `docs/dora/dora-report-{project}-{date}.md`
+ 
+ ---
+ 
+@@ -132,28 +140,21 @@ The script:
+   2. Lead Time (Jira cycle)  1.3d         🥇 High
+   3. Change Failure Rate     0.0%         🏆🥇 Elite/High
+   4. Mean Time to Restore    0m           🏆 Elite
+-
+-  DATA SOURCES & RAW COUNTS
+-  🐙 GitHub:  44 commits, 4 PRs merged
+-  🚀 Dokploy: 0 deployments
+-  📋 Jira:    154 total, 23 completed, 5 open bugs
+ ```
+ 
+ ---
+ 
+ ## Pitfalls
+ 
+-- **Jira REST `/rest/api/3/search`** may return 410 Gone — use Agile API `/rest/agile/1.0/board/{id}/issue` instead
+-- **Dokploy auth**: `Authorization: api-key {token}`, NOT Bearer token
++- **Jira REST `/rest/api/3/search`** may return 410 Gone — use Agile API instead
++- **Dokploy auth**: `x-api-key: {token}` header, NOT Bearer
+ - **CFR = 0%** is misleading if production bugs aren't tracked as Jira Bug issues
+ - **MTTR = 0** means no resolved bugs in period, not fast recovery
+-- **Jira board ID changes** — update `project-dora-config.md` if a new board is created
+-- **GitHub rate limits** — 5000 req/hr; if exceeded use commit-count-only mode
+-- **Dokploy API** returns all deployments — filter client-side by date
++- **GitHub rate limits** — 5000 req/hr; if exceeded, commit-count-only mode
+ 
+ ---
+ 
+ ## References
+ 
+ - `references/dora-bands.md` — Full DORA performance band definitions
+-- `scripts/dora_metrics.py` — The collector script for automated execution
++- `scripts/dora_metrics.py` — The collector script
+diff --git a/.claude/skills/bellosoft-dora/scripts/dora_metrics.py b/.claude/skills/bellosoft-dora/scripts/dora_metrics.py
+index 947528a..af2fa20 100644
+--- a/.claude/skills/bellosoft-dora/scripts/dora_metrics.py
++++ b/.claude/skills/bellosoft-dora/scripts/dora_metrics.py
+@@ -7,82 +7,165 @@ Fetches and computes the 4 DORA metrics from Jira + GitHub + Dokploy.
+ Usage:
+   python3 dora_metrics.py --project AP --days 30
+   python3 dora_metrics.py --project AU --days 90
+-  python3 dora_metrics.py --project AUT --days 30 --output docs/dora/report.md
+-  python3 dora_metrics.py --setup   # One-time credential setup
++  python3 dora_metrics.py --setup   # One-time credential + project setup
+ 
+ Config file: docs/planning-artifacts/project-dora-config.md
+ Credentials: .secrets/jira-*.txt, .secrets/dokploy-*.txt, gh CLI auth
++Skip flags:  .secrets/skip-jira.txt, .secrets/skip-github.txt, .secrets/skip-dokploy.txt
+ """
+-import argparse, json, os, sys, urllib.parse
++import argparse, json, os, sys, re
+ from datetime import datetime, timezone, timedelta
+ from subprocess import run
+ from pathlib import Path
+ 
+-# ── Default project config ─────────────────────────────────────────────
+-DEFAULT_PROJECTS = {
+-    "AP": {"name": "AutomaPost",     "jira_board": 4,  "github_repo": "Bellosoft-Limited/AutomaPost",  "dokploy_apps": [], "dokploy_compose_ids": ["Vvs8EzlgIAv4xjHJHOWg3"]},
+-    "AU": {"name": "123auto",        "jira_board": 5,  "github_repo": "Bellosoft-Limited/123auto",     "dokploy_apps": []},
+-    "AUT":{"name": "AutomaLead",     "jira_board": 8,  "github_repo": "Bellosoft-Limited/automaLead",   "dokploy_apps": []},
+-    "BI": {"name": "Bellosoft Int",  "jira_board": 42, "github_repo": None,                             "dokploy_apps": []},
+-}
++
++# ── Credential / skip helpers ───────────────────────────────────────────
++def _read(path):
++    try:
++        return Path(path).read_text().strip()
++    except (FileNotFoundError, OSError):
++        return None
++
++
++def _write(path, value):
++    Path(path).parent.mkdir(parents=True, exist_ok=True)
++    Path(path).write_text(value + "\n")
+ 
+ 
+ def load_credentials():
+-    """Load creds from .secrets/, return dict. Missing = None."""
+-    def read(path):
+-        try:
+-            with open(path) as f:
+-                return f.read().strip()
+-        except (FileNotFoundError, OSError):
+-            return None
++    """Load creds from .secrets/ and skip flags. Missing = None."""
+     return {
+-        "jira_url": read(".secrets/jira-url.txt"),
+-        "jira_user": read(".secrets/jira-username.txt"),
+-        "jira_token": read(".secrets/jira-api-token.txt"),
+-        "dokploy_url": read(".secrets/dokploy-url.txt"),
+-        "dokploy_token": read(".secrets/dokploy-api-token.txt"),
++        "jira_url":      _read(".secrets/jira-url.txt"),
++        "jira_user":     _read(".secrets/jira-username.txt"),
++        "jira_token":    _read(".secrets/jira-api-token.txt"),
++        "dokploy_url":   _read(".secrets/dokploy-url.txt"),
++        "dokploy_token": _read(".secrets/dokploy-api-token.txt"),
++        # Skip flags — truthy means user explicitly opted out
++        "skip_jira":     _read(".secrets/skip-jira.txt"),
++        "skip_github":   _read(".secrets/skip-github.txt"),
++        "skip_dokploy":  _read(".secrets/skip-dokploy.txt"),
+     }
+ 
+ 
++# ── Project config (no hardcoded defaults) ─────────────────────────────
++CONFIG_PATH = Path("docs/planning-artifacts/project-dora-config.md")
++
++
+ def load_project_config(project_key):
+-    """Load project config from file or fall back to defaults."""
+-    config_path = Path("docs/planning-artifacts/project-dora-config.md")
+-    if config_path.exists():
+-        text = config_path.read_text()
+-        if f"## {project_key}" in text or f"## {project_key} (" in text:
+-            cfg = DEFAULT_PROJECTS.get(project_key, {}).copy()
+-            for line in text.split("\n"):
+-                if "jira_board:" in line:
+-                    try:
+-                        cfg["jira_board"] = int(line.split("jira_board:")[1].strip())
+-                    except: pass
+-                if "github_repo:" in line:
+-                    val = line.split("github_repo:")[1].strip()
+-                    cfg["github_repo"] = val if val != "None" else None
+-                if "dokploy_app_ids:" in line:
+-                    val = line.split("dokploy_app_ids:")[1].strip().strip("[]")
+-                    cfg["dokploy_apps"] = [v.strip().strip('"\'') for v in val.split(",") if v.strip()]
+-                if "dokploy_compose_ids:" in line:
+-                    val = line.split("dokploy_compose_ids:")[1].strip().strip("[]")
+-                    cfg["dokploy_compose_ids"] = [v.strip().strip('"\'') for v in val.split(",") if v.strip()]
+-            return cfg
+-    return DEFAULT_PROJECTS.get(project_key, {})
++    """Load project config from the config file. Returns dict or None if not found."""
++    if not CONFIG_PATH.exists():
++        return None
++    text = CONFIG_PATH.read_text()
++    # Find the section for this project key
++    pattern = re.compile(
++        r"^## " + re.escape(project_key) + r"(?:\s.*)?$",
++        re.MULTILINE
++    )
++    m = pattern.search(text)
++    if not m:
++        return None
++
++    # Extract lines until the next ## heading or EOF
++    section_start = m.end()
++    next_section = re.search(r"^## ", text[section_start:], re.MULTILINE)
++    section = text[section_start: section_start + next_section.start()] if next_section else text[section_start:]
++
++    cfg = {"key": project_key}
++    for line in section.split("\n"):
++        line = line.strip().lstrip("- ")
++        if ":" not in line:
++            continue
++        k, _, v = line.partition(":")
++        k, v = k.strip(), v.strip()
++        if k == "name":
++            cfg["name"] = v
++        elif k == "jira_board":
++            try:
++                cfg["jira_board"] = int(v)
++            except ValueError:
++                pass
++        elif k == "github_repo":
++            cfg["github_repo"] = None if v in ("None", "none", "") else v
++        elif k == "dokploy_app_ids":
++            cfg["dokploy_apps"] = [x.strip().strip("\"'") for x in v.strip("[]").split(",") if x.strip()]
++        elif k == "dokploy_compose_ids":
++            cfg["dokploy_compose_ids"] = [x.strip().strip("\"'") for x in v.strip("[]").split(",") if x.strip()]
++    return cfg
++
++
++def save_project_config(cfg):
++    """Write or update a project section in the config file."""
++    key = cfg["key"]
++    lines = [
++        f"## {key} ({cfg.get('name', key)})",
++        f"- name: {cfg.get('name', key)}",
++        f"- jira_board: {cfg.get('jira_board', '')}",
++        f"- github_repo: {cfg.get('github_repo', 'None')}",
++        f"- dokploy_app_ids: [{', '.join(cfg.get('dokploy_apps', []))}]",
++        f"- dokploy_compose_ids: [{', '.join(cfg.get('dokploy_compose_ids', []))}]",
++    ]
++    new_section = "\n".join(lines) + "\n"
++
++    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
++    if CONFIG_PATH.exists():
++        text = CONFIG_PATH.read_text()
++        pattern = re.compile(r"^## " + re.escape(key) + r"(?:\s.*)?$", re.MULTILINE)
++        m = pattern.search(text)
++        if m:
++            # Replace existing section
++            next_sec = re.search(r"^## ", text[m.end():], re.MULTILINE)
++            if next_sec:
++                text = text[:m.start()] + new_section + "\n" + text[m.end() + next_sec.start():]
++            else:
++                text = text[:m.start()] + new_section
++            CONFIG_PATH.write_text(text)
++            return
++        with open(CONFIG_PATH, "a") as f:
++            f.write("\n" + new_section)
++    else:
++        CONFIG_PATH.write_text("# Project DORA Config\n\n" + new_section)
++
++    print(f"  ✅ Project config saved to {CONFIG_PATH}", file=sys.stderr)
++
++
++def setup_project(project_key, creds):
++    """Interactive setup for a project's config. Returns populated cfg dict."""
++    print(f"\n📋 Project '{project_key}' not found in config. Let's set it up.", file=sys.stderr)
++    cfg = {"key": project_key}
++
++    cfg["name"] = input(f"  Project name (e.g. AutomaPost): ").strip() or project_key
++
++    if not creds.get("skip_jira"):
++        val = input(f"  Jira board ID for {project_key} (integer, or Enter to skip): ").strip()
++        if val:
++            try:
++                cfg["jira_board"] = int(val)
++            except ValueError:
++                print("  ⚠ Not an integer, skipping board ID.", file=sys.stderr)
++
++    if not creds.get("skip_github"):
++        val = input(f"  GitHub repo (e.g. Org/repo, or Enter to skip): ").strip()
++        cfg["github_repo"] = val if val else None
++
++    cfg["dokploy_apps"] = []
++    cfg["dokploy_compose_ids"] = []
++    if not creds.get("skip_dokploy") and creds.get("dokploy_url") and creds.get("dokploy_token"):
++        compose_ids = auto_discover_dokploy(creds, project_key)
++        cfg["dokploy_compose_ids"] = compose_ids
++
++    save_project_config(cfg)
++    return cfg
+ 
+ 
+ # ── HTTP helpers ────────────────────────────────────────────────────────
+ def rest_get(url, user=None, token=None, method="GET", data=None, auth_mode="basic"):
+-    """Generic REST client. auth_mode: 'basic' (Jira) or 'apikey' (Dokploy)."""
+     cmd = ["curl", "-s", "-X", method, "-H", "Accept: application/json"]
+     if data:
+         cmd += ["-H", "Content-Type: application/json", "-d", json.dumps(data)]
+-
+     if auth_mode == "basic" and user and token:
+         cmd += ["-u", f"{user}:{token}"]
+-    elif auth_mode == "apikey" and token:
+-        cmd += ["-H", "x-api-key: " + token]
+-    elif auth_mode == "header" and token:
++    elif auth_mode in ("apikey", "header") and token:
+         cmd += ["-H", "x-api-key: " + token]
+-
+     cmd.append(url)
+     r = run(cmd, capture_output=True, text=True, timeout=60)
+     if not r.stdout.strip():
+@@ -94,18 +177,25 @@ def rest_get(url, user=None, token=None, method="GET", data=None, auth_mode="bas
+ 
+ 
+ def gh_api(path):
+-    """GitHub API via gh CLI."""
+     r = run(["gh", "api", path, "--jq", "."], capture_output=True, text=True, timeout=30)
+     return json.loads(r.stdout) if r.stdout.strip() else None
+ 
+ 
+ # ── Data collectors ─────────────────────────────────────────────────────
+ def collect_jira(creds, project_key, board_id, since):
+-    """Collect Jira data: sprints, issues, lead times."""
+     result = {"sprints": [], "done_issues": [], "lead_times": [], "bugs_any": 0,
+               "bugs_done": 0, "mttr_hours": [], "issues_total": 0, "type_done": {}}
++
++    if creds.get("skip_jira"):
++        print("  ⏭ Jira skipped (opted out)", file=sys.stderr)
++        return result
++
+     if not all([creds.get("jira_url"), creds.get("jira_user"), creds.get("jira_token")]):
+-        print("  \u26a0 Jira credentials missing, skipping", file=sys.stderr)
++        print("  ⚠ Jira credentials missing — run `--setup` to configure", file=sys.stderr)
++        return result
++
++    if not board_id:
++        print("  ⚠ No Jira board ID configured for this project — run `--setup` to add it", file=sys.stderr)
+         return result
+ 
+     url, user, token = creds["jira_url"], creds["jira_user"], creds["jira_token"]
+@@ -188,11 +278,15 @@ def collect_jira(creds, project_key, board_id, since):
+     return result
+ 
+ 
+-def collect_github(repo, since):
+-    """Collect GitHub data: PRs, commits, deploy workflow runs."""
++def collect_github(creds, repo, since):
+     result = {"prs": [], "pr_cycle_hours": [], "commits": 0, "gh_deploys": [], "gh_deploy_count": 0}
++
++    if creds.get("skip_github"):
++        print("  ⏭ GitHub skipped (opted out)", file=sys.stderr)
++        return result
++
+     if not repo:
+-        print("  \u26a0 No GitHub repo configured, skipping", file=sys.stderr)
++        print("  ⚠ No GitHub repo configured for this project — run `--setup` to add it", file=sys.stderr)
+         return result
+ 
+     prs = gh_api(f"repos/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=30")
+@@ -226,24 +320,27 @@ def collect_github(repo, since):
+ 
+ 
+ def collect_dokploy(creds, proj_cfg, since):
+-    """Collect Dokploy deployment data for apps AND compose stacks."""
+     result = {"deployments": [], "deploy_count": 0}
++
++    if creds.get("skip_dokploy"):
++        print("  ⏭ Dokploy skipped (opted out)", file=sys.stderr)
++        return result
++
+     url = creds.get("dokploy_url")
+     token = creds.get("dokploy_token")
+     if not url or not token:
+-        print("  \u26a0 Dokploy credentials missing, skipping", file=sys.stderr)
++        print("  ⚠ Dokploy credentials missing — run `--setup` to configure", file=sys.stderr)
+         return result
+ 
+     apps = proj_cfg.get("dokploy_apps", [])
+     composes = proj_cfg.get("dokploy_compose_ids", [])
+     if not apps and not composes:
+-        print("  \u26a0 No Dokploy apps or compose IDs configured, skipping", file=sys.stderr)
++        print("  ⚠ No Dokploy apps or compose IDs configured for this project — run `--setup` to add them", file=sys.stderr)
+         return result
+ 
+     def fetch(endpoint):
+         return rest_get(f"{url}{endpoint}", token=token, auth_mode="apikey")
+ 
+-    # App-based deployments
+     for app_id in apps:
+         data = fetch(f"/api/deployment.all?applicationId={app_id}")
+         if not data: continue
+@@ -258,7 +355,6 @@ def collect_dokploy(creds, proj_cfg, since):
+                     result["deploy_count"] += 1
+             except ValueError: pass
+ 
+-    # Compose-based deployments (used by AP, most Bellosoft projects)
+     for cid in composes:
+         data = fetch(f"/api/deployment.allByCompose?composeId={cid}")
+         if not data or not isinstance(data, list): continue
+@@ -278,18 +374,16 @@ def collect_dokploy(creds, proj_cfg, since):
+ 
+ 
+ def auto_discover_dokploy(creds, project_key):
+-    """Query Dokploy projects to find matching compose IDs for a project key."""
+     url = creds.get("dokploy_url")
+     token = creds.get("dokploy_token")
+     if not url or not token:
+         return []
+ 
+-    print(f"  \U0001f50d Checking Dokploy for deployments matching \"{project_key}\"...", file=sys.stderr)
++    print(f"  🔍 Checking Dokploy for deployments matching \"{project_key}\"...", file=sys.stderr)
+     projects = rest_get(f"{url}/api/project.all", token=token, auth_mode="apikey")
+     if not projects or not isinstance(projects, list):
+         return []
+ 
+-    # Try to match by name (case-insensitive)
+     target = project_key.lower()
+     candidates = []
+     for p in projects:
+@@ -302,84 +396,44 @@ def auto_discover_dokploy(creds, project_key):
+                         candidates.append({"project": p.get("name"), "compose_id": cid, "compose_name": c.get("name")})
+ 
+     if not candidates:
+-        print(f"  \u26a0 No Dokploy compose stacks found matching \"{project_key}\"", file=sys.stderr)
++        print(f"  ⚠ No Dokploy compose stacks found matching \"{project_key}\"", file=sys.stderr)
+         answer = input("  Enter Dokploy compose ID manually (or press Enter to skip): ").strip()
+-        if answer:
+-            return [answer]
+-        return []
++        return [answer] if answer else []
+ 
+     print(f"  Found {len(candidates)} potential matches:", file=sys.stderr)
+     for c in candidates:
+-        print(f"    \u2022 Project \"{c['project']}\" \u2192 compose \"{c['compose_name']}\" (ID: {c['compose_id']})", file=sys.stderr)
++        print(f"    • Project \"{c['project']}\" → compose \"{c['compose_name']}\" (ID: {c['compose_id']})", file=sys.stderr)
+ 
+-    answer = input(f"  Use these {len(candidates)} compose IDs for Dokploy tracking? [Y/n]: ").strip().lower()
++    answer = input(f"  Use these {len(candidates)} compose IDs? [Y/n]: ").strip().lower()
+     if answer in ("", "y", "yes"):
+         return [c["compose_id"] for c in candidates]
+-    manual = input("  Enter comma-separated compose IDs (or press Enter to skip): ").strip()
+-    if manual:
+-        return [x.strip() for x in manual.split(",") if x.strip()]
+-    return []
+-
+-
+-def save_dokploy_config(project_key, compose_ids):
+-    """Save Dokploy compose mapping to project config file."""
+-    config_path = Path("docs/planning-artifacts/project-dora-config.md")
+-    config_path.parent.mkdir(parents=True, exist_ok=True)
+-
+-    if config_path.exists():
+-        text = config_path.read_text()
+-        # Update existing section or create new entry
+-        if f"## {project_key}" in text:
+-            new_text = []
+-            found_section = False
+-            found_compose = False
+-            for line in text.split("\n"):
+-                if line.startswith(f"## {project_key}") or line.startswith(f"## {project_key} ("):
+-                    found_section = True
+-                if found_section and not found_compose and line.strip().startswith("- "):
+-                    new_text.append(f"- dokploy_compose_ids: [{', '.join(compose_ids)}]")
+-                    found_compose = True
+-                if found_section and line.startswith("## ") and not line.startswith(f"## {project_key}"):
+-                    if not found_compose:
+-                        new_text.append(f"- dokploy_compose_ids: [{', '.join(compose_ids)}]")
+-                    found_section = False
+-                new_text.append(line)
+-            if not found_compose:
+-                new_text.append(f"- dokploy_compose_ids: [{', '.join(compose_ids)}]")
+-            config_path.write_text("\n".join(new_text))
+-        else:
+-            with open(str(config_path), "a") as f:
+-                f.write(f"\n## {project_key}\n- dokploy_compose_ids: [{', '.join(compose_ids)}]\n")
+-    else:
+-        config_path.write_text(f"# Project DORA Config\n## {project_key}\n- dokploy_compose_ids: [{', '.join(compose_ids)}]\n")
+-
+-    print(f"  \u2705 Saved Dokploy mapping to {config_path}", file=sys.stderr)
++    manual = input("  Enter comma-separated compose IDs (or Enter to skip): ").strip()
++    return [x.strip() for x in manual.split(",") if x.strip()] if manual else []
+ 
+ 
+ # ── Metrics computation ─────────────────────────────────────────────────
+ def classify(val, metric):
+-    """Classify a raw metric value into DORA band."""
+     if metric == "deploy_freq":
+-        if val >= 7:    return "\U0001f3c6 Elite",  f"{val:.1f}/wk"
+-        if val >= 1:    return "\U0001f947 High",   f"{val:.1f}/wk"
+-        if val >= 4/30: return "\U0001f948 Medium", f"{val:.1f}/wk"
+-        return "\U0001f949 Low", f"{val:.1f}/wk"
++        if val >= 7:    return "🏆 Elite",  f"{val:.1f}/wk"
++        if val >= 1:    return "🥇 High",   f"{val:.1f}/wk"
++        if val >= 4/30: return "🥈 Medium", f"{val:.1f}/wk"
++        return "🥉 Low", f"{val:.1f}/wk"
+     if metric == "lead":
+-        if val < 1/24:  return "\U0001f3c6 Elite",  f"{val*24:.1f}h"
+-        if val < 1:     return "\U0001f947 High",   f"{val*24:.1f}h"
+-        if val <= 7:    return "\U0001f947 High",   f"{val:.1f}d"
+-        if val <= 30:   return "\U0001f948 Medium", f"{val:.1f}d"
+-        return "\U0001f949 Low",  f"{val:.1f}d"
++        if val < 1/24:  return "🏆 Elite",  f"{val*24:.1f}h"
++        if val < 1:     return "🥇 High",   f"{val*24:.1f}h"
++        if val <= 7:    return "🥇 High",   f"{val:.1f}d"
++        if val <= 30:   return "🥈 Medium", f"{val:.1f}d"
++        return "🥉 Low",  f"{val:.1f}d"
+     if metric == "cfr":
+-        if val <= 15:   return "\U0001f3c6\U0001f947 Elite/High", f"{val:.1f}%"
+-        if val <= 30:   return "\U0001f948 Medium",       f"{val:.1f}%"
+-        return "\U0001f949 Low",  f"{val:.1f}%"
++        if val <= 15:   return "🏆🥇 Elite/High", f"{val:.1f}%"
++        if val <= 30:   return "🥈 Medium",       f"{val:.1f}%"
++        return "🥉 Low",  f"{val:.1f}%"
+     if metric == "mttr":
+-        if val < 1:     return "\U0001f3c6 Elite",   f"{val*60:.0f}m"
+-        if val <= 24:   return "\U0001f947 High",    f"{val:.1f}h"
+-        if val <= 168:  return "\U0001f948 Medium",  f"{val/24:.1f}d"
+-        return "\U0001f949 Low",  f"{val/24:.1f}d"
+-    return "\u2014", "\u2014"
++        if val < 1:     return "🏆 Elite",   f"{val*60:.0f}m"
++        if val <= 24:   return "🥇 High",    f"{val:.1f}h"
++        if val <= 168:  return "🥈 Medium",  f"{val/24:.1f}d"
++        return "🥉 Low",  f"{val/24:.1f}d"
++    return "—", "—"
+ 
+ 
+ def compute_metrics(jira_data, gh_data, dok_data, days_back):
+@@ -403,81 +457,76 @@ def compute_metrics(jira_data, gh_data, dok_data, days_back):
+     }
+ 
+ 
+-# ── Output ──────────────────────────────────────────────────────────────
+ def print_report(m, proj_cfg, project_key, jira_data, gh_data, dok_data, days_back, since, now):
+     df_t, df_v = classify(m["deploy_freq"], "deploy_freq")
+     lt_t, lt_v = classify(m["lead_time_jira"], "lead")
+-    pr_t, pr_v = classify(m["lead_time_pr"], "lead") if gh_data["pr_cycle_hours"] else ("\u2014", "\u2014")
++    pr_t, pr_v = classify(m["lead_time_pr"], "lead") if gh_data["pr_cycle_hours"] else ("—", "—")
+     cfr_t, cfr_v = classify(m["cfr"], "cfr")
+     mttr_t, mttr_v = classify(m["mttr"], "mttr")
+     lines = []
+     lines.append("")
+-    lines.append("\u2554" + "\u2550" * 74 + "\u2557")
+-    lines.append(f"\u2551  \U0001f4ca DORA METRICS \u2014 {project_key} ({proj_cfg.get('name','?')})  \u2022  {since.strftime('%Y-%m-%d')} \u2192 {now.strftime('%Y-%m-%d')}  {'('+str(days_back)+'d)'}  \u2551")
+-    lines.append("\u255a" + "\u2550" * 74 + "\u255d")
++    lines.append("╔" + "═" * 74 + "╗")
++    lines.append(f"║  📊 DORA METRICS — {project_key} ({proj_cfg.get('name','?')})  •  {since.strftime('%Y-%m-%d')} → {now.strftime('%Y-%m-%d')}  ({days_back}d)  ║")
++    lines.append("╚" + "═" * 74 + "╝")
+     lines.append("")
+     lines.append(f"  {'Metric':<32} {'Your Value':<20} {'DORA Band':<18}  {'Target':<18}")
+     lines.append("  " + "─" * 32 + " " + "─" * 20 + " " + "─" * 18 + "  " + "─" * 18)
+-    lines.append(f"  1. Deployment Frequency   {df_v:<20} {df_t:<18}  \u22657/wk (Elite)")
++    lines.append(f"  1. Deployment Frequency   {df_v:<20} {df_t:<18}  ≥7/wk (Elite)")
+     lines.append(f"     Sources: {m['jira_sprint_count']} sprints + {m['gh_deploy_count']} GH deploys + {m['dok_deploy_count']} Dokploy")
+     lines.append(f"  2. Lead Time (Jira cycle) {lt_v:<20} {lt_t:<18}  <1h (Elite)")
+     if gh_data["pr_cycle_hours"]:
+         lines.append(f"     Lead Time (PR cycle)    {pr_v:<20} {pr_t:<18}  <1h (Elite)")
+-    lines.append(f"  3. Change Failure Rate    {cfr_v:<20} {cfr_t:<18}  \u226415% (Elite/High)")
++    lines.append(f"  3. Change Failure Rate    {cfr_v:<20} {cfr_t:<18}  ≤15% (Elite/High)")
+     lines.append(f"  4. Mean Time to Restore   {mttr_v:<20} {mttr_t:<18}  <1h (Elite)")
+     lines.append("")
+-    lines.append("\u2500" * 78)
++    lines.append("─" * 78)
+     lines.append("  DATA SOURCES & RAW COUNTS")
+-    lines.append("\u2500" * 78)
+-    lines.append(f"  \U0001f419 GitHub ({gh_data.get('_repo','?') or 'none'})")
++    lines.append("─" * 78)
++    lines.append(f"  🐙 GitHub ({gh_data.get('_repo','?') or 'none'})")
+     if gh_data.get("commits") is not None:
+         lines.append(f"      Commits:              {gh_data['commits']}")
+     lines.append(f"      PRs merged:            {len(gh_data['prs'])}")
+     for p in gh_data["prs"]:
+-        lines.append(f"        \u2022 #{p['num']} \u2014 {p['title'][:55]} ({p['merged']}, cycle: {p['cycle_h']:.0f}h)")
++        lines.append(f"        • #{p['num']} — {p['title'][:55]} ({p['merged']}, cycle: {p['cycle_h']:.0f}h)")
+     lines.append(f"      Deploy workflow runs: {gh_data['gh_deploy_count']}")
+     for d in gh_data["gh_deploys"]:
+-        lines.append(f"        \u2022 {d['name']} \u2014 {d['date']}")
+-    lines.append(f"  \U0001f680 Dokploy ({dok_data.get('_url','?') or 'none'})")
++        lines.append(f"        • {d['name']} — {d['date']}")
++    lines.append(f"  🚀 Dokploy ({dok_data.get('_url','?') or 'none'})")
+     lines.append(f"      Deployments:           {dok_data['deploy_count']}")
+     for d in dok_data["deployments"]:
+-        title_str = f" \u2014 {d['title']}" if d.get("title") else ""
+-        lines.append(f"        \u2022 {d['id'][:20]} \u2014 {d['date']} ({d['status']}){title_str}")
+-    lines.append(f"  \U0001f4cb Jira (board {proj_cfg.get('jira_board','?')})")
++        title_str = f" — {d['title']}" if d.get("title") else ""
++        lines.append(f"        • {d['id'][:20]} — {d['date']} ({d['status']}){title_str}")
++    lines.append(f"  📋 Jira (board {proj_cfg.get('jira_board','?')})")
+     lines.append(f"      Sprint deployments:    {len(jira_data['sprints'])}")
+     for rs in jira_data["sprints"]:
+-        lines.append(f"        \u2022 {rs['name']} (ended {rs['end'].strftime('%Y-%m-%d')})")
++        lines.append(f"        • {rs['name']} (ended {rs['end'].strftime('%Y-%m-%d')})")
+     lines.append(f"      Total issues:          {jira_data['issues_total']}")
+     lines.append(f"      Completed issues:      {m['total_done']}")
+     if m["issue_type_done"]:
+         lines.append(f"      Issue types (Done):")
+         for t, c in sorted(m["issue_type_done"].items(), key=lambda x: -x[1]):
+-            lines.append(f"        \u2022 {t}: {c}")
++            lines.append(f"        • {t}: {c}")
+     lines.append(f"      Lead time samples:     {m['lead_time_samples']}")
+     lines.append(f"      Bugs (any):            {m['bugs_any']}")
+     lines.append(f"      Bugs (resolved):       {m['bugs_done']}")
+     lines.append(f"      MTTR samples:          {m['mttr_samples']}")
+     lines.append("")
+-    lines.append("\u2500" * 78)
++    lines.append("─" * 78)
+     lines.append("  RECOMMENDATIONS")
+-    lines.append("\u2500" * 78)
++    lines.append("─" * 78)
+     if m["deploy_freq"] < 1:
+-        lines.append("  \U0001f3af **Deployment Frequency** is your biggest gap.")
+-        lines.append("     The team is shipping code but may not be deploying to production.")
+-        lines.append("     Action: Set up automated deploys on merge to main, or use")
+-        lines.append("     trunk-based development with continuous deployment.")
++        lines.append("  🎯 **Deployment Frequency** is your biggest gap.")
++        lines.append("     Action: Set up automated deploys on merge to main.")
+     if m["lead_time_jira"] < 7 and m["lead_time_jira"] > 0:
+-        lines.append("  \u2705 **Lead Time** is solid \u2014 code moves fast through the system.")
++        lines.append("  ✅ **Lead Time** is solid — code moves fast through the system.")
+     if m["cfr"] == 0:
+-        lines.append("  \u26a0\ufe0f  **CFR** shows 0% which looks elite, but may undercount if")
+-        lines.append("     production bugs aren't tracked as Jira Bugs or if hotfixes")
+-        lines.append("     bypass the project. Consider tracking all incidents in Jira.")
++        lines.append("  ⚠️  **CFR** shows 0% — may undercount if production bugs aren't")
++        lines.append("     tracked as Jira Bugs. Consider tracking all incidents in Jira.")
+     elif m["cfr"] > 15:
+-        lines.append("  \u26a0\ufe0f  **CFR** above 15% \u2014 investigate quality pipeline gaps.")
++        lines.append("  ⚠️  **CFR** above 15% — investigate quality pipeline gaps.")
+     if m["mttr_samples"] == 0:
+-        lines.append("  \u26a0\ufe0f  **MTTR** has no data \u2014 no bugs were completed in this period.")
+-        lines.append("     Track production incidents as Bugs with resolution dates.")
+-    lines.append("\u2500" * 78)
++        lines.append("  ⚠️  **MTTR** has no data — track production incidents as Bugs with resolution dates.")
++    lines.append("─" * 78)
+     report = "\n".join(lines)
+     print(report)
+     return report
+@@ -489,80 +538,143 @@ def save_report(report, project_key, now):
+     date_str = now.strftime("%Y-%m-%d")
+     path = output_dir / f"dora-report-{project_key}-{date_str}.md"
+     path.write_text(report)
+-    print(f"\n  \U0001f4dd Report saved: {path}", file=sys.stderr)
++    print(f"\n  📝 Report saved: {path}", file=sys.stderr)
+     return path
+ 
+ 
++# ── Setup wizard ────────────────────────────────────────────────────────
++def run_setup(creds):
++    """Interactive credential + service opt-in setup."""
++    print("🔧 DORA Metrics Setup\n", file=sys.stderr)
++
++    # ── Jira ──
++    if creds.get("skip_jira"):
++        print("  Jira: opted out (skip-jira.txt exists)", file=sys.stderr)
++    else:
++        connect = input("  Connect to Jira? [Y/n]: ").strip().lower()
++        if connect in ("n", "no"):
++            _write(".secrets/skip-jira.txt", "opted-out")
++            print("  ⏭ Jira skipped — recorded in .secrets/skip-jira.txt", file=sys.stderr)
++            creds["skip_jira"] = "opted-out"
++        else:
++            for key, label, filename in [
++                ("jira_url",   "Jira URL (e.g. https://yourorg.atlassian.net)", "jira-url.txt"),
++                ("jira_user",  "Jira email",                                    "jira-username.txt"),
++                ("jira_token", "Jira API token",                                "jira-api-token.txt"),
++            ]:
++                if not creds.get(key):
++                    val = input(f"    {label}: ").strip()
++                    if val:
++                        _write(f".secrets/{filename}", val)
++                        creds[key] = val
++                        print(f"    ✅ Saved {filename}", file=sys.stderr)
++                else:
++                    print(f"    ✅ {filename} already set", file=sys.stderr)
++
++    # ── GitHub ──
++    if creds.get("skip_github"):
++        print("  GitHub: opted out (skip-github.txt exists)", file=sys.stderr)
++    else:
++        connect = input("  Connect to GitHub (via gh CLI)? [Y/n]: ").strip().lower()
++        if connect in ("n", "no"):
++            _write(".secrets/skip-github.txt", "opted-out")
++            print("  ⏭ GitHub skipped — recorded in .secrets/skip-github.txt", file=sys.stderr)
++            creds["skip_github"] = "opted-out"
++        else:
++            r = run(["gh", "auth", "status"], capture_output=True, text=True)
++            if r.returncode == 0:
++                print("    ✅ gh CLI already authenticated", file=sys.stderr)
++            else:
++                print("    ⚠ gh CLI not authenticated. Run: gh auth login", file=sys.stderr)
++
++    # ── Dokploy ──
++    if creds.get("skip_dokploy"):
++        print("  Dokploy: opted out (skip-dokploy.txt exists)", file=sys.stderr)
++    else:
++        connect = input("  Connect to Dokploy? [Y/n]: ").strip().lower()
++        if connect in ("n", "no"):
++            _write(".secrets/skip-dokploy.txt", "opted-out")
++            print("  ⏭ Dokploy skipped — recorded in .secrets/skip-dokploy.txt", file=sys.stderr)
++            creds["skip_dokploy"] = "opted-out"
++        else:
++            if not creds.get("dokploy_url"):
++                val = input("    Dokploy URL (e.g. https://dokploy.example.com): ").strip()
++                if val:
++                    _write(".secrets/dokploy-url.txt", val)
++                    creds["dokploy_url"] = val
++                    print("    ✅ Saved dokploy-url.txt", file=sys.stderr)
++            else:
++                print("    ✅ dokploy-url.txt already set", file=sys.stderr)
++            if not creds.get("dokploy_token"):
++                val = input("    Dokploy API token: ").strip()
++                if val:
++                    _write(".secrets/dokploy-api-token.txt", val)
++                    creds["dokploy_token"] = val
++                    print("    ✅ Saved dokploy-api-token.txt", file=sys.stderr)
++            else:
++                print("    ✅ dokploy-api-token.txt already set", file=sys.stderr)
++
++    print("\n✅ Setup complete. Run without --setup to collect metrics.", file=sys.stderr)
++
++
+ # ── Main ────────────────────────────────────────────────────────────────
+ def main():
+     parser = argparse.ArgumentParser(description="Bellosoft DORA Metrics Collector")
+-    parser.add_argument("--project", "-p", default="AP", help="Project key (AP, AU, AUT, ...)")
++    parser.add_argument("--project", "-p", default="AP", help="Project key (any key from project-dora-config.md)")
+     parser.add_argument("--days", "-d", type=int, default=30, help="Lookback period in days")
+     parser.add_argument("--output", "-o", help="Save report to file")
+-    parser.add_argument("--setup", action="store_true", help="One-time credential setup")
++    parser.add_argument("--setup", action="store_true", help="One-time credential + service setup")
+     args = parser.parse_args()
+ 
+     now = datetime.now(timezone.utc)
+     since = now - timedelta(days=args.days)
+ 
++    creds = load_credentials()
++
+     if args.setup:
+-        print("\U0001f527 DORA Metrics Setup", file=sys.stderr)
+-        creds = load_credentials()
+-        changes = []
+-        for key, label, filename in [
+-            ("jira_url", "Jira URL (e.g. https://yourorg.atlassian.net)", "jira-url.txt"),
+-            ("jira_user", "Jira email", "jira-username.txt"),
+-            ("jira_token", "Jira API token", "jira-api-token.txt"),
+-        ]:
+-            if not creds[key]:
+-                val = input(f"  {label}: ").strip()
+-                with open(f".secrets/{filename}", "w") as f:
+-                    f.write(val + "\n")
+-                changes.append(filename)
+-                creds[key] = val
+-
+-        if not creds["dokploy_url"]:
+-            val = input("  Dokploy URL (optional, e.g. https://dokploy.example.com): ").strip()
+-            if val:
+-                with open(".secrets/dokploy-url.txt", "w") as f:
+-                    f.write(val + "\n")
+-                changes.append("dokploy-url.txt")
+-                creds["dokploy_url"] = val
+-
+-        if not creds["dokploy_token"]:
+-            val = input("  Dokploy API token (optional): ").strip()
+-            if val:
+-                with open(".secrets/dokploy-api-token.txt", "w") as f:
+-                    f.write(val + "\n")
+-                changes.append("dokploy-api-token.txt")
+-                creds["dokploy_token"] = val
+-
+-        if changes:
+-            print(f"\n\u2705 Saved: {', '.join(changes)}", file=sys.stderr)
+-        else:
+-            print("\u2705 All credentials already configured", file=sys.stderr)
++        run_setup(creds)
+         return
+ 
+-    creds = load_credentials()
++    # Load project config — prompt for setup if not found
+     proj_cfg = load_project_config(args.project)
+-    proj_cfg["key"] = args.project
+-
+-    # Auto-discover Dokploy compose IDs if credentials exist but no IDs configured
++    if not proj_cfg:
++        print(f"  ⚠ Project '{args.project}' not found in {CONFIG_PATH}", file=sys.stderr)
++        answer = input(f"  Set it up now? [Y/n]: ").strip().lower()
++        if answer in ("n", "no"):
++            print("  Aborted.", file=sys.stderr)
++            sys.exit(1)
++        proj_cfg = setup_project(args.project, creds)
++
++    # Warn if credentials are missing for any non-skipped service
++    needs_setup = []
++    if not creds.get("skip_jira") and not all([creds.get("jira_url"), creds.get("jira_user"), creds.get("jira_token")]):
++        needs_setup.append("Jira")
++    if not creds.get("skip_dokploy") and (not creds.get("dokploy_url") or not creds.get("dokploy_token")):
++        needs_setup.append("Dokploy")
++    if needs_setup:
++        print(f"  ⚠ Missing credentials for: {', '.join(needs_setup)}", file=sys.stderr)
++        answer = input("  Run --setup now to configure them? [Y/n]: ").strip().lower()
++        if answer not in ("n", "no"):
++            run_setup(creds)
++            creds = load_credentials()
++
++    # Auto-discover Dokploy compose IDs if creds exist but none configured
+     dok_composes = proj_cfg.get("dokploy_compose_ids", [])
+-    if not dok_composes and creds.get("dokploy_url") and creds.get("dokploy_token"):
++    if (not dok_composes and not creds.get("skip_dokploy")
++            and creds.get("dokploy_url") and creds.get("dokploy_token")):
+         dok_composes = auto_discover_dokploy(creds, args.project)
+         if dok_composes:
+-            save_dokploy_config(args.project, dok_composes)
+             proj_cfg["dokploy_compose_ids"] = dok_composes
++            save_project_config(proj_cfg)
+ 
+-    print(f"\n\U0001f50d Collecting DORA metrics for {args.project} ({args.days}d lookback)...", file=sys.stderr)
+-    print(f"   Jira board: {proj_cfg.get('jira_board','?')}", file=sys.stderr)
+-    print(f"   GitHub repo: {proj_cfg.get('github_repo','?')}", file=sys.stderr)
+-    print(f"   Dokploy compose IDs: {proj_cfg.get('dokploy_compose_ids',[])}", file=sys.stderr)
++    print(f"\n🔍 Collecting DORA metrics for {args.project} ({args.days}d lookback)...", file=sys.stderr)
++    print(f"   Jira board:          {proj_cfg.get('jira_board', '(not set)')}", file=sys.stderr)
++    print(f"   GitHub repo:         {proj_cfg.get('github_repo', '(not set)')}", file=sys.stderr)
++    print(f"   Dokploy compose IDs: {proj_cfg.get('dokploy_compose_ids', [])}", file=sys.stderr)
+     print(file=sys.stderr)
+ 
+     jira_data = collect_jira(creds, args.project, proj_cfg.get("jira_board"), since)
+-    gh_data = collect_github(proj_cfg.get("github_repo"), since)
++    gh_data = collect_github(creds, proj_cfg.get("github_repo"), since)
+     gh_data["_repo"] = proj_cfg.get("github_repo")
+     dok_data = collect_dokploy(creds, proj_cfg, since)
+     dok_data["_url"] = creds.get("dokploy_url")
+@@ -574,7 +686,7 @@ def main():
+     if args.output:
+         Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+         Path(args.output).write_text(report)
+-        print(f"  \U0001f4dd Report saved: {args.output}", file=sys.stderr)
++        print(f"  📝 Report saved: {args.output}", file=sys.stderr)
+     else:
+         save_report(report, args.project, now)
+ 
+-- 
+2.34.1
+
