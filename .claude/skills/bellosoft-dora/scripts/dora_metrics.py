@@ -18,6 +18,12 @@ from datetime import datetime, timezone, timedelta
 from subprocess import run
 from pathlib import Path
 
+# Ensure stdout/stderr can handle Unicode on Windows (cp1252 chokes on emojis)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 
 # ── Credential / skip helpers ───────────────────────────────────────────
 def _read(path):
