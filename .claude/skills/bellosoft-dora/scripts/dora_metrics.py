@@ -32,6 +32,15 @@ def _write(path, value):
     Path(path).write_text(value + "\n")
 
 
+def __input(prompt, default=""):
+    """_input() that returns default on EOF (non-interactive / piped stdin)."""
+    try:
+        return _input(prompt)
+    except EOFError:
+        print(default, file=sys.stderr)
+        return default
+
+
 def load_credentials():
     """Load creds from .secrets/ and skip flags. Missing = None."""
     return {
@@ -133,10 +142,10 @@ def setup_project(project_key, creds):
     print(f"\n📋 Project '{project_key}' not found in config. Let's set it up.", file=sys.stderr)
     cfg = {"key": project_key}
 
-    cfg["name"] = input(f"  Project name (e.g. AutomaPost): ").strip() or project_key
+    cfg["name"] = _input(f"  Project name (e.g. AutomaPost): ").strip() or project_key
 
     if not creds.get("skip_jira"):
-        val = input(f"  Jira board ID for {project_key} (integer, or Enter to skip): ").strip()
+        val = _input(f"  Jira board ID for {project_key} (integer, or Enter to skip): ").strip()
         if val:
             try:
                 cfg["jira_board"] = int(val)
@@ -144,7 +153,7 @@ def setup_project(project_key, creds):
                 print("  ⚠ Not an integer, skipping board ID.", file=sys.stderr)
 
     if not creds.get("skip_github"):
-        val = input(f"  GitHub repo (e.g. Org/repo, or Enter to skip): ").strip()
+        val = _input(f"  GitHub repo (e.g. Org/repo, or Enter to skip): ").strip()
         cfg["github_repo"] = val if val else None
 
     cfg["dokploy_apps"] = []
@@ -397,17 +406,17 @@ def auto_discover_dokploy(creds, project_key):
 
     if not candidates:
         print(f"  ⚠ No Dokploy compose stacks found matching \"{project_key}\"", file=sys.stderr)
-        answer = input("  Enter Dokploy compose ID manually (or press Enter to skip): ").strip()
+        answer = _input("  Enter Dokploy compose ID manually (or press Enter to skip): ").strip()
         return [answer] if answer else []
 
     print(f"  Found {len(candidates)} potential matches:", file=sys.stderr)
     for c in candidates:
         print(f"    • Project \"{c['project']}\" → compose \"{c['compose_name']}\" (ID: {c['compose_id']})", file=sys.stderr)
 
-    answer = input(f"  Use these {len(candidates)} compose IDs? [Y/n]: ").strip().lower()
+    answer = _input(f"  Use these {len(candidates)} compose IDs? [Y/n]: ").strip().lower()
     if answer in ("", "y", "yes"):
         return [c["compose_id"] for c in candidates]
-    manual = input("  Enter comma-separated compose IDs (or Enter to skip): ").strip()
+    manual = _input("  Enter comma-separated compose IDs (or Enter to skip): ").strip()
     return [x.strip() for x in manual.split(",") if x.strip()] if manual else []
 
 
@@ -554,7 +563,7 @@ def run_setup(creds):
     elif jira_configured:
         print("  ✅ Jira: already configured", file=sys.stderr)
     else:
-        connect = input("  Connect to Jira? [Y/n]: ").strip().lower()
+        connect = _input("  Connect to Jira? [Y/n]: ").strip().lower()
         if connect in ("n", "no"):
             _write(".secrets/skip-jira.txt", "opted-out")
             print("  ⏭ Jira skipped — recorded in .secrets/skip-jira.txt", file=sys.stderr)
@@ -566,7 +575,7 @@ def run_setup(creds):
                 ("jira_token", "Jira API token",                                "jira-api-token.txt"),
             ]:
                 if not creds.get(key):
-                    val = input(f"    {label}: ").strip()
+                    val = _input(f"    {label}: ").strip()
                     if val:
                         _write(f".secrets/{filename}", val)
                         creds[key] = val
@@ -580,7 +589,7 @@ def run_setup(creds):
     elif run(["gh", "auth", "status"], capture_output=True).returncode == 0:
         print("  ✅ GitHub: gh CLI already authenticated", file=sys.stderr)
     else:
-        connect = input("  Connect to GitHub (via gh CLI)? [Y/n]: ").strip().lower()
+        connect = _input("  Connect to GitHub (via gh CLI)? [Y/n]: ").strip().lower()
         if connect in ("n", "no"):
             _write(".secrets/skip-github.txt", "opted-out")
             print("  ⏭ GitHub skipped — recorded in .secrets/skip-github.txt", file=sys.stderr)
@@ -599,14 +608,14 @@ def run_setup(creds):
     elif dokploy_configured:
         print("  ✅ Dokploy: already configured", file=sys.stderr)
     else:
-        connect = input("  Connect to Dokploy? [Y/n]: ").strip().lower()
+        connect = _input("  Connect to Dokploy? [Y/n]: ").strip().lower()
         if connect in ("n", "no"):
             _write(".secrets/skip-dokploy.txt", "opted-out")
             print("  ⏭ Dokploy skipped — recorded in .secrets/skip-dokploy.txt", file=sys.stderr)
             creds["skip_dokploy"] = "opted-out"
         else:
             if not creds.get("dokploy_url"):
-                val = input("    Dokploy URL (e.g. https://dokploy.example.com): ").strip()
+                val = _input("    Dokploy URL (e.g. https://dokploy.example.com): ").strip()
                 if val:
                     _write(".secrets/dokploy-url.txt", val)
                     creds["dokploy_url"] = val
@@ -614,7 +623,7 @@ def run_setup(creds):
             else:
                 print("    ✅ dokploy-url.txt already set", file=sys.stderr)
             if not creds.get("dokploy_token"):
-                val = input("    Dokploy API token: ").strip()
+                val = _input("    Dokploy API token: ").strip()
                 if val:
                     _write(".secrets/dokploy-api-token.txt", val)
                     creds["dokploy_token"] = val
@@ -647,7 +656,7 @@ def main():
     proj_cfg = load_project_config(args.project)
     if not proj_cfg:
         print(f"  ⚠ Project '{args.project}' not found in {CONFIG_PATH}", file=sys.stderr)
-        answer = input(f"  Set it up now? [Y/n]: ").strip().lower()
+        answer = _input(f"  Set it up now? [Y/n]: ").strip().lower()
         if answer in ("n", "no"):
             print("  Aborted.", file=sys.stderr)
             sys.exit(1)
@@ -661,7 +670,7 @@ def main():
         needs_setup.append("Dokploy")
     if needs_setup:
         print(f"  ⚠ Missing credentials for: {', '.join(needs_setup)}", file=sys.stderr)
-        answer = input("  Run --setup now to configure them? [Y/n]: ").strip().lower()
+        answer = _input("  Run --setup now to configure them? [Y/n]: ").strip().lower()
         if answer not in ("n", "no"):
             run_setup(creds)
             creds = load_credentials()
