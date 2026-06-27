@@ -55,7 +55,7 @@ def load_project_config(project_key):
     """Load project config from the config file. Returns dict or None if not found."""
     if not CONFIG_PATH.exists():
         return None
-    text = CONFIG_PATH.read_text()
+    text = CONFIG_PATH.read_text(encoding="utf-8")
     # Find the section for this project key
     pattern = re.compile(
         r"^## " + re.escape(project_key) + r"(?:\s.*)?$",
@@ -108,7 +108,7 @@ def save_project_config(cfg):
 
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     if CONFIG_PATH.exists():
-        text = CONFIG_PATH.read_text()
+        text = CONFIG_PATH.read_text(encoding="utf-8")
         pattern = re.compile(r"^## " + re.escape(key) + r"(?:\s.*)?$", re.MULTILINE)
         m = pattern.search(text)
         if m:
@@ -118,12 +118,12 @@ def save_project_config(cfg):
                 text = text[:m.start()] + new_section + "\n" + text[m.end() + next_sec.start():]
             else:
                 text = text[:m.start()] + new_section
-            CONFIG_PATH.write_text(text)
+            CONFIG_PATH.write_text(text, encoding="utf-8")
             return
-        with open(CONFIG_PATH, "a") as f:
+        with open(CONFIG_PATH, "a", encoding="utf-8") as f:
             f.write("\n" + new_section)
     else:
-        CONFIG_PATH.write_text("# Project DORA Config\n\n" + new_section)
+        CONFIG_PATH.write_text("# Project DORA Config\n\n" + new_section, encoding="utf-8")
 
     print(f"  ✅ Project config saved to {CONFIG_PATH}", file=sys.stderr)
 
@@ -537,7 +537,7 @@ def save_report(report, project_key, now):
     output_dir.mkdir(parents=True, exist_ok=True)
     date_str = now.strftime("%Y-%m-%d")
     path = output_dir / f"dora-report-{project_key}-{date_str}.md"
-    path.write_text(report)
+    path.write_text(report, encoding="utf-8")
     print(f"\n  📝 Report saved: {path}", file=sys.stderr)
     return path
 
@@ -548,8 +548,11 @@ def run_setup(creds):
     print("🔧 DORA Metrics Setup\n", file=sys.stderr)
 
     # ── Jira ──
+    jira_configured = all([creds.get("jira_url"), creds.get("jira_user"), creds.get("jira_token")])
     if creds.get("skip_jira"):
         print("  Jira: opted out (skip-jira.txt exists)", file=sys.stderr)
+    elif jira_configured:
+        print("  ✅ Jira: already configured", file=sys.stderr)
     else:
         connect = input("  Connect to Jira? [Y/n]: ").strip().lower()
         if connect in ("n", "no"):
@@ -574,6 +577,8 @@ def run_setup(creds):
     # ── GitHub ──
     if creds.get("skip_github"):
         print("  GitHub: opted out (skip-github.txt exists)", file=sys.stderr)
+    elif run(["gh", "auth", "status"], capture_output=True).returncode == 0:
+        print("  ✅ GitHub: gh CLI already authenticated", file=sys.stderr)
     else:
         connect = input("  Connect to GitHub (via gh CLI)? [Y/n]: ").strip().lower()
         if connect in ("n", "no"):
@@ -588,8 +593,11 @@ def run_setup(creds):
                 print("    ⚠ gh CLI not authenticated. Run: gh auth login", file=sys.stderr)
 
     # ── Dokploy ──
+    dokploy_configured = creds.get("dokploy_url") and creds.get("dokploy_token")
     if creds.get("skip_dokploy"):
         print("  Dokploy: opted out (skip-dokploy.txt exists)", file=sys.stderr)
+    elif dokploy_configured:
+        print("  ✅ Dokploy: already configured", file=sys.stderr)
     else:
         connect = input("  Connect to Dokploy? [Y/n]: ").strip().lower()
         if connect in ("n", "no"):
@@ -685,7 +693,7 @@ def main():
 
     if args.output:
         Path(args.output).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.output).write_text(report)
+        Path(args.output).write_text(report, encoding="utf-8")
         print(f"  📝 Report saved: {args.output}", file=sys.stderr)
     else:
         save_report(report, args.project, now)
