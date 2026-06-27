@@ -482,23 +482,27 @@ def print_report(m, proj_cfg, project_key, jira_data, gh_data, dok_data, days_ba
     L = []
 
     # Header
-    L.append(f"# 📊 DORA Metrics — {project_key} ({proj_cfg.get('name','?')})")
-    L.append(f"> {since.strftime('%Y-%m-%d')} → {now.strftime('%Y-%m-%d')} &nbsp;·&nbsp; {days_back} days")
+    L.append(f"# DORA Metrics — {project_key} ({proj_cfg.get('name','?')})")
+    L.append(f"**Period:** {since.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')} ({days_back} days)")
     L.append("")
 
-    # Metrics table
+    # Metrics table — no empty cells, PR cycle merged into Lead Time cell
+    lt_combined = lt_v
+    lt_band_combined = lt_t
+    if gh_data["pr_cycle_hours"]:
+        lt_combined = f"Jira: {lt_v} / PR: {pr_v}"
+        lt_band_combined = lt_t  # use Jira band as primary
+    deploy_sources = f"{m['jira_sprint_count']} sprints, {m['gh_deploy_count']} GH runs, {m['dok_deploy_count']} Dokploy"
+
     L.append("## Metrics")
     L.append("")
-    L.append("| # | Metric | Value | DORA Band | Target |")
-    L.append("|---|--------|-------|-----------|--------|")
-    deploy_note = f"_{m['jira_sprint_count']} sprints · {m['gh_deploy_count']} GH · {m['dok_deploy_count']} Dokploy_"
-    L.append(f"| 1 | **Deployment Frequency** | {df_v} | {df_t} | ≥7/wk (Elite) |")
-    L.append(f"| | {deploy_note} | | | |")
-    L.append(f"| 2 | **Lead Time (Jira cycle)** | {lt_v} | {lt_t} | <1h (Elite) |")
-    if gh_data["pr_cycle_hours"]:
-        L.append(f"| | **Lead Time (PR cycle)** | {pr_v} | {pr_t} | <1h (Elite) |")
-    L.append(f"| 3 | **Change Failure Rate** | {cfr_v} | {cfr_t} | ≤15% (Elite/High) |")
-    L.append(f"| 4 | **Mean Time to Restore** | {mttr_v} | {mttr_t} | <1h (Elite) |")
+    L.append("| Metric | Value | Band | Target |")
+    L.append("|--------|-------|------|--------|")
+    L.append(f"| Deployment Frequency | {df_v} | {df_t} | ≥7/wk (Elite) |")
+    L.append(f"| _Sources: {deploy_sources}_ | | | |")
+    L.append(f"| Lead Time | {lt_combined} | {lt_band_combined} | <1h (Elite) |")
+    L.append(f"| Change Failure Rate | {cfr_v} | {cfr_t} | ≤15% (Elite/High) |")
+    L.append(f"| Mean Time to Restore | {mttr_v} | {mttr_t} | <1h (Elite) |")
     L.append("")
 
     # Recommendations
@@ -506,22 +510,22 @@ def print_report(m, proj_cfg, project_key, jira_data, gh_data, dok_data, days_ba
     L.append("")
     has_rec = False
     if m["deploy_freq"] < 1:
-        L.append("- 🎯 **Deployment Frequency** is your biggest gap. Set up automated deploys on merge to main.")
+        L.append("- **Deployment Frequency** is your biggest gap. Set up automated deploys on merge to main.")
         has_rec = True
     if m["lead_time_jira"] < 7 and m["lead_time_jira"] > 0:
-        L.append("- ✅ **Lead Time** is solid — code moves fast through the system.")
+        L.append("- **Lead Time** is solid — code moves fast through the system.")
         has_rec = True
     if m["cfr"] == 0:
-        L.append("- ⚠️ **CFR** shows 0% — may undercount if production bugs aren't tracked as Jira Bugs.")
+        L.append("- **CFR** shows 0% — may undercount if production bugs aren't tracked as Jira Bugs.")
         has_rec = True
     elif m["cfr"] > 15:
-        L.append("- ⚠️ **CFR** above 15% — investigate quality pipeline gaps.")
+        L.append("- **CFR** above 15% — investigate quality pipeline gaps.")
         has_rec = True
     if m["mttr_samples"] == 0:
-        L.append("- ⚠️ **MTTR** has no data — track production incidents as Bugs with resolution dates.")
+        L.append("- **MTTR** has no data — track production incidents as Bugs with resolution dates.")
         has_rec = True
     if not has_rec:
-        L.append("_No specific recommendations — all metrics look healthy._")
+        L.append("All metrics look healthy.")
     L.append("")
 
     # Data sources
@@ -529,39 +533,51 @@ def print_report(m, proj_cfg, project_key, jira_data, gh_data, dok_data, days_ba
     L.append("")
 
     # GitHub
-    L.append(f"### 🐙 GitHub — `{gh_data.get('_repo') or 'not configured'}`")
+    L.append(f"### GitHub — {gh_data.get('_repo') or 'not configured'}")
     L.append("")
     if gh_data.get("commits") is not None:
-        L.append(f"- Commits: **{gh_data['commits']}**")
-    L.append(f"- PRs merged: **{len(gh_data['prs'])}**")
-    for p in gh_data["prs"]:
-        L.append(f"  - #{p['num']} — {p['title'][:60]} _{p['merged']} · {p['cycle_h']:.0f}h cycle_")
-    L.append(f"- Deploy workflow runs: **{gh_data['gh_deploy_count']}**")
-    for d in gh_data["gh_deploys"]:
-        L.append(f"  - {d['name']} — {d['date']}")
-    L.append("")
+        L.append(f"Commits: {gh_data['commits']}  |  PRs merged: {len(gh_data['prs'])}  |  Deploy runs: {gh_data['gh_deploy_count']}")
+        L.append("")
+    if gh_data["prs"]:
+        L.append("| PR | Title | Merged | Cycle |")
+        L.append("|----|-------|--------|-------|")
+        for p in gh_data["prs"]:
+            L.append(f"| #{p['num']} | {p['title'][:55]} | {p['merged']} | {p['cycle_h']:.0f}h |")
+        L.append("")
 
     # Dokploy
-    L.append(f"### 🚀 Dokploy — `{dok_data.get('_url') or 'not configured'}`")
+    L.append(f"### Dokploy — {dok_data.get('_url') or 'not configured'}")
     L.append("")
-    L.append(f"- Deployments: **{dok_data['deploy_count']}**")
-    for d in dok_data["deployments"]:
-        status_icon = "✅" if d["status"] == "done" else "❌"
-        title_str = f" — {d['title']}" if d.get("title") else ""
-        L.append(f"  - {status_icon} {d['date']}{title_str}")
-    L.append("")
+    if dok_data["deployments"]:
+        L.append("| Status | Date | Description |")
+        L.append("|--------|------|-------------|")
+        for d in dok_data["deployments"]:
+            status = "done" if d["status"] == "done" else d["status"]
+            title_str = d["title"] if d.get("title") else ""
+            L.append(f"| {status} | {d['date']} | {title_str} |")
+        L.append("")
+    else:
+        L.append("No deployments found.")
+        L.append("")
 
     # Jira
-    L.append(f"### 📋 Jira — board `{proj_cfg.get('jira_board','?')}` ")
+    L.append(f"### Jira — board {proj_cfg.get('jira_board','?')} ({since.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')})")
     L.append("")
-    L.append(f"- Sprint deployments: **{len(jira_data['sprints'])}**")
-    for s in jira_data["sprints"]:
-        L.append(f"  - {s['name']} _(ended {s['end'].strftime('%Y-%m-%d')})_")
-    L.append(f"- Total issues: **{jira_data['issues_total']}** · Completed: **{m['total_done']}**")
+    L.append(f"Total issues: {jira_data['issues_total']}  |  Completed: {m['total_done']}  |  Lead time samples: {m['lead_time_samples']}")
+    L.append("")
+    if jira_data["sprints"]:
+        L.append("**Closed sprints in period:**")
+        L.append("")
+        for s in jira_data["sprints"]:
+            L.append(f"- {s['name']} (ended {s['end'].strftime('%Y-%m-%d')})")
+        L.append("")
     if m["issue_type_done"]:
-        types_str = " · ".join(f"{t}: {c}" for t, c in sorted(m["issue_type_done"].items(), key=lambda x: -x[1]))
-        L.append(f"- Issue types done: {types_str}")
-    L.append(f"- Lead time samples: {m['lead_time_samples']} · Bugs: {m['bugs_any']} ({m['bugs_done']} resolved) · MTTR samples: {m['mttr_samples']}")
+        L.append("**Completed by type:**")
+        L.append("")
+        for t, c in sorted(m["issue_type_done"].items(), key=lambda x: -x[1]):
+            L.append(f"- {t}: {c}")
+        L.append("")
+    L.append(f"Bugs open: {m['bugs_any']}  |  Bugs resolved: {m['bugs_done']}  |  MTTR samples: {m['mttr_samples']}")
     L.append("")
 
     report = "\n".join(L)
