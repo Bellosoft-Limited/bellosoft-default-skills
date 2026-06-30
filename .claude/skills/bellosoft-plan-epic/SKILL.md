@@ -46,7 +46,7 @@ This step runs silently when re-running on an already-configured project.
 
 1. Read `docs/planning-artifacts/epics.md` — get the target epic definition
 2. Read `docs/planning-artifacts/status.md` — check current state of that epic
-3. Read `docs/planning-artifacts/prd-source.md` — for full context
+3. Read `docs/planning-artifacts/prd/index.md` or, if available, `docs/planning-artifacts/prd-source.md` — for full context
 4. Check `docs/planning-artifacts/codebase-audit.md` — staleness check before using
 
 If `docs/planning-artifacts/epics.md` doesn't exist:
@@ -235,9 +235,9 @@ Each task carries exactly one tag identifying its work domain:
 | `[BE]` | Everything backend: API endpoints, controllers, services, business logic, migrations, schema changes, middleware, DI config, .NET startup |
 | `[FE]` | Everything frontend: Vue components, views, composables, UI state (Pinia), responsive/mobile, PWA |
 | `[DEVOPS]` | Everything infrastructure: Docker, CI/CD, GitHub Actions, Nginx, Dokploy, env vars, secrets |
-| `[QA]` | One task per story — manual QA sign-off. NOT for writing tests (tests are written inside `[BE]`/`[FE]` tasks). The QA person verifies the full story end-to-end and marks it done. |
+| `[QA]` | One task per story when applicable — manual and human QA sign-off. NOT for writing tests (tests are written inside `[BE]`/`[FE]` tasks). The QA person verifies the full story end-to-end and marks it done. Not all stories need QA sign-off, as QA is only able to test things that are accessible from the client-side or from already implemented API endpoints  |
 
-**Test writing rule:** Unit, integration, and E2E tests are always included inside the `[BE]` or `[FE]` task that implements the feature — never as a separate `[QA]` task. The `[QA]` task is for human verification only.
+**Test writing rule:** Unit, integration, and E2E tests are always included inside the `[BE]` or `[FE]` task that implements the feature — never as a separate task.
 
 ### Gherkin test scenarios
 
