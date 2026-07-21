@@ -25,7 +25,7 @@ and PR creation with automatic tracker linking.
 Every command needs a `{ticket_id}`. Resolve in this order:
 
 1. **User provided** — e.g. `/bellosoft-github branch PROJ-42`
-2. **Current branch name** — parse `{type}/{ticket_id}-{slug}` pattern
+2. **Current branch name** — parse `{type}/{ticket_id}/{slug}` pattern
 3. **Tracker lookup** — read `docs/planning-artifacts/status.md` for `tracker:` then:
    - `tracker: jira` → `/bellosoft-jira get [key]`
    - `tracker: plane` → `/bellosoft-plane get [sequence_id]`
@@ -57,9 +57,9 @@ Infer from story title or issue type, or ask:
 ### Step 3 — Build branch name
 
 ```
-{type}/{ticket_id}-{slug}
-e.g. feature/PROJ-42-user-auth-jwt
-     fix/NOKEY-7-login-redirect-loop
+{type}/{ticket_id}/{slug}
+e.g. feature/PROJ-42/user-auth-jwt
+     fix/NOKEY-7/login-redirect-loop
      chore/refactor-payment-service    ← no tracker
 ```
 
@@ -101,7 +101,7 @@ Next: implement, then /bellosoft-github commit
 git branch --show-current
 ```
 
-Parse `{ticket_id}` from `{type}/{ticket_id}-*`. If no match → resolve via tracker (see top).
+Parse `{ticket_id}` from `{type}/{ticket_id}/*`. If no match → resolve via tracker (see top).
 
 ### Step 2 — Check for changes
 
@@ -126,7 +126,7 @@ Infer from changed files or ask:
 
 ### Step 4 — Compose message
 
-With ticket: `{type}({ticket_id}): {description}`
+With ticket: `#{ticket_id}: {description}`
 Without ticket: `{type}: {description}`
 
 Validate: total length ≤ 72 characters.
@@ -212,12 +212,12 @@ git push --set-upstream origin {branch_name}
 
 **With tracker:**
 ```
-[{ticket_id}] {story_title}
-e.g. [PROJ-42] User authentication with JWT
-     [NOKEY-7] Fix login redirect loop
+#{ticket_id}: {story_title}
+e.g. #PROJ-42: User authentication with JWT
+     #NOKEY-7: Fix login redirect loop
 ```
 
-The `[{ticket_id}]` bracket format activates automatic tracker state transitions:
+The `#{ticket_id}` format activates automatic tracker state transitions:
 - **Plane:** work item moves to Done when PR is merged (requires GitHub integration enabled in Plane)
 - **Jira:** smart commit trigger (requires Jira GitHub integration)
 
@@ -282,4 +282,4 @@ Next: /bellosoft-sync to update tracker to "In Review"
 - Never force-push without explicit user confirmation
 - Never bypass pre-commit hooks (`--no-verify`)
 - Never commit secrets — warn and halt if `.env` or `appsettings.*.json` appears in `git status`
-- Always use brackets `[ticket_id]` in PR titles when a tracker is configured
+- Always use the `#{ticket_id}` prefix in PR titles when a tracker is configured
