@@ -6,47 +6,55 @@ Supplementary reference loaded by the SKILL.md when needed.
 
 ## Branch naming examples
 
+Format: `{type}/{ticket_id}/{slug}` (slash-separated). No ticket → `{type}/{slug}`.
+
 | Scenario | Branch |
 |---|---|
-| Jira story, feature | `feature/PROJ-42-user-auth-jwt` |
-| Plane bug | `fix/NOKEY-7-login-redirect-loop` |
+| Jira story, feature | `feature/PROJ-42/user-auth-jwt` |
+| Plane bug | `fix/NOKEY-7/login-redirect-loop` |
 | No tracker, refactor | `chore/refactor-payment-service` |
-| Hotfix | `fix/PROJ-99-null-ref-on-checkout` |
+| Hotfix | `fix/PROJ-99/null-ref-on-checkout` |
 
 ---
 
 ## Commit message examples
 
+With ticket: `#{ticket_id}: {description}`. Without ticket: `{type}: {description}`. Total length ≤ 72 chars.
+
 | Type | Message |
 |---|---|
-| Jira feature | `feat(PROJ-42): add JWT authentication middleware` |
-| Plane fix | `fix(NOKEY-7): resolve redirect loop on login` |
+| Jira feature | `#PROJ-42: add JWT authentication middleware` |
+| Plane fix | `#NOKEY-7: resolve redirect loop on login` |
 | No tracker | `chore: upgrade dotnet to 9.0.5` |
-| Test | `test(PROJ-42): add unit tests for auth service` |
+| Test, no tracker | `test: add unit tests for auth service` |
 
 ---
 
 ## PR title examples
 
+With tracker: `#{ticket_id}: {story_title}`. Without tracker: `{type}: {description}`.
+
 | Tracker | Title |
 |---|---|
-| Jira | `[PROJ-42] User authentication with JWT` |
-| Plane | `[NOKEY-7] Fix login redirect loop` |
+| Jira | `#PROJ-42: User authentication with JWT` |
+| Plane | `#NOKEY-7: Fix login redirect loop` |
 | None | `feat: add payment processing module` |
+
+The `#{ticket_id}` prefix (not brackets) is what activates automatic tracker state transitions.
 
 ---
 
 ## Tracker state automation
 
+Both trackers are triggered by the `#{ticket_id}` format in the PR title.
+
 ### Plane
 Requires GitHub integration enabled in Plane project settings.
-PR title must contain `[IDENTIFIER-N]` with brackets.
-On PR merge → Plane moves work item to the state mapped to "merged" in project settings.
+On PR merge → Plane moves the work item to **Done**.
 
 ### Jira
-Requires Jira GitHub app or smart commits enabled.
-Bracket format `[PROJ-42]` in PR title links the PR to the issue.
-Transition via smart commit: include `#done` or `#in-review` in commit message if configured.
+Requires the Jira GitHub integration (smart commits) enabled.
+The `#PROJ-42` reference in the PR title links the PR to the issue and drives the transition.
 
 ---
 
@@ -61,11 +69,17 @@ Never assume `master` — check first.
 
 ---
 
-## Delegating tracker lookups
+## Ticket ID resolution
 
-This skill never calls Plane or Jira MCP tools directly.
+Resolve `{ticket_id}` in this order (see SKILL.md for full detail):
 
-- Plane: delegate to `/bellosoft-plane get {sequence_id}`
-- Jira: delegate to `/bellosoft-jira get {issue_key}`
+1. **User provided** — e.g. `/bellosoft-github branch PROJ-42`
+2. **Current branch name** — parse the `{type}/{ticket_id}/{slug}` pattern
+3. **Tracker lookup** — read `docs/planning-artifacts/status.md` for `tracker:`, then delegate:
+   - `tracker: jira` → `/bellosoft-jira get [key]`
+   - `tracker: plane` → `/bellosoft-plane get [sequence_id]`
+4. **No tracker** — omit the ticket from branch/commit (slug only, no ticket scope).
 
-Both return a structured story object with `title`, `status`, `acceptance_criteria`.
+This skill never calls Plane or Jira MCP tools directly — it always delegates to
+`/bellosoft-jira get` or `/bellosoft-plane get`, which return a structured story
+object with `title`, `status`, and `acceptance_criteria`.
