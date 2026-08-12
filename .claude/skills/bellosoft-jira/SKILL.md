@@ -392,6 +392,8 @@ description: string (plain text — skill converts to ADF)
 epic_number: string (e.g. "E1")
 ```
 
+**Never summarize any title, description, AC nor test scenario, every text on the planning documents matter.**
+
 **Execution:**
 
 Load `docs/planning-artifacts/jira-profile.md`. Build ADF description:
@@ -445,6 +447,8 @@ priority: "Highest" | "High" | "Medium" | "Low" | "Lowest"
 assignee_id: string (optional — account_id)
 labels: string[] (optional)
 ```
+
+**Never summarize any title, description, AC nor test scenario, every text on the planning documents matter.**
 
 **Execution:**
 
@@ -517,8 +521,10 @@ area_tag: string             (BE | FE | DEVOPS | QA)
 labels: string[]             (optional)
 ```
 
-**Title rule:** Keep `title` short — it is the Jira summary field shown in board/list views.
+**Title rule:** Keep `title` short, but at the same time never summarize it from the specification document — it is the Jira summary field shown in board/list views.
 Move all specifics (file paths, method names, field lists) to `implementation_notes`.
+
+**Never summarize any title, description, AC nor test scenario, every text on the planning documents matter.**
 
 | ❌ Too long (don't do this) | ✅ Correct |
 |---|---|
@@ -775,6 +781,7 @@ Upsert every epic and story from `docs/planning-artifacts/epics.md` → Jira.
 - Updates summary/description if changed in epics.md
 - Never changes status, assignees, labels, or priority on existing items
 - Never deletes
+- Never summarize any title, description, AC nor test scenario, every text on the planning documents matter.
 
 **Steps:**
 1. Read `docs/planning-artifacts/epics.md` — extract all epics and stories
@@ -879,3 +886,4 @@ When both Jira and Plane may be configured:
 - Never delete issues or epics
 - Never transition to Done without explicit ✅ READY signal
 - Store sprint IDs (integers) not sprint names in sprint field
+- Never summarize any title, description, AC nor test scenario, every text on the planning documents matter.
