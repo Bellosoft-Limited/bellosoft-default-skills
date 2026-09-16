@@ -1,0 +1,13 @@
+{
+  "name": "bellosoft-default-skills",
+  "owner": {
+    "name": "Bellosoft",
+    "url": "https://github.com/Bellosoft-Limited"
+  },
+  "plugins": [
+    {
+      "name": "bellosoft-default-skills",
+      "source": "./"
+    }
+  ]
+}
