@@ -4,6 +4,9 @@
     "name": "Bellosoft",
     "url": "https://github.com/Bellosoft-Limited"
   },
+  "metadata": {
+    "description": "Bellosoft's shared Claude Code plugin marketplace: delivery workflow, tracker integrations, and design/UI skills used across Bellosoft projects."
+  },
   "plugins": [
     {
       "name": "bellosoft-default-skills",

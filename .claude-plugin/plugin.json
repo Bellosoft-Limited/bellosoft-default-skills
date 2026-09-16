@@ -21,33 +21,6 @@
     "ui"
   ],
   "skills": [
-    "./.claude/skills/banner-design/SKILL.md",
-    "./.claude/skills/bellosoft-audit-codebase/SKILL.md",
-    "./.claude/skills/bellosoft-dev-execute/SKILL.md",
-    "./.claude/skills/bellosoft-dev-plan/SKILL.md",
-    "./.claude/skills/bellosoft-dev-review/SKILL.md",
-    "./.claude/skills/bellosoft-dora/SKILL.md",
-    "./.claude/skills/bellosoft-github/SKILL.md",
-    "./.claude/skills/bellosoft-jira/SKILL.md",
-    "./.claude/skills/bellosoft-openproject/SKILL.md",
-    "./.claude/skills/bellosoft-plan-adhoc/SKILL.md",
-    "./.claude/skills/bellosoft-plan-epic/SKILL.md",
-    "./.claude/skills/bellosoft-plan-epics/SKILL.md",
-    "./.claude/skills/bellosoft-plane/SKILL.md",
-    "./.claude/skills/bellosoft-prd/SKILL.md",
-    "./.claude/skills/bellosoft-sprint/SKILL.md",
-    "./.claude/skills/bellosoft-sync/SKILL.md",
-    "./.claude/skills/brand/SKILL.md",
-    "./.claude/skills/design/SKILL.md",
-    "./.claude/skills/design-system/SKILL.md",
-    "./.claude/skills/frontend-design/SKILL.md",
-    "./.claude/skills/impeccable/SKILL.md",
-    "./.claude/skills/microsoft-docs/SKILL.md",
-    "./.claude/skills/ogilvy/SKILL.md",
-    "./.claude/skills/seo-geo/SKILL.md",
-    "./.claude/skills/slides/SKILL.md",
-    "./.claude/skills/test-driven-development/SKILL.md",
-    "./.claude/skills/ui-styling/SKILL.md",
-    "./.claude/skills/ui-ux-pro-max/SKILL.md"
+    "./.claude/skills"
   ]
 }
