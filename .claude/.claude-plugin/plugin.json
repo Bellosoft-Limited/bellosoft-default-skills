@@ -21,6 +21,6 @@
     "ui"
   ],
   "skills": [
-    "./.claude/skills"
+    "./skills"
   ]
 }
