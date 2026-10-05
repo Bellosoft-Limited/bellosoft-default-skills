@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bellosoft document — English template</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;0,600;1,200;1,400&display=swap">
+<style>
+:root{
+  --ink-900:#14191C; --ink-700:#31383D; --slate-400:#889FAC; --slate-900:#1F2C34;
+  --stone-400:#A9ABAE; --paper-000:#FFFFFF; --paper-100:#F7F7F7; --paper-200:#ECECEC;
+  --border-default:#DCDDDE; --font-sans:'Montserrat', system-ui, sans-serif;
+}
+body{margin:0;font-family:var(--font-sans);color:var(--ink-700);-webkit-font-smoothing:antialiased}
+doc-page:not(:defined){visibility:hidden}
+doc-page a{color:var(--ink-900);text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--slate-400)}
+doc-page a:hover{color:var(--slate-900);text-decoration-color:var(--slate-900)}
+</style>
+<script>
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+// Copied omelette starter. Re-running copy_starter_component with this kind overwrites this file with the latest version (page content is unaffected).
+/* BEGIN USAGE */
+/**
+ * <doc-page> — paged-document shell for printable HTML.
+ *
+ * FIRST, decide how the document paginates — up front, before building:
+ *
+ * - FLOWING document (the default): write the whole document as one
+ *   normal HTML flow inside <doc-page>; the browser's print engine
+ *   splits it onto pages at export. Use for long-form documents with a
+ *   single text flow: reports, memos, letters, essays.
+ * - EXPLICIT pagination: a fixed set of pre-paginated pages, one
+ *   <section class="page"> child per page. Use when the user asks for a
+ *   specific page count, or the design implies one: a one-page resume, a
+ *   two-sided flier, a poster, a certificate, a brochure — any richly
+ *   laid-out document without a single text flow.
+ * - If in doubt, ask the user as part of the build.
+ *
+ * PAGE SIZING — paper differs by country (letter vs A4), so the printed
+ * sheet is not one fixed truth:
+ * - FLOWING documents pin NO paper size: the print engine paginates
+ *   onto the user's real paper, and the content reflows to it.
+ * - EXPLICITLY PAGINATED documents print each page at a FIXED page box
+ *   with overflow hidden — letter by default, size="a4" for a clearly
+ *   metric user, the user's chosen paper when they export. Design each
+ *   page to FILL that box, fitting letter and A4 alike without overlap.
+ * - width/height pin an explicit fixed size, ONLY when the user gives
+ *   one.
+ * Never write your own @page rule or hard-code paper dimensions in the
+ * content.
+ *
+ * Sizing modes (attributes):
+ *   (none)                      — portrait: flowing docs use the user's
+ *           paper; explicitly paginated pages use the named size box
+ *           (letter unless size="a4")
+ *   orientation="landscape"     — the same, landscape
+ *   width / height              — explicit fixed size, ONLY when the user
+ *           gives one (e.g. width="22in" height="30in" for a 22×30
+ *           poster): the page IS the design's size, printed at true
+ *           dimensions (or scaled onto the user's paper at print time).
+ *           Any absolute CSS length: px/in/mm/cm/pt/pc.
+ * The component announces the chosen mode to the host app at runtime (a
+ * meta tag it injects), so the print path can inject the user's true
+ * paper size.
+ *
+ * On screen the document renders on a desk background: a flowing
+ * document as one tall scrolling sheet (Google Docs' pageless view);
+ * explicitly paginated documents as one card per page.
+ *
+ * EXPLICIT pagination usage:
+ *   <style>doc-page:not(:defined){visibility:hidden}</style>
+ *   <doc-page>
+ *     <section class="page" id="p1">…one page's design…</section>
+ *     <section class="page" id="p2">…</section>
+ *   </doc-page>
+ *   <script src="doc-page.js"><\/script>
+ * How the page box works, concretely: each .page prints as ONE full-bleed
+ * sheet at a FIXED physical size — letter by default (set size="a4" for
+ * a clearly metric user), the user's chosen paper when they export —
+ * with overflow hidden. Nothing scrolls and nothing reflows onto a next
+ * sheet: content that misses the box is CLIPPED. Design each page to
+ * FILL that page box, and to fit it — letter and A4 alike — without
+ * overlap. Each page is a size container; don't size anything in
+ * viewport units (they track the window, not the page), and never set
+ * width or height on the .page section itself (the component sizes the
+ * page box; an authored height like 100% is meaningless at print and is
+ * overridden). The component owns the page box, the screen card chrome,
+ * and the page breaks (never add your own break-before/after). Don't mix
+ * .page sections with flowing content or header/footer slots in the same
+ * document.
+ *
+ * FLOWING usage:
+ *   <style>doc-page:not(:defined){visibility:hidden}</style>
+ *   <doc-page margin="0.75in">
+ *     <h1>Title</h1>
+ *     <p>…body…</p>
+ *   </doc-page>
+ *   <script src="doc-page.js"><\/script>
+ * There is no manual page-splitting — the browser's print engine
+ * paginates at export. Standard break-hygiene rules (`break-inside:
+ * avoid` on figures, code blocks, images and table rows; `orphans/
+ * widows: 3`) are applied so paragraphs and groups split cleanly. On
+ * screen and at print, headings default to `text-wrap: balance` and
+ * body text to `text-wrap: pretty`; the defaults have zero specificity,
+ * so any text-wrap you declare wins.
+ *
+ * Other attributes:
+ *   size    — letter | a4 | legal (default letter). Flowing documents:
+ *           preview proportion only — it does NOT pin their printed
+ *           paper (the print dialog's paper governs); leave it alone
+ *           there. Explicitly paginated documents: it sets the page box
+ *           the cards and the pinned @page share (the export dialog's
+ *           choice overrides both at print) — set size="a4" for a
+ *           clearly metric user. Scaled-fit: names the sheet the fit is
+ *           computed against, same a4-for-metric-users advice.
+ *   content-width / content-height — the design's own fixed dimensions
+ *           (CSS lengths), for scaling a fixed-size design ONTO the
+ *           named sheet: content lays out at exactly this size, and the
+ *           component scales it to fit that sheet's printable area
+ *           (centered horizontally, top-aligned; the export dialog
+ *           re-fits to the user's actual paper choice where available).
+ *           Both must be set; they do not change the page box. For pages
+ *           WITHOUT running header/footer slots.
+ *   margin  — printable inset on every page of a FLOWING document
+ *           (default 0.75in); margin="0" makes pages full-bleed.
+ *           Explicitly paginated pages are always full-bleed.
+ *
+ * Running header/footer (flowing documents only): give an element
+ * `slot="header"` or `slot="footer"` and it repeats on every printed
+ * page via `position: fixed`. To keep body text from sliding under it,
+ * the component prints inside a single-cell table whose <thead>/<tfoot>
+ * are spacers sized to the header/footer height — browsers repeat
+ * thead/tfoot on every page, so each sheet's content starts below the
+ * header and ends above the footer. On screen the header/footer render
+ * once at the top/bottom of the sheet.
+ *
+ * At print the component injects `@page { margin: 0 }` (which leaves
+ * Chrome no margin box to draw its date/URL/page-count header in) and
+ * moves the visual margin onto the sheet's own padding. It also marks
+ * the document as owning its print CSS (a
+ * `meta[name="omelette-owns-print"]` it injects at runtime), so the
+ * PDF export never injects page-geometry CSS of its own on top.
+ *
+ * Print best practices for the content you author:
+ * - Multi-column text: use CSS columns (`column-count` +
+ *   `column-gap`), never side-by-side flex/grid columns — only real
+ *   CSS columns flow and break across pages. `column-span: all` lets
+ *   a heading span the columns; `hyphens: auto` (needs `lang` on
+ *   the html element) keeps narrow columns readable.
+ * - Page breaks in flowing documents: `break-before: page` on an
+ *   element that must start a new page (a chapter, an appendix). Add
+ *   your own kept-together blocks (callouts, stat tiles, cards) to a
+ *   `break-inside: avoid` rule, and keep each one shorter than a page.
+ * - Extend `orphans: 3; widows: 3` to any custom text blocks you add
+ *   (p and li are covered by default).
+ * - Give long tables a <thead> — browsers repeat it on every printed
+ *   page.
+ * - No `position: fixed`/`sticky` and no viewport units in content:
+ *   fixed elements stamp every printed page (running headers/footers go
+ *   in the component's slots) and `100vh` mis-sizes at print.
+ *
+ * Author content as static HTML so the user can click-to-edit any text
+ * directly. Do not set width/padding/background on the document body —
+ * the component owns the sheet box.
+ */
+/* END USAGE */
+
+(() => {
+  const PAPER = {
+    letter: ['8.5in', '11in'],
+    a4: ['210mm', '297mm'],
+    legal: ['8.5in', '14in'],
+  };
+  const CSS_LENGTH = /^\d+(\.\d+)?(px|in|mm|cm|pt|pc)$/;
+  // Unitless "0" is a valid CSS length and the natural way to write
+  // margin="0"; normalise it to 0px so max()/calc() (which reject a bare
+  // number) keep working.
+  const safeLen = (v, fb) => {
+    v = (v || '').trim();
+    return v === '0' ? '0px' : CSS_LENGTH.test(v) ? v : fb;
+  };
+  // WebKit (Safari and every iOS browser shell) never repeats a table's
+  // thead/tfoot on printed pages (WebKit bug 17205), so the spacer-borne
+  // vertical margins of a FLOWING document reach only the first page
+  // there. Engine check, not browser check: vendor is 'Apple Computer,
+  // Inc.' exactly for WebKit and 'Google Inc.' for Blink.
+  const WK_PRINT = /apple/i.test(navigator.vendor || '');
+  // CSS length → px number (CSS absolute units are exact: 1in = 96px).
+  // Returns NaN for anything safeLen would reject — callers gate on it.
+  const PX_PER = { px: 1, in: 96, mm: 96 / 25.4, cm: 96 / 2.54, pt: 96 / 72, pc: 16 };
+  const toPx = (v) => {
+    const m = /^(\d+(?:\.\d+)?)(px|in|mm|cm|pt|pc)$/.exec((v || '').trim());
+    return m ? parseFloat(m[1]) * PX_PER[m[2]] : NaN;
+  };
+
+  const stylesheet = `
+    :host {
+      position: relative;
+      display: block;
+      /* When the viewport is narrower than the page, grow to wrap the
+       * sheet (plus this padding) instead of staying viewport-width, so
+       * the desk background and right margin reach the sheet's far edge
+       * in the horizontal scroll. */
+      min-width: max-content;
+      min-height: 100vh;
+      background: #f5f5f4;
+      padding: 48px 24px;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      --doc-page-w: 8.5in;
+      --doc-page-h: 11in;
+      --doc-page-margin: 0.75in;
+      --doc-hdr-h: 0px;
+      --doc-ftr-h: 0px;
+      --doc-hdr-pad: 0px;
+      --doc-ftr-pad: 0px;
+    }
+    .sheet {
+      width: var(--doc-page-w);
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(20, 20, 19, 0.12);
+      border-radius: 7px;
+      box-sizing: border-box;
+      padding: var(--doc-page-margin);
+    }
+    .frame { width: 100%; border-collapse: collapse; }
+    /* Scaled-fit mode (content-width/content-height): the inner .fit box
+     * lays the content out at its authored fixed size and scales it onto
+     * the printable area; .fit-box reserves the scaled footprint in flow
+     * (transforms don't affect layout) and centers it. Without the mode,
+     * both divs are unstyled block pass-throughs. */
+    /* Explicit pagination: direct .page children are the pages. The sheet
+     * becomes a transparent stack and each page carries the card look on
+     * screen; at print each page is exactly one full-bleed sheet. The
+     * ::slotted defaults are deliberately weak (document CSS wins), so
+     * authored page styling can override any of this. */
+    .sheet.paginated {
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+      padding: 0;
+    }
+    .paginated ::slotted(.page) {
+      position: relative;
+      display: block;
+      width: 100%;
+      aspect-ratio: var(--doc-page-ar);
+      container-type: size;
+      overflow: hidden;
+      box-sizing: border-box;
+      background: #fff;
+      border-radius: 7px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+      break-inside: avoid;
+    }
+    .paginated ::slotted(.page:not(:first-child)) { margin-top: 1rem; }
+    @media print {
+      .sheet.paginated { padding: 0; }
+      /* The flowing-document vertical inset lives on the repeating
+       * thead/tfoot spacers, not the sheet padding — they must go too,
+       * or each full-sheet .page is pushed ~margin down and spills onto
+       * a second sheet. Paginated pages are full-bleed by definition
+       * (content owns its insets). */
+      .sheet.paginated .hdr-space,
+      .sheet.paginated .ftr-space { height: 0; }
+      .paginated ::slotted(.page) {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        /* Physical page-box sizing, no viewport units: Safari resolves
+         * 100vh against the window, not the page box, so a vh-sized card
+         * paginates wrong there. --doc-page-w/h are the named size by
+         * default and are overridden to the user's chosen paper by the
+         * export path, so every card is exactly one sheet either way.
+         * Width + height (same source values as @page size) rather than
+         * width + aspect-ratio: the ratio is a 6-decimal rounding of the
+         * same division, and a few millionths of overflow would spill a
+         * blank sheet after every page. The screen-only aspect-ratio
+         * (preview proportions) must not leak into print. cqh typography
+         * tracks the same box.
+         *
+         * Every declaration is !important: per CSS Scoping, unimportant
+         * shadow ::slotted rules LOSE to the document context, so a page
+         * section's authored inline style would silently beat this print
+         * geometry. A model-authored height:100% did exactly that — the
+         * percentage resolves as auto in the all-auto print ancestry, the
+         * base rule's size containment turns auto into ZERO, and
+         * overflow:hidden then paints nothing: a blank PDF with perfect
+         * page boxes. At print the component's geometry is the design's
+         * whole contract, so it must win over any authored sizing. */
+        aspect-ratio: auto !important;
+        width: var(--doc-page-w) !important;
+        height: var(--doc-page-h) !important;
+        overflow: hidden !important;
+      }
+      .paginated ::slotted(.page:not(:first-child)) {
+        break-before: page !important;
+        margin-top: 0 !important;
+      }
+    }
+    .fit-mode .fit-box {
+      width: calc(var(--doc-fit-w) * var(--doc-fit-scale));
+      height: calc(var(--doc-fit-h) * var(--doc-fit-scale));
+      margin: 0 auto;
+      break-inside: avoid;
+    }
+    .fit-mode .fit {
+      width: var(--doc-fit-w);
+      height: var(--doc-fit-h);
+      transform: scale(var(--doc-fit-scale));
+      transform-origin: top left;
+    }
+    .frame td, .frame th { padding: 0; text-align: left; font-weight: inherit; }
+    .hdr-space { height: var(--doc-hdr-h); }
+    .ftr-space { height: var(--doc-ftr-h); }
+    ::slotted([slot="header"]),
+    ::slotted([slot="footer"]) { display: block; box-sizing: border-box; }
+    @media print {
+      :host { background: none; padding: 0; min-width: 0; min-height: 0; }
+      .sheet {
+        width: auto; margin: 0; box-shadow: none; border-radius: 0;
+        padding: 0 var(--doc-page-margin);
+      }
+      /* The thead/tfoot spacers repeat on every page, so they carry the
+       * vertical page margin (which the sheet's own padding cannot, since
+       * that padding is consumed once on the first/last page). The running
+       * header/footer are fixed inside that band. */
+      /* The 0.35in is breathing room between a running header/footer and
+       * the body; without one the spacer is exactly the page margin, so a
+       * margin="0" full-bleed document gets truly full-bleed pages. */
+      .hdr-space { height: max(var(--doc-page-margin), calc(var(--doc-hdr-h) + var(--doc-hdr-pad))); }
+      .ftr-space { height: max(var(--doc-page-margin), calc(var(--doc-ftr-h) + var(--doc-ftr-pad))); }
+      /* WebKit flowing documents: @page carries the vertical margin (see
+       * _syncPrintPageRule), so the spacers keep only whatever a running
+       * header/footer needs BEYOND it — page 1 would otherwise double its
+       * top inset. Paginated sheets already zero their spacers above. */
+      .sheet.wk-print:not(.paginated) .hdr-space { height: max(0px, calc(max(var(--doc-page-margin), calc(var(--doc-hdr-h) + var(--doc-hdr-pad))) - var(--doc-page-margin))); }
+      .sheet.wk-print:not(.paginated) .ftr-space { height: max(0px, calc(max(var(--doc-page-margin), calc(var(--doc-ftr-h) + var(--doc-ftr-pad))) - var(--doc-page-margin))); }
+      ::slotted([slot="header"]) {
+        position: fixed; top: 0; left: 0; right: 0; margin: 0;
+        padding: calc(var(--doc-page-margin) * 0.45) var(--doc-page-margin) 0;
+      }
+      ::slotted([slot="footer"]) {
+        position: fixed; bottom: 0; left: 0; right: 0; margin: 0;
+        padding: 0 var(--doc-page-margin) calc(var(--doc-page-margin) * 0.45);
+      }
+    }
+  `;
+
+  class DocPage extends HTMLElement {
+    static get observedAttributes() {
+      return ['size', 'width', 'height', 'margin', 'orientation', 'content-width', 'content-height'];
+    }
+
+    constructor() {
+      super();
+      this._root = this.attachShadow({ mode: 'open' });
+      this._mo = typeof MutationObserver === 'function'
+        ? new MutationObserver(() => this._scheduleMeasure())
+        : null;
+    }
+
+    /** The named paper's [w, h], swapped when orientation="landscape".
+     *  Only the named size swaps — explicit width/height are exact values
+     *  the author already oriented. */
+    _paperSize() {
+      const named = PAPER[(this.getAttribute('size') || '').toLowerCase()] || PAPER.letter;
+      const landscape =
+        (this.getAttribute('orientation') || '').trim().toLowerCase() === 'landscape';
+      return landscape ? [named[1], named[0]] : named;
+    }
+    get pageWidth() {
+      return safeLen(this.getAttribute('width'), this._paperSize()[0]);
+    }
+    get pageHeight() {
+      return safeLen(this.getAttribute('height'), this._paperSize()[1]);
+    }
+    get pageMargin() { return safeLen(this.getAttribute('margin'), '0.75in'); }
+
+    /** Scaled-fit mode's content box [w, h] as CSS lengths, or null when
+     *  the mode is off (either attribute missing/invalid/zero — a partial
+     *  declaration falls back to normal flow rather than guessing). */
+    _contentFit() {
+      const w = safeLen(this.getAttribute('content-width'), null);
+      const h = safeLen(this.getAttribute('content-height'), null);
+      if (!w || !h) return null;
+      const wPx = toPx(w), hPx = toPx(h);
+      return wPx > 0 && hPx > 0 ? [w, h, wPx, hPx] : null;
+    }
+
+    connectedCallback() {
+      if (!this._sheet) this._render();
+      this._syncSize();
+      this._syncPrintPageRule();
+      this._ensureTextWrapDefaults();
+      this._ensureOwnsPrintMeta();
+      this._syncFixedSizeMeta();
+      this._syncPrintSizingMeta();
+      if (this._mo) this._mo.observe(this, {
+        subtree: true, childList: true, characterData: true, attributes: true,
+      });
+      this._onResize = () => this._scheduleMeasure();
+      window.addEventListener('resize', this._onResize);
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => this._scheduleMeasure());
+      }
+      this._scheduleMeasure();
+    }
+
+    disconnectedCallback() {
+      window.removeEventListener('resize', this._onResize);
+      if (this._mo) this._mo.disconnect();
+      if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+      // Drop the head rules when the last doc-page leaves, so a deleted
+      // document's @page geometry and text-wrap defaults can't apply to
+      // whatever replaces it.
+      const survivor = document.querySelector('doc-page');
+      if (!survivor) {
+        ['doc-page-print', 'doc-page-text-wrap', 'doc-page-owns-print', 'doc-page-fixed-size', 'doc-page-print-sizing'].forEach((id) => {
+          const tag = document.getElementById(id);
+          if (tag) tag.remove();
+        });
+        // A live deck-stage deferred its own print-sizing meta to ours —
+        // hand the page-global meta over so the deck isn't left unmarked.
+        const deck = document.querySelector('deck-stage');
+        if (deck && typeof deck._ensurePrintSizingMeta === 'function') {
+          deck._ensurePrintSizingMeta();
+        }
+      } else {
+        // A departed owner hands each page-global meta to whatever
+        // doc-page remains (or it's removed).
+        if (typeof survivor._syncFixedSizeMeta === 'function') {
+          survivor._syncFixedSizeMeta();
+        }
+        if (typeof survivor._syncPrintSizingMeta === 'function') {
+          survivor._syncPrintSizingMeta();
+        }
+      }
+    }
+
+    attributeChangedCallback() {
+      if (!this._sheet) return;
+      this._syncSize();
+      this._syncPrintPageRule();
+      this._syncFixedSizeMeta();
+      this._syncPrintSizingMeta();
+      this._scheduleMeasure();
+    }
+
+    _render() {
+      this._root.innerHTML = `
+        <style>${stylesheet}</style>
+        <style id="vars"></style>
+        <div class="sheet" data-screen-label="Document">
+          <table class="frame" role="presentation">
+            <thead><tr><th><div class="hdr-space"><slot name="header"></slot></div></th></tr></thead>
+            <tbody><tr><td class="body"><div class="fit-box"><div class="fit"><slot></slot></div></div></td></tr></tbody>
+            <tfoot><tr><td><div class="ftr-space"><slot name="footer"></slot></div></td></tr></tfoot>
+          </table>
+        </div>`;
+      this._sheet = this._root.querySelector('.sheet');
+      this._vars = this._root.getElementById('vars');
+    }
+
+    /** Runtime sizing lives in a shadow <style> :host rule, never on the
+     *  light-DOM host element, so serialize-persist can't write it back. */
+    _syncSize(hdrH, ftrH) {
+      // Scaled-fit mode: content at its authored size, scaled onto the
+      // printable area (page minus margins on both axes). The factor is a
+      // plain number var so calc(length * number) stays valid; 4 decimals
+      // keeps the shadow style stable across re-measures. Upscaling is
+      // allowed — print transforms are vector, so text and CSS stay crisp
+      // (raster images soften, which the catalog bullet warns about).
+      const fit = this._contentFit();
+      let fitVars = '';
+      if (fit) {
+        const marginPx = toPx(this.pageMargin) || 0;
+        const availW = toPx(this.pageWidth) - 2 * marginPx;
+        const availH = toPx(this.pageHeight) - 2 * marginPx;
+        const scale = Math.min(availW / fit[2], availH / fit[3]);
+        if (scale > 0 && Number.isFinite(scale)) {
+          fitVars =
+            '--doc-fit-w:' + fit[0] + ';' +
+            '--doc-fit-h:' + fit[1] + ';' +
+            '--doc-fit-scale:' + scale.toFixed(4) + ';';
+        }
+      }
+      this._sheet.classList.toggle('fit-mode', !!fitVars);
+      // Numeric w/h ratio for the paginated page cards' aspect-ratio —
+      // aspect-ratio takes a number, not a length ratio, so compute it
+      // here (CSS length division isn't portable). 6 decimals keeps the
+      // shadow style stable across re-syncs.
+      const arW = toPx(this.pageWidth);
+      const arH = toPx(this.pageHeight);
+      const ar = arW > 0 && arH > 0 ? (arW / arH).toFixed(6) : '0.772727';
+      this._vars.textContent = ':host{' +
+        fitVars +
+        '--doc-page-ar:' + ar + ';' +
+        '--doc-page-w:' + this.pageWidth + ';' +
+        '--doc-page-h:' + this.pageHeight + ';' +
+        '--doc-page-margin:' + this.pageMargin + ';' +
+        '--doc-hdr-h:' + (hdrH || 0) + 'px;' +
+        '--doc-ftr-h:' + (ftrH || 0) + 'px;' +
+        '--doc-hdr-pad:' + (hdrH ? '0.35in' : '0px') + ';' +
+        '--doc-ftr-pad:' + (ftrH ? '0.35in' : '0px') + '}';
+    }
+
+    /** @page is a no-op inside shadow DOM, so the rule lives in <head>.
+     *  Re-appended on every sync so it stays last in source order — the
+     *  @page cascade is source-order per descriptor, so this rule wins
+     *  over any other @page rule in the document.
+     *
+     *  The @page SIZE is pinned where the page box IS part of the design:
+     *  explicit-fixed-size mode (width + height authored), scaled-fit
+     *  mode (the named sheet the fit targets), and explicit pagination
+     *  (the named size the cards share — so card and sheet agree on
+     *  every print path, and the export path's chosen paper overrides
+     *  BOTH with one later rule). For FLOWING documents no paper size is
+     *  emitted at all — the true size comes from the user's preference,
+     *  injected by the export path or chosen in the print dialog — so a
+     *  flowing document never fights the paper it lands on.
+     *  margin: 0 is emitted in every mode: it leaves Chrome no margin box
+     *  to draw its date/URL/page-count header in, and the visual margin
+     *  lives on the sheet's own padding. */
+    _syncPrintPageRule() {
+      const id = 'doc-page-print';
+      let tag = document.getElementById(id);
+      if (!tag) {
+        tag = document.createElement('style');
+        tag.id = id;
+      }
+      document.head.appendChild(tag);
+      // Three print-geometry regimes:
+      // - true-size: the page IS the design — pin its exact size.
+      // - scaled-fit (content-width/height): the fit factor is computed
+      //   against the NAMED paper's printable area, so that paper must
+      //   stay pinned or the scaled content overflows a smaller sheet
+      //   (the export path re-fits and re-pins at print time on top).
+      // - default modes: no paper size — but landscape still needs the
+      //   paper-agnostic 'size: landscape' keyword, because the size
+      //   descriptor is what carries orientation; without it a landscape
+      //   document prints portrait whenever nothing injects a size.
+      const landscape =
+        (this.getAttribute('orientation') || '').trim().toLowerCase() ===
+        'landscape';
+      // Explicit pagination pins the page box to the SAME values that
+      // size the cards (the named size by default, the export path's
+      // chosen paper when its later rule overrides both) — card and
+      // sheet agree on every print path, and a mismatched real paper
+      // shrinks-to-fit in the dialog instead of clipping a Letter card
+      // on A4. Declared before the paginated read below so both derive
+      // from one check.
+      const paginatedNow = this.querySelector(':scope > .page') !== null;
+      const sizeDescriptor = this._trueSizePx()
+        ? 'size: ' + this.pageWidth + ' ' + this.pageHeight + '; '
+        : this._contentFit()
+          ? 'size: ' + this.pageWidth + ' ' + this.pageHeight + '; '
+          : paginatedNow
+            ? 'size: ' + this.pageWidth + ' ' + this.pageHeight + '; '
+            : landscape
+              ? 'size: landscape; '
+              : '';
+      // WebKit never repeats the thead/tfoot spacers that carry a flowing
+      // document's vertical page margins (see WK_PRINT above), so pages
+      // after the first print edge-to-edge there. Carry the VERTICAL
+      // margins on @page for WebKit instead, and the shadow print CSS
+      // trims the first-page spacers by the same amount (.sheet.wk-print
+      // rules). Horizontal inset stays on the sheet's own padding in
+      // every engine. Blink keeps margin: 0 (a nonzero margin there
+      // re-opens the box Chrome draws its header furniture in). One cost,
+      // learned in testing: Safari's own date/URL headers are a USER
+      // dialog setting ("Print headers and footers") that renders in the
+      // margin area when room exists — margin: 0 only suppressed it by
+      // leaving no room, and no CSS controls it. The export dialog's
+      // Safari guide teaches turning the setting off for flowing
+      // documents. Explicitly paginated and fixed-size documents keep
+      // margin: 0 everywhere: their pages ARE the sheet.
+      const wkFlowing =
+        WK_PRINT && !paginatedNow && !this._trueSizePx() && !this._contentFit();
+      const marginDescriptor = wkFlowing
+        ? 'margin: ' + this.pageMargin + ' 0; '
+        : 'margin: 0; ';
+      // Shadow-internal marker (never serialized), kept in lockstep with
+      // the @page decision above: the print CSS trims the first-page
+      // spacers ONLY while @page actually carries the margins — a
+      // true-size or scaled-fit sheet keeps margin: 0 and must keep its
+      // spacers too. Re-synced here so attribute changes and pagination
+      // flips move both together.
+      if (this._sheet) this._sheet.classList.toggle('wk-print', wkFlowing);
+      tag.textContent =
+        '@page { ' + sizeDescriptor + marginDescriptor + '} ' +
+        '@media print { html, body { margin: 0 !important; padding: 0 !important; background: none !important; height: auto !important; overflow: visible !important; } ' +
+        'h1,h2,h3,h4,h5,h6 { break-after: avoid; } ' +
+        'figure,pre,blockquote,img,svg,tr { break-inside: avoid; } ' +
+        'p,li { orphans: 3; widows: 3; } ' +
+        '* { -webkit-print-color-adjust: exact; print-color-adjust: exact; ' +
+        'backdrop-filter: none !important; -webkit-backdrop-filter: none !important; } ' +
+        '*, *::before, *::after { animation-delay: -99s !important; animation-duration: .001s !important; ' +
+        'animation-iteration-count: 1 !important; animation-fill-mode: both !important; ' +
+        'animation-play-state: running !important; transition-duration: 0s !important; } }';
+    }
+
+    /** Typographic defaults for document text: balance headings, avoid
+     *  widowed/orphaned words in body copy (browsers without text-wrap
+     *  support drop the declarations). Zero-specificity via :where() so
+     *  any text-wrap authored on those elements wins; document-level so the
+     *  rules reach the slotted (light DOM) content — shadow styles can't.
+     *  data-omelette-injected marks the tag for the host editor to strip
+     *  at serialize, so it is never written back as authored source. */
+    _ensureTextWrapDefaults() {
+      if (document.getElementById('doc-page-text-wrap')) return;
+      const tag = document.createElement('style');
+      tag.id = 'doc-page-text-wrap';
+      tag.setAttribute('data-omelette-injected', '');
+      tag.textContent =
+        ':where(h1,h2,h3,h4,h5,h6){text-wrap:balance}' +
+        ':where(p,li,blockquote,figcaption){text-wrap:pretty}';
+      document.head.appendChild(tag);
+    }
+
+    /** Declares that this document owns its print CSS. The instant-PDF
+     *  export checks for the meta by NAME PRESENCE alone (content is
+     *  ignored) and skips its automatic print-CSS injections, so the
+     *  component's @page geometry is never overridden by a heuristic.
+     *  data-omelette-injected keeps it out of serialized source. */
+    _ensureOwnsPrintMeta() {
+      if (document.getElementById('doc-page-owns-print')) return;
+      const tag = document.createElement('meta');
+      tag.id = 'doc-page-owns-print';
+      tag.name = 'omelette-owns-print';
+      tag.content = 'true';
+      tag.setAttribute('data-omelette-injected', '');
+      document.head.appendChild(tag);
+    }
+
+    /** This page's valid true-size page box (explicit width AND height)
+     *  as [w, h] px ints, or null when the mode is off. */
+    _trueSizePx() {
+      if (
+        !safeLen(this.getAttribute('width'), null) ||
+        !safeLen(this.getAttribute('height'), null)
+      ) return null;
+      const w = Math.round(toPx(this.pageWidth));
+      const h = Math.round(toPx(this.pageHeight));
+      return w > 0 && h > 0 ? [w, h] : null;
+    }
+
+    /** True-size pages (explicit width AND height) also declare the page
+     *  box as the preview size: the in-app preview reads
+     *  meta[name="omelette-fixed-size"] (content "W,H" in px ints) and
+     *  scales the sheet into view — without it an 18in poster previews at
+     *  true size with scrollbars. Never overrides an author-set meta
+     *  (only the component's own id is managed). The meta is page-global
+     *  while doc-page instances are not, so every sync recomputes the
+     *  page-wide owner — the first connected true-size doc-page — and a
+     *  non-true-size sibling's sync can never delete the owner's meta.
+     *  Removed when no true-size page remains (the owner's disconnect
+     *  re-syncs via any survivor) or when an author-set meta exists. */
+    _syncFixedSizeMeta() {
+      const id = 'doc-page-fixed-size';
+      const own = document.getElementById(id);
+      const authored = document.querySelector(
+        'meta[name="omelette-fixed-size"]:not([data-omelette-injected])'
+      );
+      // The page-wide owner, not this instance: an upgraded true-size page
+      // anywhere in the document keeps the meta alive and sized.
+      let box = null;
+      for (const el of document.querySelectorAll('doc-page')) {
+        box = typeof el._trueSizePx === 'function' ? el._trueSizePx() : null;
+        if (box) break;
+      }
+      if (!box || authored) {
+        if (own) own.remove();
+        return;
+      }
+      const tag = own || document.createElement('meta');
+      tag.id = id;
+      tag.name = 'omelette-fixed-size';
+      tag.content = box[0] + ',' + box[1];
+      tag.setAttribute('data-omelette-injected', '');
+      if (!own) document.head.appendChild(tag);
+    }
+
+    /** This page's print-sizing mode: 'fixed' when an explicit width AND
+     *  height are authored (the page is the design's own size), else the
+     *  default paper in the authored orientation. */
+    _printSizingMode() {
+      if (this._trueSizePx()) return 'fixed';
+      const landscape =
+        (this.getAttribute('orientation') || '').trim().toLowerCase() ===
+        'landscape';
+      return landscape ? 'default-landscape' : 'default-portrait';
+    }
+
+    /** Announces the print-sizing mode to the host app:
+     *  meta[name="omelette-print-sizing"] with content 'default-portrait',
+     *  'default-landscape', or 'fixed' (fixed pages also carry the
+     *  omelette-fixed-size meta with the page box in px). The export path
+     *  probes it to decide what true paper size to inject at print time —
+     *  in the default modes the component emits no paper size of its own.
+     *  Same page-global ownership rules as the fixed-size meta above:
+     *  first connected doc-page owns it, an authored meta is never
+     *  overridden, removed when no doc-page remains. */
+    _syncPrintSizingMeta() {
+      const id = 'doc-page-print-sizing';
+      const own = document.getElementById(id);
+      const authored = document.querySelector(
+        'meta[name="omelette-print-sizing"]:not([data-omelette-injected])'
+      );
+      // A fixed page wins outright (mirroring the fixed-size loop above,
+      // so the two metas can never contradict each other in a mixed
+      // multi-page document); otherwise the first page's mode holds.
+      let mode = null;
+      for (const el of document.querySelectorAll('doc-page')) {
+        if (typeof el._printSizingMode !== 'function') continue;
+        const m = el._printSizingMode();
+        if (m === 'fixed') {
+          mode = m;
+          break;
+        }
+        if (mode === null) mode = m;
+      }
+      if (!mode || authored) {
+        if (own) own.remove();
+        return;
+      }
+      // A deck-stage that connected first injected its own meta and
+      // defers to any existing one — take it over, or the document ends
+      // up with two conflicting injected metas (a doc-page page is the
+      // document; the deck re-ensures its meta if every doc-page leaves).
+      const deckMeta = document.getElementById('deck-stage-print-sizing');
+      if (deckMeta) deckMeta.remove();
+      const tag = own || document.createElement('meta');
+      tag.id = id;
+      tag.name = 'omelette-print-sizing';
+      tag.content = mode;
+      tag.setAttribute('data-omelette-injected', '');
+      if (!own) document.head.appendChild(tag);
+    }
+
+    _scheduleMeasure() {
+      if (this._raf) return;
+      this._raf = requestAnimationFrame(() => { this._raf = null; this._measure(); });
+    }
+
+    /** Slot heights feed the print spacers (--doc-hdr-h / --doc-ftr-h), so
+     *  they re-measure on content mutation, resize, and font load. The
+     *  same pass detects explicit pagination (direct .page children) and
+     *  toggles the sheet between the flowing-document card and the
+     *  page-per-card stack — content edits can add or remove pages at any
+     *  time, so this tracks the same mutations the measurement does. */
+    _measure() {
+      const hdr = this.querySelector(':scope > [slot="header"]');
+      const ftr = this.querySelector(':scope > [slot="footer"]');
+      const wasPaginated = this._sheet.classList.contains('paginated');
+      this._sheet.classList.toggle(
+        'paginated',
+        this.querySelector(':scope > .page') !== null
+      );
+      // The WebKit @page margin is flowing-only, so a pagination flip
+      // must re-emit the rule (content edits can add or remove .page
+      // sections at any time).
+      if (this._sheet.classList.contains('paginated') !== wasPaginated) {
+        this._syncPrintPageRule();
+      }
+      this._syncSize(hdr ? hdr.offsetHeight : 0, ftr ? ftr.offsetHeight : 0);
+    }
+  }
+
+  if (!customElements.get('doc-page')) {
+    customElements.define('doc-page', DocPage);
+  }
+})();
+
+</script>
+</head>
+<body>
+<doc-page margin="0.85in">
+
+<div slot="header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding-bottom:10px;border-bottom:1px solid var(--border-default);font-family:var(--font-sans, Montserrat, sans-serif)">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAAyCAYAAABidVYtAAAQAElEQVR4Aex9CXxU1dX4OffNTEIAN7S11mrt12rFavvXtta239/Ptp+tflogmQyLEJiERXEBqZCZBOqgZAME61YjJAPIlsmC1FattrX1U/vVT9t/rVJXKC5URUAEsszMu+d/7iQz896byeTNZKJW8373zLv33LPcd+49d3vLCMjlIMJA4/1FubB+0nhCoZCmbJWAUMhFbD+rHQLBYGGChm17220PFFhphtMffQsEuH5XbPjFaQ3Btufqg21khtb9DcHQtBUrNowMBAK2fK+xsdFpbBexuIHXlpC42Vb8vONT9etDpyxrbj+v0NWzP44fPvdvgV1H4HtsqyNxKDisralfd9+pVo4CGP2bOI06d47u/JWVZjj90bbA8mDoxILDuFHXwzsJ4KzU0uKxBGKDfnzRYdepZ30nNT8V855rzPwCZ8/BOHDbeM958jlj45S2HVj1BPoIuQmk2OkQ8L9xAcPnYQsMW6DXAjrgw4hY2pvKzy93BBoiOOIACLtFQbQ7Lt22Ax889uQxAPhZANAYhsOwBYYtYLBAbXPb+Uh4pgEVj6qZ6mMI8P8AoIvBdrgzFBrFDnyMiQHpup5Xd+yM42w7cJzhY3QevpRhC+TNAgKhkUdHR1wgO+x+BNxEiCu7NVEqCK7k/LsZNjLNfQJROTZH+w+HD2nfQIKLjRRSp05eP8s4btiB45YYPg9bYFAWwBON7ESwu2v338r8M0rqAmXF7ywsd//JN8O9gGEadRWWdxfJl4306eIS9S+xw/8fQ54UQuNBOYkZduCkLYZjwxbInwUQyDhSGgX75152IODxhI04O3HuFFoA9X8YaYcd2GiN4fiwBfJnAdNIma3YZc1bPocovm7iE9Dum+553YgbdmCjNT458eErHWoL8Ag8GBUaauo21HijDEE8BgOYOoZhBzZaaDg+bIF8WSCxzZSbQN70GsWcJzDEwxGdIGXaPezAcfMMn4ct8JG2ANWGu+j31iIOO7DVIsPpYQt8yBaobQ6NBdSuMRaDJ8/vBK72HDbiVHzYgZUVhuGTZIGP/LUiwIkEdKGdgg6JA6vHLlcHtx2zsnHz8XVNLSX1wdbd9SkPdqsHvVsP1je3rlJ0tes7xqwKhUbYKXSuNIHAow6lS0FDsH0+l6mTwfLAuSoXQ3P7ekUX4GuobwwdnavOD4svGAwWbt58//EKWlq3LWoJbXsz1LZNtrR2kAG6t7a236ZoFGzcuPGofJW3oWn7aGW/hub2J9nGOkPSzs1tL6g8Vefq4fx86VRyVF2pOovJX9s2ntveYZNubod1wbYjXP83KhoFjfffX8T7Q+w3SsLAsGLDhpGKzwi8t2T2JYREWzPS2YnzNpWlveEeQtGTjtesdOCyZ6RobHzayRV30n7XmGk9oD8edbn2otDaAPAUSHvgUYB4vaITkl7r6cQlXKmnNzQ1jU5LniNSvRHUsKbjzIJT9pYoXQq4h1vN4vrvMJDKFF2hy/U2OfHBhjVbz1y2PqQeJWW2j264nxvj1q0dZ44YefQizRnZq4AbVwMgnZSmkRYg4LWKRoGzcGS74u3o6PhUrleoHKhubeiLpEValP0I6QKWZW5nCGeoPCHlrkJXz/KaNZs/zTSDCg1NW05SdQwu8YCqs5h8DbYB4EiwHAhQxPUfUDQK9u/tWb18Xcf5qhxpbGThBtD1opsUnxGYyLjhxEn4mjE/mzgK0aEEJIFOEkAb0skwGzbJkXWslkfQAwX/mEAiHGQDNbEAtQ3OJ7uBipDQL0g+I/Goa+o2bTrWLmcmuvpg6OydnfAjcsgdiGJrJtp+8gQiXkAOxw5NF+uWB9u+ZKeS+5E1ZOgHHnigYEvrff9+pDs8GzXga4WlWSsj+oHijUi4taWl/Tubt2/PyrHqNv3yWHSKa1DTHgeCS2zoVx311ZrTdRuPiN/itZ/VCQYUEeAOq2bt1q+QcK1TdcwM32bIql0jwmx26D9qmuu2+g3t3wcibsIs5V8gZHWh/V2PGtq5N72BK60FAE3PbkLy2AkIvyGAB5juz4w+wpAaCEYhYi1GCubXNbd9oTQU0lKJ7GFqm1svAxCbgMQvM3Fw5b3Po9QeptnP535vACDCDzjzDm5sF9+6ObvGzbKHLITYRocOdZcJkI8hoJpZDE4XwWQQ+DvRE13Msu3POnp6LuamP5ttaHV8ti/8lgulgG3MMWMg8HAdPCSE8KsHGIxZmeKqfbj29czUHI4NrPM/M9HaykPwoIRHGoKtJYGAvfd1bckdQqIsHTi1JGqk1F2uRZzjYzCGLnbYB7nR36MAQC5B3Tkdw3KKFHgdAP4MEe5Bgi3s0C+D9SD4KefffN5hPL+UG6g1e6B0fbB1Eg+dasQ9O4UW4RWWHSuXOgOIVQR4M9OtQBB3K5wCAFJvkIDluJino83d4fCClZvaU97rtdB+IEkJ4ioQcE86ZQjwFsN2ROTrTQXm2YAI7/DZGlyIeA2hY4kdJ25oCp2BCCUsxLhcOshtIESSVkcp4o0KOZ3zVzCdKut2jhvD0dwO5jnQYes92eU8E2LmZYJoNfMZnxdmdCyElZ7+gDsM7thhZ4zS8kMoWotOO7u8vz0Z5v0fq1wW0cVgDHutNHbSLKCdIRkIDnLi4f54B+XAgTtDozBccCMBLGQlvYGIByn6HRHdLFHMr5zhnqPA5/VsrqwYt8c3x3OwakbJEz5vSbXCy+6eqyXIKkJ2ZMC3e4Ukfqew7Npzjzg/l8DYiPDI6wXAOwBgJIMh4B42RA3oENOt9Cvwe0uW+r3uu31ed32lt+RqhVOAoKmOqZ4AW8F04EncaK6OhOWkAG/WmbI+4ERLS0clorg9jVrV+dQC4o0up7jW454wJx0UFTqvIoAbAfBWQPhfSD3mkHDcxE5seljfSqYjfhuAjO/C7uWOrlFKeY2/ojSwuHzy64une96M2ZjbBAjJnTg0AcEbMVkIxOV4iGU8H0tn+FFrbAlYw3U5GQCtbViN9ncC4c2V00uuVPWYDnqcPXMJsAoRavi6XwHLISXdETmC13E7RksW+L2lrVaZAKj0guH4h5XGThqkUANJUgzCY6gl/cgqw3rxScaBY44RI8UtTDaPIR7+hAKvJ3Qs8peX1lVNL34pntHf2T/3igNV5Z42PYp+RPwJW+sJIy3jLkTSG4y4TPGb14ROQ8AFTDOGIRmI3ubKuIENsNhX4Q4lM/qPVXqLH+ne/Vw1EPHsAhvNlDgSCae7ZCTdO6Bm0iFKtbRuuxEELLOKR4BnAcXCiaXFi9lp7xk/frzp+Vkj/eWXX9450V18d1Gho1oSqg5LzVqMJOxTUM51unITr3HNGb2pwNrQcQLhi72pvl+CjZrQbuG63duHMZ180z2vdXeLKnbyhVwvv2DvfdAhwO/zev5mIrQkVmzgDTaHmIcIbksWMO4eIvxJ96HuKl95yTJGkJUmng5Mnfq+v7ykRbUHSaAGoD8zfTSez+cCAvTXN7eptsTJoQ9qxCdNfs+i6fnKsuK/W3CJ5GAcWCMCXu8kZD0jpbyeDXKbf8aEZxJYm5HFM0t2V84o3gS6VAb7HxMbr03q17WvN+H6STg1nMsVaZ7asvNy5czyl7u39MPWLzoQCEjm24kyfBMg3GkiRDiT1221fdM5U9ZQJ0JtHcvYsypZj4MhHrhK4FmSdO1E9/jfMJIYbAXlyJNLJ/weKbqErzOdna7QXD2eRx991KgvJrtIw7MAcBL0HTzF5NGI/rCwrPidPlTaU+Cq4nd83tIWpvcjSN/C6e5n0xIakBSlk5FgCjs991PJDAS8C/TIUnbKtYHrprL+ZN5AsSqv+z6Qch7p0se0xr2Zo1Ggvy7YquzMWUMbug70HMPXpmYmthUNxoETSthhnhOEs6sqPH9MIHOMVM70PMXTiCuZ/c8MyUA0jXvDpUlEaixmaCFmcI7a3eRTLBDL8/i87vtjqRx/Kism79E1VNMtsxMD/IcEuF3dxshRdE5s7Kk/ZsbEbTBErnrAlwhlxcSJJY9xXk7B4/G8gjJazfJ4QzJFhP/w4cMuKzYqSd0x+EIcz870IqKwLofi2dYzVZV7dgw08iqmZXwbTyIp+x+n0nFgfXeBDNdUVkxWG5FxdFZnX4XncYez6262q3JirtIE+xgEMXnZmvZvwRAf5HSozvHz2agR2RCno2Xjva7zOmdReYnZ4dIR28T5Kor/yvP+qYBonDqwKizLJAJBnANEx4Ph4Ab9Dd/M3Bu0QRRUTyv5J88ylgLCz414IPg+gGbsNEzZ+U60tHWoTSDTlJVHpL0aOsZPdrufHqw+duJdICNqOWO6H4mAp3Z1Rx8fUD5PpwnohAHpsiDgNbgmJH2VWSyOhI1Cw6WDcV6WGQsLy8qO9HTJdQD0VgyR+KEzHBplbHsJ0nxGEB9DXfK97P6FDtqBuaIOhV/b8UT/KnLL4Xn/C2xI43SGBdGJvLuc9jZJ/bq2pUw/jokSARHX+md4sp7OJwSkifBosZcInwLAZG+P4OCdy3nqCR34YI4zWE1i9OV4V0TQeW735WwzTuUhsBO/6dBALZF+ZRTH9Z2y46s5gBs8qU2zGCk7+jHcyRnLF8MP5ueN9+FoARo7V1IKAj2k65E7BpqqJzkGjqnnjV2CvmmhLOTr+b/Lmzsus+DTJrndkYK0mdkgiV7ueuOEjAPjYB34rW44dB6vE42L/2yKmImWuunQvzPBLoZ4KATCH8YTxjMCqGmVadc5GulZbKTJV7xn99828oy1zSQPYXYkWlhkwg1BoqW1YwsQfNcomgB+O7WkpHc315gxyHhxcfE+QFTrSWkUtbW14wFjumvXjqd5L0BNbWNong2weXBlbVPoghgiDz9Sj6q2ahrVCcTLVRUTB9y1zlb9At4t51teJ1v4xupCpm17FrqckuqRUgc6/2BkRgQ9ELgoo28poxh5so3rAa838YnLbJkHou+T3cl03Eb5VwWBmnrWWkXjsGJN2zm8caNGpTiKz/iqJh1DUjbVYUmiLiIwGldzIGgw9If64Lup3iaVFl8+VGonuidMQYBHjfK5s+QlQxLD9pAyKsNgsAeP1J9DxIU3q/u1RMySpM82xvJF1OV628RH1KZpo/ysI9k2TASDSxyljToEgD2QPLhTIqeayidR+YuNHHFA2ei0uER1XWy2Aa9NKM+3A/rhriJeXxobjgTAJ+3wDoamO1zwTW4MbEyIHSTppP2OMTVGmdLJO6CIpidxdIp4ul1ODASDxzQ0bR+dbxDSVSMEtMYK1fejo7iIo6oi+JT/wI1nBAt3GiUTgekbSTAEB7eiIyxWZ0gE5VSJBEcKXOIRRFjL0URAxAlc2Jfqm1u/EwiEUja/EoT2Isa2ByCwe2HZD1W57HFnSbX/lac62bbqwZMEJ1/Pxa92cltLYIYuQkSqw3p+IA2iQOu+1g6woHIGtdvIJw4EknT5jB3ewdIgYKLyEWEUO47HKJOIrGsWcICjcgRFV4yg0Q2EqYoFHAAAEABJREFU4Z8OCRCcw5ZIBCTYHAg8OmSjsETHOG5UpvvOXUcOmtKJwuQxgqQ18VR6j0Ekjh37Nb51lMRczxt8XDa1F/LPJLYvJsR/F5wCE5Y3t5/bhxnsqQsk7BuskEz83EHx7IpMD7bw9Z2GIL4MNg7u9GxQJUmi+mjT8oBz1MNO6mEkjvYfBGpYbwsQqllM8i0VBIctPrvyM9Cx3kKGRGDjnGrUzRmmKR2ngSdtHkKcScgbMYg3cAPMPwCYGrHSO5QgEH8ACP82lDrSyfZ4xv2CO6d3DXkOEFRvSMeivnL3Ru7XqzjxGoMpIIqtfAvoqfqm1ktqg61qb8OUnzFx4YXm0ZfgeT0q12Xk+VfLRKn8K1lqZIsDcFNPotLFzIZJRzGMG7ZAqgWQZz3npqIB/F7POkkUAMRtvOQyOr0i13jq+4AAsbU+2DGpYf22byrkQODate88C83eqlmlf7Xghij5wYhlg87MRZNgJ99lCxC4V6VIXAkyEwd7vECDozNsjsT0E/DmglEmvAfGAyEMCIeJQH2C5OAHVk6+zrFj95KxKJ/EeFV5aZA6uysAcRkAqrUcmA86CUDfQFJfXRcM/cicl5riJdM0I5aXUYS9I5QR/fGJE6mOzzR97+/iBBvZZwsk1QJg4tE4bqVRW3yI9uRnoGNd5t1khN1gpOfbKGA42HFfQMBaruMqQKgGI+0Qx0tLS6WhKJ/YqH/uFQd8XvfPCKiK62MxG4I7Xf5NBHRy9NsIYnltsO1SyHjQkG1WZVT7YWUiviJI32BHvfDNcIfswLuOro1cEQcMQqUdvnzQIIJpBxQR9xnlAoJptw4BeA8L7vV5S29nujsZbF1jPui4bNzfGKz0CY/6ve5mf7m7hkBeyYa5Ko05zhYA9fXrQv+VJq8XRaT+T6g3zr+EgNxRahz9WITUR4Sxc5HX85adi2Pb2SEDWFlW1smN0+RI9jg/FKovhqORgg9F8ydDqZplmB7mGOiy/bw29s8oaRQIU3hr5kEL/dlAYrna4LLgY8nu3TtMHTR3BJ8795LSC2OZH4cfBNMXKLO5JNsOzELZbhw40hccdcHWQF88/WmosESqAWWS7nJEualkovgXzCOUG3jw+Yu56MeYdujNeflJhULtMwjkZ+LSiPgGYlQE4mnbZ17TdP6jpEUI7Vp24rkWvrEAmHghAjIcKOFLIMSEDCRDmDVQ08tJtfEJQklA5iVjBpEiQ95AWRo3pqkDEQ02v35dWxvLGMUQC9yF7NZJqmd0Y2n1Qzq9z41KbVip5McW3nv33T9y5Zre7S0aSX8a6gsmIYoB8AToO3gmRpMnjzeVoy9rwFMggHLRjAmvukbJdSlOLGBxxql0XDpCAQIcA0N4BEIhFwK6TSoIHpSEm0y4/CdejQLMB5uHsEkXI2PnuY2Nzru6saT6GfJnf1nf11hRYr2DAN1V3lLjW0pQcJDu4kZleocVhXh0dXDbkFby7MZGZyBAWdmQryXnMGfOHHUXwLyMQTg9Z4E2GfkWh6rnRB3YZMtItsDj6ZJA1k7gRJLiqHSMBKCeyU5k8X7McQ1r2q3PKyfyBxs5LjyqEJACRjnEm6fh3c8N+JGKXh7Zexrgt7Zp8wXA64ckGXYu8bpTvhCSzDfHsmp8akMC0WTIz9QH254zi8xfqm5d22aWlvo5HZ6KMT4RFizwdHG5zLucCCeTHsnq+hICbUR4ZrDqC64x4cJT2/X65tZv22DJCwk3oh0syNiJQkvrtt2MG5IQau0IEYDpQRmdoqZ0ror5dtMvQZLpccV0sgKBgHSGw6YHWLgjvxSctDAdfT5wXT0RNesbYZQlAKUqixE32LgQrnYAVDvy0HuQOsV+VGQgEAMRWPNZsvqqIJ8SOY7a5lBiepXADjJS3xg6GgnOZDEuhnjY6/O6vxxPGM86UQiITO/C9mjC2sMbWXKO1wXb1AcHyhICEJ/gjmz/ysbNyXeRE5n5jUxyFy/mWclfzVLphFAodJwZN/gUyxzFFW3aDOSOsnOKxzPwO8GDV2+SIDSHGtKMd0G4uuHCmqbWS0yEeUjUru8YQyLyplEUEbRUekuuNuKGIE6IqF7esS06awdmB+IpbfJ+MGs6Q6B4MJ/TmWXrQ59Fl1DvobIu1tAXuNftd/rC0+r/BnYkgKQBmL4o9rFvyN9Rt2nTsQK5YyEYk5RKEZTyghvmTHk3iRvCmMBdLN044xhB6Hg+FPrFaYzPS+hQH3cXTvVywo+NAiVRtTE9mHhpKKQRgrGD7lfcgpme/VJEv2Uh+KpDw0tVnVjwOSfVSy9CylctAo4IgXl/XdOig5sv7ouSfqMVnyktMmX2m4dyjSXvPHLCltr1HYNej6kvDjqkWM89v/nzogR/r/S6v2vRa0p2y8hyBHrGiCSHfL4hmJ/PoaiZBkYKlnBvbP5uEeHvoi7NtEYzliHf8YnuCeqzQWpzL2yQfSKJ6EOh0H2pn9E1ENmJbmxvPzki4RbeGJxooX9KkG75uF8vRc2azZ9W32nuTdn7Pf997WQEYfu5aKlTFyCYduG5Lq7BcOFPYx+7g8Edqn6lCKvdceM6XCLCo5UzSm4YnPRUbl6GnQVomD4TdVV7PY+kUvaPycmBfTNKl7DI+xiSgei73HPdtaK57fxcv0zBBhwrNE19ItW6xiKQqKatSX1pYoGKyXt4Y0QZwDjVQgJ6mG+W/9D6HnEaEWlR6muBDetD3xQofEBwvYXoSSQ5r3paSepbOBbCfCaLCp2zwfrpF4LTJcqNW9razs9V15Yt2z7vlFjD12m5w4C7woLGe3jzySq75t72zzicrsU8Sq2uWdvxlUAg9cN3Vp5Va0PHRQTNAqQyQ94B7oA7DWlTdHH55NclCvXxvCdNGUDzdZ38ahbIa9Sc2vTy5o4LhRB+nrUFWDaf+Lc3vMt3OR7ujeb5V8LtSJR8wy8H8TldrNLTvXtMKSBsVHEDfF9HuEvXR8yr2aAqMmBLvhq565pDswVqywnoRwZ58WjQ7net/N7Sm7lhr2RG44g4mnEb9zmOu7q/hwWYPiWoxqBGlXCndi3peCcTqC9m8qk3cFn/ADI6t7LC82Iv5oP7VV+RBBDNrNG0K40A5wgQd4VC2yoYrC8BMHn6cG97+2da2jpmCQctZQqjU3ESIlLSrQW6bn7mnHOWB0MnajpVq5GQR+wfC03eUnDKviuV3Tg7bVDf0g5rYiGPbD4zAT4ohOM5M86cqppe/JIgvJY7GNN+B9fvfHDCjYWnjJ2j9k/MXP2nAk1bTuKBwy2Rmlgmd85YaKDm25Nwm6+iVA0qBnSeogif4pmmFpemFvnxuN2zLQdLJywQuCiKunMuV4L6wJqR5FwArBG6bBhx6lnVXJHV9U2h7waCwYRhlGM0bOg4U+UpEEQ1iIKnZpT6OB3Cnd1wKKvNA5+3tBYAljJ0MfQGxOPVCAECb1U6G5pbvSvXtps/P9tLCSsb7z++PthaVcDlFwKW8W5JAyB+vS87fvqt0PAGX/nEZ+OID/o8sXQCXyMuS9FLcC4hNXIHs3xrqKN6a+u2S7Zv386dmJlS1cPmUMd/KhqXxKUIyHUAVufVmeteKtRa0o2+UsIXueEn6gcBLkaEnym7KTsrG7NjMxpA6WsIts8vBHkjy1TOm2i8bOMXAfXNi/geMedlDIUnjnheSr2GG7/J9qxnJqC4C1zip0o3z7quYlxMt1Ggaouc90NFUyicNyHgHQD0b0YajveQpJv85e4ajmcfkCd+WXAhQITLoDrkLLgAcnZgpaWyYtwhHUUVAKb0UAhwKQHehAjLCHF5IY5exU6xmuf9qwpP/coq0nX1FxvLVD5XnvmGOfBBtIcbYR30yOq+T+sw0n7wed2ruWH9JA3H6Uon93Z1UYdcqcpjhagzfAsCLmO4iUeWyWlkPIwSfIumlTzDjk1p8j8wFDtxAAAruZwRMB8aIHxPXStP0xq6wvoqHmFNMPYrX10lkBoUDbPOsjZ2BPgnSLpdRkVgyrhxad4qAlah7wSAJgZjEFyeyUqusnHDuo5V9evaeusdgB2CUh5UIIG/JmeRZWpsFJmMX3fppT3hwsjvJIH6EP2vkzmJ2AKlm6G2YV17rM0p/XEopNGrOK+eQXV+FYj46QRnX4SAFvgrStUfF/RhsjxxA8vEob4oA4gJ/yOAMF/U8kw86fISAtJl2sHxlGafpnFjJ7iWe5DfpuNhA13AznQVAM7nM09TYB7H/wv6ORDhDm44s3scPfW+OR7TPc9+WNKhyVfu/rkEWZYuE1WlEbpBrWmtwOsyNiim4wPAR0CKRZUV7qdZBpPBh378/fhjVmmoRk5Kv0OMcDZfzEzrtbLDzkPAlK9Mxi4IMSR1mO10Yl2mp67U51wxigFEsM7EYmJA2ZjXqKBsDMD1TkW9GclfXvc+5BBijf+Ky4x7F0mCNLHA1KnvV5e7f62LmBOnXaNy5agHeeaB0m0EBPV3MqY7HHEVbJM/SsAyXordFccNxdnl7OFOV37WKDsw5/J+1/9GOmN80A6shC0sK35nxOGiNXyL4TqedqgLDyt8tsC99hbuui+Paljrm+n5laqkbGVY6au8nnsJ5CUo5UxrXpbpZ5QcSfp8X0Wx5T5slpLyTB646KJoaWnx1khP1x0EdCU3WNOTatmoI8C/EOGcKOj+SZOKf1lcnPnfFZTsylklb0RQ3oQkS7kTV7f/FNoOvAQSrtEBr+c2lHHt25+w6unuZzEq5qt2wzR/Zsg5ENEsJP2qKm+JdW/HvkyblHwr8j8Q0LjbbZPTTJYXB1Yir7vu0p6qcs8OQgqQgG9JRHXL5/cqLxMQwOsE5COUXxfkvGGh1/2r6jzv6Pq9nodGHBm1UelgXRdRf6OFtaAIhxFEieJjQ01WctQ1wkf0mMqjkiB9gx6VxUh4Pqi/GwF7B9vlLxLlN3TUJwqI3HuF273THmcvlfrjstNGwTYI01wg+g4QmL5k2UuV+FWzqnoJMK47ui9Y5XW/kMjJIVI5q/jvqt2QwzlR1RUgqA0uFj+wsNiAo+OFiq8HD2/0VUxSnTM3y4F5B0OBwKWE5EEEm5Ip+zFul/aJ7VByA9/rn+7+i3968ZPd3WJiVMfPZwJdyAt47n+7f4bnGV5T78EsF/92yqRoVAejdPTsfv4xLJKLMpUpnueUjrGvhvfer/gWed0vKznZQlf4wBMR6Dk9DlLvWbQr/I7pKR8lU0S7J8Vp1Dna+1ecKisrUBtNU6a4X/B4JjyFFKmKCvq8EZC0L+sReabDgpcRxyWT3e6n2XFfVjKyUtpHzHw6L3leq/S6eRoq+697ipyN0lmrHDcwZ07W08Y+daaTajf+aeNeUXVV6HJexnX4BYZY23NwGyTd+SXW+eU4Ln7GKFV1v/G3xxVfLnst8UJENP0CVW8KwtR9RpQiPBuJ56aeEaQnXgZ17kGtMpVqYEzeHTiuUhlU/XmV+tOyjDDd82Yuc/+4nmzPgUBA+q0QuhwAAACkSURBVDyegxnLNLNkt8r/Sfn41+/pfYEgWzUJetVAl3iveDkO1bOmvJ1OZuWsqW/EadR5MdslISTHCDvUwStKSnYbweMZ96Jy8BILfsqU9JtUuahWda86cmXDtFA++XXurBOfCs5FRyae+XwtRr03cH36Z457hXW+aMSrOHc4B1WbyCTPTt6SMs8uVW9xUPesM/Et8nreUvrjEPBOeC8TfX95/x8AAP//ZtOzwQAAAAZJREFUAwD5zMFGmOdfzQAAAABJRU5ErkJggg==" alt="Bellosoft" style="height:18px;width:auto;display:block">
+<div style="font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone-400)">Technology connects</div>
+</div>
+
+<div slot="footer" style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding-top:10px;border-top:1px solid var(--border-default);font-family:var(--font-sans, Montserrat, sans-serif);font-size:9px;letter-spacing:.06em;color:var(--stone-400)">
+<div>Bellosoft Limited · Watford, England · bellosoft.com</div>
+<div>Confidential</div>
+</div>
+
+<div style="font-family:var(--font-sans, Montserrat, sans-serif);color:var(--ink-700);font-size:16px;line-height:1.65">
+
+<div style="font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--slate-400);margin-bottom:20px">Document type</div>
+
+<h1 style="font-weight:200;font-size:48px;line-height:1.08;letter-spacing:-.025em;color:var(--ink-900);margin:0 0 24px;max-width:20ch;text-wrap:balance">Document title. <em style="font-style:italic">The promise in one phrase.</em></h1>
+
+<p style="font-size:19px;line-height:1.55;color:var(--ink-700);max-width:62ch;margin:0 0 40px">One paragraph that states what this document is and what the reader should do with it. Short declaratives. No preamble.</p>
+
+<div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:24px;padding:20px 0;border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default);margin-bottom:48px;break-inside:avoid">
+<div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-bottom:6px">Prepared for</div>
+<div style="font-size:14px;color:var(--ink-900)">Client name</div>
+</div>
+<div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-bottom:6px">Date</div>
+<div style="font-size:14px;color:var(--ink-900)">6th August 2026</div>
+</div>
+<div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-bottom:6px">Reference</div>
+<div style="font-size:14px;color:var(--ink-900)">BSL-2026-000</div>
+</div>
+<div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-bottom:6px">Owner</div>
+<div style="font-size:14px;color:var(--ink-900)">Name, role</div>
+</div>
+</div>
+
+<h2 style="font-weight:200;font-size:30px;line-height:1.15;letter-spacing:-.02em;color:var(--ink-900);margin:0 0 16px">Section heading</h2>
+
+<p style="max-width:62ch;margin:0 0 18px;orphans:3;widows:3">Body copy sits at 16px on a 62-character measure. Write in short declaratives. We use "we" for Bellosoft and "you" for the reader, and state value by naming what it is not. Not adjectives standing in for evidence.</p>
+
+<p style="max-width:62ch;margin:0 0 36px;orphans:3;widows:3">A second paragraph continues the argument. Claims carry numbers where numbers exist, and the numbers are specific enough to be checked.</p>
+
+<h3 style="font-weight:600;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-900);margin:0 0 14px">Subsection label</h3>
+
+<ul style="max-width:62ch;margin:0 0 36px;padding-left:0;list-style:none;display:grid;gap:10px">
+<li style="position:relative;padding-left:22px;orphans:3;widows:3"><span style="position:absolute;left:0;top:0;color:var(--slate-400)">·</span>First point. One line each where possible.</li>
+<li style="position:relative;padding-left:22px;orphans:3;widows:3"><span style="position:absolute;left:0;top:0;color:var(--slate-400)">·</span>Second point, with a qualifying clause when the detail matters.</li>
+<li style="position:relative;padding-left:22px;orphans:3;widows:3"><span style="position:absolute;left:0;top:0;color:var(--slate-400)">·</span>Third point.</li>
+</ul>
+
+<div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:32px;padding:28px 32px;background:var(--paper-200);margin:0 0 40px;break-inside:avoid">
+<div>
+<div style="font-weight:200;font-size:40px;line-height:1;letter-spacing:-.03em;color:var(--ink-900)">50+</div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-top:8px">Products shipped</div>
+</div>
+<div>
+<div style="font-weight:200;font-size:40px;line-height:1;letter-spacing:-.03em;color:var(--ink-900)">14d</div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-top:8px">First prototype</div>
+</div>
+<div>
+<div style="font-weight:200;font-size:40px;line-height:1;letter-spacing:-.03em;color:var(--ink-900)">Zero</div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-top:8px">Missed deadlines</div>
+</div>
+</div>
+
+<h2 style="font-weight:200;font-size:30px;line-height:1.15;letter-spacing:-.02em;color:var(--ink-900);margin:0 0 16px">Table section</h2>
+
+<p style="max-width:62ch;margin:0 0 20px;orphans:3;widows:3">Tables carry a header row and hairline borders. Give every long table a header so it repeats across printed pages.</p>
+
+<table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 40px">
+<thead>
+<tr>
+<th style="text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--ink-900);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-900)">Item</th>
+<th style="text-align:left;padding:10px 12px;border-bottom:1px solid var(--ink-900);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-900)">Detail</th>
+<th style="text-align:left;padding:10px 12px;border-bottom:1px solid var(--ink-900);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-900)">Duration</th>
+<th style="text-align:right;padding:10px 0 10px 12px;border-bottom:1px solid var(--ink-900);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-900)">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr style="break-inside:avoid">
+<td style="padding:12px 12px 12px 0;border-bottom:1px solid var(--border-default);color:var(--ink-900)">Row label</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-default)">Short description of the line.</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-default)">2wk</td>
+<td style="padding:12px 0 12px 12px;border-bottom:1px solid var(--border-default);text-align:right;color:var(--ink-900)">£0,000</td>
+</tr>
+<tr style="break-inside:avoid">
+<td style="padding:12px 12px 12px 0;border-bottom:1px solid var(--border-default);color:var(--ink-900)">Row label</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-default)">Short description of the line.</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-default)">4wk</td>
+<td style="padding:12px 0 12px 12px;border-bottom:1px solid var(--border-default);text-align:right;color:var(--ink-900)">£0,000</td>
+</tr>
+<tr style="break-inside:avoid">
+<td style="padding:12px 12px 12px 0;border-bottom:1px solid var(--border-default);color:var(--ink-900)">Row label</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-default)">Short description of the line.</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-default)">2wk</td>
+<td style="padding:12px 0 12px 12px;border-bottom:1px solid var(--border-default);text-align:right;color:var(--ink-900)">£0,000</td>
+</tr>
+</tbody>
+</table>
+
+<div style="border:1px solid var(--border-default);padding:24px 28px;margin:0 0 40px;break-inside:avoid">
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--slate-400);margin-bottom:10px">Note</div>
+<p style="margin:0;max-width:62ch">A callout for an assumption, a dependency or a caveat the reader must not miss. Keep it under a page so it never splits.</p>
+</div>
+
+<blockquote style="margin:0 0 40px;padding-left:24px;border-left:2px solid var(--slate-400);max-width:58ch;break-inside:avoid">
+<p style="margin:0 0 10px;font-weight:200;font-size:22px;line-height:1.4;letter-spacing:-.015em;color:var(--ink-900)">A client quote, set light and large, carrying one idea.</p>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400)">Name, role · Company</div>
+</blockquote>
+
+<h2 style="font-weight:200;font-size:30px;line-height:1.15;letter-spacing:-.02em;color:var(--ink-900);margin:0 0 16px">Next steps</h2>
+
+<ol style="max-width:62ch;margin:0 0 44px;padding-left:0;list-style:none;display:grid;gap:14px;counter-reset:step">
+<li style="position:relative;padding-left:44px;orphans:3;widows:3"><span style="position:absolute;left:0;top:1px;font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--slate-400)">01</span>What happens first, and who owns it.</li>
+<li style="position:relative;padding-left:44px;orphans:3;widows:3"><span style="position:absolute;left:0;top:1px;font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--slate-400)">02</span>What happens next, and by when.</li>
+<li style="position:relative;padding-left:44px;orphans:3;widows:3"><span style="position:absolute;left:0;top:1px;font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--slate-400)">03</span>The decision we need from you.</li>
+</ol>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;padding-top:28px;border-top:1px solid var(--border-default);break-inside:avoid">
+<div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-bottom:40px">For Bellosoft Limited</div>
+<div style="border-top:1px solid var(--ink-900);padding-top:8px;font-size:13px">Name · Role · Date</div>
+</div>
+<div>
+<div style="font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-400);margin-bottom:40px">For client name</div>
+<div style="border-top:1px solid var(--ink-900);padding-top:8px;font-size:13px">Name · Role · Date</div>
+</div>
+</div>
+
+</div>
+</doc-page>
+</body>
+</html>

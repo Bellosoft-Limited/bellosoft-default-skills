@@ -134,6 +134,7 @@ Skills live in `.claude/skills/`. Load with `/skill-name` in Claude Code.
 | **ui-ux-pro-max** | `/ui-ux-pro-max` | Full UX/UI design workflow |
 | **slides** | `/slides` | Slide deck creation |
 | **ogilvy** | `/ogilvy` | Copywriting using Ogilvy principles |
+| **bellosoft-document** | `/bellosoft-document` | Client-facing documents (proposals, reports, letters) on the Bellosoft template, EN or PT, as HTML, PDF or Word |
 | **banner-design** | `/banner-design` | Ad banner generation |
 
 ### Engineering & content
