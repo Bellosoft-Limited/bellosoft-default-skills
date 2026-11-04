@@ -1,7 +1,7 @@
 ---
 name: bellosoft-dev-execute
 description: >
-  Executes a plan approved and saved by /bellosoft-dev-plan (docs/dev-plans/*.md).
+  Executes a plan approved and saved by /bellosoft-dev-plan (docs/planning-artifacts/dev-plans/*.md).
   Use this skill when the user types /bellosoft-dev-execute [plan path], ideally in a
   new context window. Follows strict TDD: writes ALL test cases first, confirms they
   fail, then implements the code to make them pass, one step at a time. Never skip
@@ -15,12 +15,12 @@ Execute an approved story implementation plan with strict Test-Driven Developmen
 The golden rule: **tests exist and fail before any production code is written.**
 
 ## Prerequisite
-A plan must be saved by `/bellosoft-dev-plan` in `docs/dev-plans/` with `status: approved`.
+A plan must be saved by `/bellosoft-dev-plan` in `docs/planning-artifacts/dev-plans/` with `status: approved`.
 
 Find the plan:
 1. Argument is a path → read that file.
-2. Argument is a ticket ID → read `docs/dev-plans/[ID]-*.md`.
-3. No argument → list `docs/dev-plans/*.md` with `status: approved`. If one file, confirm it: `Execute docs/dev-plans/X.md? (yes/no)`. If several, ask which.
+2. Argument is a ticket ID → read `docs/planning-artifacts/dev-plans/[ID]-*.md`.
+3. No argument → list `docs/planning-artifacts/dev-plans/*.md` with `status: approved`. If one file, confirm it: `Execute docs/planning-artifacts/dev-plans/X.md? (yes/no)`. If several, ask which.
 
 If the file is missing or not `status: approved`, stop and show:
 

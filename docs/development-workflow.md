@@ -36,9 +36,9 @@ Creates a tracker-compatible git branch (e.g. `feature/PROJ-42-story-slug`) and 
 
 **Step 4 — Execute the story**
 
-If you ran `/bellosoft-dev-plan` in Step 2, approving the plan saves it to `docs/dev-plans/`. Start a **new context window**, then execute it:
+If you ran `/bellosoft-dev-plan` in Step 2, approving the plan saves it to `docs/planning-artifacts/dev-plans/`. Start a **new context window**, then execute it:
 ```
-/bellosoft-dev-execute docs/dev-plans/PROJ-42-story-slug.md
+/bellosoft-dev-execute docs/planning-artifacts/dev-plans/PROJ-42-story-slug.md
 ```
 The agent follows the TDD cycle: write failing tests (RED) → implement (GREEN) → clean up (REFACTOR). If unexpected scope is discovered mid-implementation it surfaces the issue and pauses — never silently expands scope.
 

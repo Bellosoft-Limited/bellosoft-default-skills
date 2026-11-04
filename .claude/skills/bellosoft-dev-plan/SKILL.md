@@ -71,8 +71,8 @@ Use this format. Omit any section with no content. Never write "None".
 | 2 | `ShouldFailWith_WhenZ` | [≤10 words] |
 
 ### Files
-+ `path/new.ext` — [≤8 words]
-~ `path/existing.ext` — [≤8 words]
+- new `path/new.ext` — [≤8 words]
+- edit `path/existing.ext` — [≤8 words]
 
 ### Steps
 1. [Imperative, ≤12 words] → tests 1, 2
@@ -88,6 +88,7 @@ Use this format. Omit any section with no content. Never write "None".
 Rules:
 - Every AC has at least one test. If not, write `AC n — no test: [reason]`.
 - Include test files in `Files`. `bellosoft-dev-execute` reads them from there.
+- Write each `Files` entry as its own `- ` list item, one per line. Never start a line with `+` or `~`.
 - One step = one file when possible. Each step names the tests it makes pass.
 - No summary paragraph. The table and steps are the summary.
 - Add story ACs the task does not cover only if they affect this task.
@@ -123,7 +124,7 @@ End the plan with:
 
 ### On approve
 
-1. Save the plan to `docs/dev-plans/[ID]-[kebab-title].md`. Create the folder if missing.
+1. Save the plan to `docs/planning-artifacts/dev-plans/[ID]-[kebab-title].md`. Create the folder if missing.
    Overwrite the file if it exists for the same ID.
 2. File content: the approved plan, exactly as approved (include any feedback changes),
    with this header:
@@ -140,9 +141,9 @@ End the plan with:
 4. Reply with only this:
 
    ```
-   Plan saved: docs/dev-plans/[file].md (commit it with the story work)
+   Plan saved: docs/planning-artifacts/dev-plans/[file].md (commit it with the story work)
    Next: start a new context window, then run
-     /bellosoft-dev-execute docs/dev-plans/[file].md
+     /bellosoft-dev-execute docs/planning-artifacts/dev-plans/[file].md
    ```
 
 Stop there. Do not start execution in this session.
