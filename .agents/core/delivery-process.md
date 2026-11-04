@@ -57,7 +57,7 @@ Backlog → Ready → In Progress → Review → QA → Done
 ### Done
 - Acceptance criteria met.
 - No known defects.
-- Tracker updated (Jira/Plane).
+- Tracker updated (Jira).
 - Story closed.
 
 ---

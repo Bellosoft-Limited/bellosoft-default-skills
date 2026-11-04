@@ -24,13 +24,6 @@
       }
     }
   },
-  "mcp": {
-    "plane": {
-      "type": "remote",
-      "enabled": true,
-      "url": "https://mcp.plane.so/http/mcp"
-    }
-  },
   "plugin": [
     "@tarquinen/opencode-dcp@latest"
   ]

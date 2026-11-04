@@ -4,11 +4,11 @@ description: >
   Invoked after /bellosoft-dev-execute completes, or when the developer wants to validate
   their implementation against a story. Use when the user types /bellosoft-dev-review,
   says "review this", "check the story", "is this done?", or "validate AC".
-  Reads the original story (local .md, Jira ticket, or Plane ticket), maps each
+  Reads the original story (local .md or Jira ticket), maps each
   acceptance criterion to the actual code and tests, and produces a pass/fail
   verdict per criterion. Highlights gaps, missing edge cases, and anything that
   would block the story from being marked Done. Does NOT rewrite code — only audits
-  and reports. THIS SKILL IS OPTIONAL — devs can self-review directly in Jira/Plane.
+  and reports. THIS SKILL IS OPTIONAL — devs can self-review directly in Jira.
 ---
 
 # Skill: bellosoft-dev-review
@@ -19,7 +19,7 @@ Produce a clear pass/fail report so the developer knows if the story is
 genuinely done or still has gaps.
 
 This skill is **optional**. Developers can review their own work and mark
-stories Done in Jira/Plane without using it.
+stories Done in Jira without using it.
 
 ---
 
@@ -27,7 +27,6 @@ stories Done in Jira/Plane without using it.
 
 Use the same input resolution as `/bellosoft-dev-plan`:
 - Jira ticket ID → delegate to `/bellosoft-jira get [issue_key]`
-- Plane ticket ID → delegate to `/bellosoft-plane get [sequence_id]`
 - Local `.md` file → read directly
 - No argument → look for most recently modified story file
 
@@ -104,11 +103,11 @@ Story is complete. Suggested next steps:
     git commit -m "feat([STORY-ID]): [short description]"
 
   Sync tracker & open PR (run these skills):
-    /bellosoft-sync       ← marks story Done in Jira/Plane, adds review comment
+    /bellosoft-sync       ← marks story Done in Jira, adds review comment
     /bellosoft-github     ← creates PR with correct title format for auto-linking
 
   Or do it manually:
-    - Mark [STORY-ID] as Done in Jira/Plane
+    - Mark [STORY-ID] as Done in Jira
     - Open PR titled: [[STORY-ID]] [short description]
 ```
 

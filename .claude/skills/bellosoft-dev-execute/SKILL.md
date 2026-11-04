@@ -1,13 +1,11 @@
 ---
 name: bellosoft-dev-execute
 description: >
-  Invoked after the developer approves a plan from /bellosoft-dev-plan. Use this skill
-  when the user types /bellosoft-dev-execute, says "approve", "proceed", "start coding",
-  or "go ahead" after a dev-story plan has been presented. Executes the
-  approved implementation plan following strict TDD: writes ALL test cases
-  first, confirms they fail, then implements the code to make them pass, one
-  step at a time. Never skip the red-phase. Do NOT invoke on general coding
-  tasks or before a plan has been approved.
+  Executes a plan approved and saved by /bellosoft-dev-plan (docs/dev-plans/*.md).
+  Use this skill when the user types /bellosoft-dev-execute [plan path], ideally in a
+  new context window. Follows strict TDD: writes ALL test cases first, confirms they
+  fail, then implements the code to make them pass, one step at a time. Never skip
+  the red-phase. Do NOT invoke on general coding tasks or without an approved plan.
 ---
 
 # Skill: bellosoft-dev-execute
@@ -17,22 +15,25 @@ Execute an approved story implementation plan with strict Test-Driven Developmen
 The golden rule: **tests exist and fail before any production code is written.**
 
 ## Prerequisite
-A plan must have been produced by `/bellosoft-dev-plan` and explicitly approved.
-If no prior plan exists in context, stop and show:
+A plan must be saved by `/bellosoft-dev-plan` in `docs/dev-plans/` with `status: approved`.
+
+Find the plan:
+1. Argument is a path → read that file.
+2. Argument is a ticket ID → read `docs/dev-plans/[ID]-*.md`.
+3. No argument → list `docs/dev-plans/*.md` with `status: approved`. If one file, confirm it: `Execute docs/dev-plans/X.md? (yes/no)`. If several, ask which.
+
+If the file is missing or not `status: approved`, stop and show:
 
 ```
-No approved plan found in this session.
+No approved plan found.
 
 Options:
   1. /bellosoft-dev-plan PROJ-123          ← fetch ticket and generate a plan first
   2. /bellosoft-dev-plan "description"     ← describe what you want to build
   3. Skip planning — just code it yourself (no skill needed)
-
-/bellosoft-dev-execute only runs against an approved plan.
-If you want to code without a plan, work directly without this skill.
 ```
 
-Do NOT attempt to infer a plan from context or start coding without one.
+Do NOT infer a plan from chat history or start coding without one.
 
 ---
 
@@ -112,7 +113,7 @@ If option 3 (blocker) is chosen, output a ready-to-use ticket description:
 **What's needed:** [description]
 **Suggested size:** [XS/S/M]
 ```
-The developer can paste this into Jira/Plane directly.
+The developer can paste this into Jira directly.
 
 ---
 

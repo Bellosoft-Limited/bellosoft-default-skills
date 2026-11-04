@@ -6,7 +6,7 @@ description: >
   "there's an issue in production", "add tech debt", "unplanned work",
   "we found a bug in X", "add a task outside the PRD". Does NOT require a PRD.
   Works independently of /bellosoft-plan-epics and /bellosoft-plan-epic. Optionally pushes to Jira
-  or Plane via MCP.
+  via MCP.
 ---
 
 # Skill: bellosoft-plan-adhoc
@@ -170,17 +170,13 @@ Reply with:
 
 Before pushing:
 - If `docs/planning-artifacts/status.md` contains `tracker:` → skip this step
-- If not → load and follow `.claude/skills/bellosoft-plane/references/tracker-bootstrap.md`
+- If not → load and follow `.claude/skills/bellosoft-jira/references/tracker-bootstrap.md`
 
 ---
 
 ## Step 6 — Push (optional)
 
 Push to whichever tracker is configured in `docs/planning-artifacts/status.md`:
-
-**Plane** → delegate to `/bellosoft-plane`:
-- Bug/Hotfix: `/bellosoft-plane create-story` with Bug type
-- Task/Tech debt: `/bellosoft-plane create-task`
 
 **Jira** → delegate to `/bellosoft-jira`:
 - Bug/Hotfix: `/bellosoft-jira create-story` with issue_type=Bug, priority=Highest, estimate_hours=[total estimate]
@@ -200,7 +196,7 @@ After push (or markdown-only approval), output the dev handoff block:
 ```
 ## 🔧 Ready for development — [BUG-N / UNPL-N]
 
-**Ticket:** [Jira/Plane URL, or "see markdown above"]
+**Ticket:** [Jira URL, or "see markdown above"]
 
 This item follows the same dev workflow as any story:
 
@@ -210,7 +206,7 @@ This item follows the same dev workflow as any story:
     /bellosoft-dev-review                         ← validate and close
 
   Option B — without AI:
-    Work directly from the ticket in Jira/Plane
+    Work directly from the ticket in Jira
     The [QA] sign-off task is mandatory regardless of approach — this is manual QA verification, not test code
 
 Note: for hotfixes, the regression test task (BUG-N-T3) should be

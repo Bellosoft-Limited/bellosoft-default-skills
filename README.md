@@ -109,8 +109,7 @@ Skills live in `.claude/skills/`. Load with `/skill-name` in Claude Code.
 | Skill | Command | Purpose |
 |-------|---------|---------|
 | **bellosoft-jira** | `/bellosoft-jira` | Jira service layer — create epics/stories/tasks, manage sprints, transitions, imports |
-| **bellosoft-plane** | `/bellosoft-plane` | Plane.so service layer — same operations for Plane |
-| **bellosoft-sync** | `/bellosoft-sync` | Tracker sync — import, push, migrate (Plane→Jira or Jira→Plane), replan-and-migrate |
+| **bellosoft-sync** | `/bellosoft-sync` | Tracker sync — import, push, pull, update |
 
 ### Development workflow
 
@@ -159,14 +158,8 @@ epics, stories, and tasks in your tracker of choice.
 /bellosoft-plan-epics              3. PRD → Epic register
 /bellosoft-plan-epic E1            4. Decompose epic → stories + tasks
 /bellosoft-plan-epic E2            5. Repeat for each epic
-/bellosoft-sync push               6. Push everything to Jira or Plane
+/bellosoft-sync push               6. Push everything to Jira
 ```
-
-**Tracker migration** (e.g. Plane → Jira with replanning):
-```
-/bellosoft-sync replan-and-migrate
-```
-Imports from source → runs plan-epics → decomposes each epic → migrates to destination.
 
 **Repair tasks in tracker** (missing ACs, gaps vs PRD):
 ```
@@ -199,8 +192,7 @@ Credentials are stored in `.secrets/` (gitignored — never committed):
 ├── jira-url.txt           # or combined jira-credentials.txt
 ├── jira-username.txt
 ├── jira-api-token.txt
-├── jira-identity.txt      # personal identity (account_id, email)
-└── plane-api-key.txt
+└── jira-identity.txt      # personal identity (account_id, email)
 ```
 
 Project config (safe to commit):
@@ -208,7 +200,6 @@ Project config (safe to commit):
 docs/planning-artifacts/
 ├── status.md              # tracker preference + epic/story/task keys
 ├── jira-profile.md        # Jira project config (no personal data)
-├── plane-profile.md       # Plane project config
 ├── epics.md               # Epic register
 ├── codebase-audit.md      # Codebase audit
 ├── prd.md                 # Product requirements
@@ -221,7 +212,7 @@ docs/planning-artifacts/
 ## Key principles
 
 1. **Load on demand** — skills, core rules, and stack guidelines are loaded when needed. Nothing is eagerly pre-loaded.
-2. **MCP first** — tracker operations use MCP tools (`mcp__atlassian__*`, `mcp_plane_*`) when connected. REST fallback only when MCP is unavailable.
+2. **MCP first** — tracker operations use MCP tools (`mcp__atlassian__*`) when connected. REST fallback only when MCP is unavailable.
 3. **No hardcoding** — issue type IDs, custom field IDs, and transition IDs are always discovered at runtime via the tracker API.
-4. **Delegate** — `bellosoft-jira` and `bellosoft-plane` are the only skills that call tracker APIs directly. All others delegate to them.
+4. **Delegate** — `bellosoft-jira` is the only skill that calls tracker APIs directly. All others delegate to it.
 5. **No personal data in docs** — credentials and identity go to `.secrets/`, never to `docs/`.

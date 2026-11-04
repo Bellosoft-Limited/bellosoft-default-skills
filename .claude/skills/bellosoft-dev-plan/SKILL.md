@@ -2,292 +2,147 @@
 name: bellosoft-dev-plan
 description: >
   Invoked when the developer wants AI help planning a story before coding. Use this skill
-  when the user types /bellosoft-dev-plan, mentions a story ID (PROJ-123, NOKEY-42),
+  when the user types /bellosoft-dev-plan, mentions a Jira ticket ID (PROJ-123),
   a story file path (.md), or says "start story", "plan this story", "help me implement STORY-123".
-  Accepts a local .md file, a Jira ticket ID, a Plane ticket ID, or pasted story content.
-  Produces a structured implementation plan with TDD approach — test cases listed BEFORE
+  Accepts a local .md file, a Jira ticket ID or URL, or pasted story content.
+  Produces a short implementation plan with TDD approach — tests listed BEFORE
   implementation steps. Waits for explicit approval before any code is written.
-  THIS SKILL IS OPTIONAL — devs can work directly from Jira/Plane without it.
+  THIS SKILL IS OPTIONAL — devs can work directly from Jira without it.
   Do NOT auto-invoke on general coding tasks.
 ---
 
 # Skill: bellosoft-dev-plan
 
-## Philosophy — skills are optional
-
-This skill helps when a developer wants AI assistance planning their approach.
-It is **not a gate**. Developers can and should:
-- Work directly from the Jira or Plane ticket without this skill
-- Start coding immediately without a plan
-- Use only some skills (e.g. just `/bellosoft-dev-review` at the end)
-- Skip AI entirely for straightforward stories
-
-Use this skill when the story is complex enough that thinking through the
-approach upfront is worth the time investment.
-
----
-
-## Invocation
+Optional. Not a gate. Devs can work from Jira without it.
+Use it when the story is complex enough that a plan saves time.
 
 ```
-/bellosoft-dev-plan PROJ-123                        ← fetch from Jira by ticket ID
-/bellosoft-dev-plan NOKEY-42                        ← fetch from Plane by ticket ID
-/bellosoft-dev-plan https://org.atlassian.net/...   ← paste a full Jira URL — ID is extracted
-/bellosoft-dev-plan path/to/story.md                ← load from local file
-/bellosoft-dev-plan "add password reset to login"   ← typed free-form description
-/bellosoft-dev-plan                                 ← paste story content, or find most recent .md
+/bellosoft-dev-plan PROJ-123                        ← Jira ticket ID
+/bellosoft-dev-plan https://belloprojects.atlassian.net/...   ← Jira URL
+/bellosoft-dev-plan path/to/story.md                ← local file
+/bellosoft-dev-plan "add password reset to login"   ← free-form text
+/bellosoft-dev-plan                                 ← pasted content, or latest story .md
 ```
 
 ---
 
-## Step 0.5 — Tracker resolution (first-time only)
+## Step 0 — Tracker
 
-Before fetching or creating any ticket:
-- If `docs/planning-artifacts/status.md` contains `tracker:` → skip this step
-- If not → load and follow `.claude/skills/bellosoft-plane/references/tracker-bootstrap.md`
+If `docs/planning-artifacts/status.md` has `tracker:` → skip.
+Otherwise load `.claude/skills/bellosoft-jira/references/tracker-bootstrap.md`.
 
----
+## Step 1 — Load the story
 
-## Step 1 — Load the Story
+Load `references/load-story.md`. It covers each input type.
+Extract: title/ID, goal, numbered ACs, technical notes, out of scope.
 
-Determine the input type and load accordingly:
+If ACs are missing, ask: `No ACs. Define ACs first, or continue without? (define / continue)`
 
-### A) Jira ticket ID or URL
-Detect:
-- Plain ticket ID: matches pattern `[A-Z]+-\d+` (e.g. `AP-29`, `PROJ-123`)
-- Full Jira URL: contains `atlassian.net` or `jira` — extract ticket ID from URL:
-  - `?selectedIssue=AP-29` → `AP-29`
-  - `/browse/AP-29` → `AP-29`
-  - Find first `[A-Z]+-\d+` match in the URL string
+## Step 2 — Load parent context
 
-Check tracker from `docs/planning-artifacts/status.md`. If `tracker: jira`:
-Delegate to `/bellosoft-jira get [issue_key]`.
+Load `references/parent-context.md`. Fetch parents silently.
+Do not print a context block. Use one line in the plan (`E2 › S3 › T5`).
+If a parent cannot be fetched, continue with what is available.
 
-The bellosoft-jira GET operation handles MCP and REST fallback automatically —
-**do not show a "no connection" error here**; let the jira skill resolve it.
+## Step 3 — Analyse the codebase
 
-If tracker check needed and not yet configured, follow Step 0.5 first.
+If `docs/planning-artifacts/codebase-audit.md` exists:
+- Read Module Inventory, Established Conventions, Tech Debt Register.
+- Follow the conventions in all new code.
+- Re-read only the affected files if the audit is older than 14 days or misses a module.
 
-### B) Plane ticket ID (e.g. `NOKEY-42`, `BEL-7`)
-Detect: matches Plane sequence number pattern or explicit Plane URL.
+If no audit exists, read only the relevant code:
+- Find the files this story touches (`Glob`, `Grep`, `Read`).
+- Find the test framework and test file naming.
+- Find similar code to copy patterns from.
 
-Delegate to `/bellosoft-plane`:
-```
-/bellosoft-plane get [sequence_number]
-```
-bellosoft-plane returns a structured story object (title, ACs, description).
-If bellosoft-plane cannot connect → fall back: ask user to paste content.
+## Step 4 — Write the plan
 
-### C) Local .md file path
-Read the file directly. If missing, stop and ask for correct path.
-
-### D) No argument given
-1. Check for most recently modified `.md` under `docs/stories/`, `stories/`, `.plane/`
-2. If found → confirm: "Found `stories/E1-S2-auth-login.md` — use this? (yes/no)"
-3. If not found → ask: "Please provide a ticket ID, file path, or paste the story content."
-
-### E) Pasted content
-If the user pastes raw text (multi-line, structured) → use it directly.
-
-### F) Typed free-form description
-If the argument is a short natural-language phrase (not a ticket ID, path, or structured content):
-- Use it as the story title and goal
-- Ask the developer to define acceptance criteria before proceeding:
+Use this format. Omit any section with no content. Never write "None".
 
 ```
-Got it — planning: "add password reset to login"
+## Plan — [ID]: [Title]
+[Epic ID] › [Story ID] › [Task ID]
 
-Before I can produce a plan, I need at least one acceptance criterion.
-What does done look like? (e.g. "user receives a reset email and can set a new password")
+### Acceptance criteria → tests
+| AC | Test | Behaviour |
+|----|------|-----------|
+| 1 | `ShouldDoX_WhenY` | [≤10 words] |
+| 2 | `ShouldFailWith_WhenZ` | [≤10 words] |
 
-You can:
-  - Type the ACs here
-  - Or I'll draft some based on the description and you confirm them
-```
+### Files
++ `path/new.ext` — [≤8 words]
+~ `path/existing.ext` — [≤8 words]
 
-Draft ACs if the user asks, confirm them.
-
-Then ask:
-```
-Should I create a ticket for this in your tracker before planning?
-  1. Yes — create in Jira
-  2. Yes — create in Plane
-  3. No — plan only, I'll create the ticket manually (or not at all)
-```
-
-Only show options for trackers configured in `docs/planning-artifacts/status.md`. If `tracker: none` or no status file, skip this prompt and proceed to Step 2.
-
-For Jira → delegate to `/bellosoft-jira create-story`.
-For Plane → delegate to `/bellosoft-plane create-story`.
-
-If the user chooses 1 or 2 — create the ticket (Story type) with the title, goal, and confirmed ACs, save the returned ticket ID, then proceed to Step 2 using that ticket as the story source. This way the plan is linked to a real ticket from the start.
-
----
-
-After loading, extract and confirm:
-- **Title / ID**
-- **Goal** (what business value this delivers)
-- **Acceptance Criteria** (numbered list)
-- **Technical Notes** (any hints about files, APIs, patterns)
-- **Out of Scope** (explicit exclusions)
-
-If ACs are missing or ambiguous, flag them before proceeding:
-```
-⚠️ This story has no acceptance criteria. Proceeding without them means
-the implementation plan will have no verifiable completion signal.
-Continue anyway? (yes / define ACs first)
-```
-
----
-
-## Step 1.5 — Load Parent Context
-
-After loading the primary ticket, determine its issue type and walk up the hierarchy.
-This context is critical for understanding WHY the task exists and WHAT patterns to follow.
-
-### If the loaded ticket is a Task / Sub-task
-
-Fetch its parent **Story**:
-```
-/bellosoft-jira get [parent_story_key]      ← parent key is in the task's `parent` field
-/bellosoft-plane get [parent_story_id]
-```
-
-Then fetch the parent **Epic** of that story:
-```
-/bellosoft-jira get [epic_key]              ← epic key is in story's `parent` or `Epic Link` field
-/bellosoft-plane get [epic_id]
-```
-
-Also check `docs/planning-artifacts/epic-plans/E{N}-plan.md` if it exists — this contains
-the full decomposition with all stories and tasks for this epic, giving useful cross-task context.
-
-### If the loaded ticket is a Story
-
-Fetch its parent **Epic**:
-```
-/bellosoft-jira get [epic_key]
-/bellosoft-plane get [epic_id]
-```
-
-Check `docs/planning-artifacts/epic-plans/E{N}-plan.md` for the full epic decomposition.
-
-### If the loaded ticket is already an Epic
-
-No parent to fetch. Load `docs/planning-artifacts/epics.md` for the full epic register context.
-
-### What to extract from parent context
-
-From the **Story** (if fetched):
-- Full user story statement (As a... I want... so that...)
-- All acceptance criteria — the implementation must satisfy ALL of them, not just the task's AC
-- Any technical notes or constraints
-
-From the **Epic** (if fetched):
-- Epic goal — the business outcome this feature delivers
-- Conventions and patterns established for this epic (from epic-plan.md if available)
-- Other stories in the epic — understand what's already done and what comes next
-- Dependencies — does this task's story depend on other stories?
-
-### Context summary before planning
-
-Before moving to Step 2, output a brief context block:
-
-```
-## Context loaded
-
-**Epic E[N]:** [Epic title]
-Goal: [one sentence]
-
-**Story E[N]-S[N]:** [Story title]
-User story: As a [persona], I want [action] so that [outcome].
-Story ACs:
-  1. [AC]
-  2. [AC]
-
-**Task [task_id]:** [Task title]
-Description: [implementation notes from task]
-Task AC: [task-level AC]
-```
-
-If any parent cannot be fetched (MCP unavailable, ticket not found), note it and proceed
-with what's available — do NOT block the plan on missing parent context.
-
----
-
-## Step 2 — Analyse the Codebase
-
-**If `docs/planning-artifacts/codebase-audit.md` exists**, load it first:
-- Read the Module Inventory to find which modules this story touches
-- Read Established Conventions — all new code MUST follow them
-- Read the Tech Debt Register for anything that affects this story
-- Skip fresh codebase reading for modules already documented in the audit
-
-**If no audit exists**, do a targeted read of the relevant code:
-- Find existing files/modules most likely touched by this story (use `Glob`, `Grep`, `Read`)
-- Identify the testing framework in use (xUnit, NUnit, Jest, Vitest, etc.)
-- Identify naming conventions for test files (e.g. `*.Tests.cs`, `*.spec.ts`)
-- Note any existing similar implementations to follow as patterns
-
-If the audit exists but is stale (> 14 days old or story touches modules not covered),
-note it and do a targeted re-read of only the affected files.
-
----
-
-## Step 3 — Produce the Implementation Plan
-
-Output a structured plan in this exact format:
-
-```
-## Implementation Plan — [TASK/STORY-ID]: [Title]
-
-### Context
-Epic: [E-N title] — [one-line epic goal]
-Story: [story title] — [one-line user story]
-This task: [what this specific task contributes to the story]
-
-### Summary
-[2-3 sentences: what will be built, how it fits the story goal, and which story ACs it satisfies]
-
-### Files to Create
-- `path/to/new/file` — [purpose]
-
-### Files to Modify
-- `path/to/existing/file` — [what changes and why]
-
-### Test Cases (write these FIRST)
-For each acceptance criterion, list the test(s) that prove it:
-
-| # | Test Name | Criterion Covered | Expected Behaviour |
-|---|-----------|-------------------|--------------------|
-| 1 | `ShouldDoX_WhenY` | AC-1 | ... |
-| 2 | `ShouldFailWith_WhenZ` | AC-2 | ... |
-
-### Implementation Steps
-Only after all tests above are written and confirmed failing:
-
-1. [Step — specific, max 1 file per step where possible]
+### Steps
+1. [Imperative, ≤12 words] → tests 1, 2
 2. ...
 
-### Out of Scope (not touching)
+### Out of scope
 - [item]
 
-### Risks / Questions
-- [Any ambiguity that needs clarification before starting]
+### Questions
+- [Blocking only. Yes/no answer.]
 ```
 
+Rules:
+- Every AC has at least one test. If not, write `AC n — no test: [reason]`.
+- Include test files in `Files`. `bellosoft-dev-execute` reads them from there.
+- One step = one file when possible. Each step names the tests it makes pass.
+- No summary paragraph. The table and steps are the summary.
+- Add story ACs the task does not cover only if they affect this task.
+
+### Writing style (simplified technical English)
+- Maximum 20 words per sentence. One instruction per sentence.
+- Use imperative and active voice: "Add `ResetToken`", not "`ResetToken` should be added".
+- Use one word for one thing. Always "test" (not spec, scenario, case). Always "file" (not module, artifact).
+- Do not use idioms or filler: "in order to", "make sure that", "leverage", "robust".
+- Table cells are fragments, not sentences.
+- Put the reason after a dash. Skip the reason if the step name is clear.
+
+| Avoid | Write |
+|-------|-------|
+| "We should make sure that the token is validated before it is used" | "Validate token before use" |
+| "This will update the controller so that it handles the new error case" | "Handle `TokenExpired` in controller" |
+| "There is a risk that the email service might not be available" | "Is the email service mocked in tests? (yes/no)" |
+
+## Step 5 — Wait for approval
+
+End the plan with:
+
+```
 ---
-
-## Step 4 — Wait for Approval
-
-After outputting the plan, always end with:
-
-```
----
-Plan ready. Reply with:
-  ✅ approve       — proceed to /bellosoft-dev-execute
-  ✏️  [feedback]   — adjust the plan
-  ❌ cancel        — abort (you can start coding directly without this plan)
+✅ approve · ✏️ [feedback] · 🔍 explain N · ❌ cancel
 ```
 
-**Do NOT write any code until the developer explicitly approves.**
+- `approve` → save the plan. See below. Do **not** run `/bellosoft-dev-execute`.
+- `explain N` → expand step or test N in 3–5 lines. Nothing else.
+- `cancel` → stop. The dev can code without a plan.
+
+**Do NOT write code until the developer approves. After approval, still write no code.**
+
+### On approve
+
+1. Save the plan to `docs/dev-plans/[ID]-[kebab-title].md`. Create the folder if missing.
+   Overwrite the file if it exists for the same ID.
+2. File content: the approved plan, exactly as approved (include any feedback changes),
+   with this header:
+
+   ```
+   ---
+   ticket: [ID]
+   status: approved
+   approved: [YYYY-MM-DD]
+   ---
+   ```
+3. Do not stage or commit the file. The developer controls git.
+   The plan is a project record. The developer commits it with the story work.
+4. Reply with only this:
+
+   ```
+   Plan saved: docs/dev-plans/[file].md (commit it with the story work)
+   Next: start a new context window, then run
+     /bellosoft-dev-execute docs/dev-plans/[file].md
+   ```
+
+Stop there. Do not start execution in this session.

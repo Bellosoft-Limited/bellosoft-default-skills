@@ -824,14 +824,13 @@ Ask before overwriting if `docs/planning-artifacts/` already exists.
 
 ## Tracker detection (multi-tracker environments)
 
-When both Jira and Plane may be configured:
+When more than one tracker may be configured:
 
 1. Check `docs/planning-artifacts/status.md` for `tracker:` field
 2. `tracker: jira` → delegate here
-3. `tracker: plane` → delegate to `bellosoft-plane`
-4. Not set → check which profile files exist
-5. Both exist → ask user which tracker for this operation
-6. Neither → ask user to run `/bellosoft-jira setup` or `/bellosoft-plane setup`
+3. Not set → check which profile files exist
+4. Multiple exist → ask user which tracker for this operation
+5. None → ask user to run `/bellosoft-jira setup`
 
 ---
 

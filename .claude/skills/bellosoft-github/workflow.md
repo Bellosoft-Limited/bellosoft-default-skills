@@ -11,9 +11,9 @@ Format: `{type}/{ticket_id}/{slug}` (slash-separated). No ticket → `{type}/{sl
 | Scenario | Branch |
 |---|---|
 | Jira story, feature | `feature/PROJ-42/user-auth-jwt` |
-| Plane bug | `fix/NOKEY-7/login-redirect-loop` |
+| Jira bug | `bug/PROJ-7/login-redirect-loop` |
 | No tracker, refactor | `chore/refactor-payment-service` |
-| Hotfix | `fix/PROJ-99/null-ref-on-checkout` |
+| Hotfix | `hotfix/PROJ-99/null-ref-on-checkout` |
 
 ---
 
@@ -24,7 +24,7 @@ With ticket: `#{ticket_id}: {description}`. Without ticket: `{type}: {descriptio
 | Type | Message |
 |---|---|
 | Jira feature | `#PROJ-42: add JWT authentication middleware` |
-| Plane fix | `#NOKEY-7: resolve redirect loop on login` |
+| Jira fix | `#PROJ-7: resolve redirect loop on login` |
 | No tracker | `chore: upgrade dotnet to 9.0.5` |
 | Test, no tracker | `test: add unit tests for auth service` |
 
@@ -37,7 +37,6 @@ With tracker: `#{ticket_id}: {story_title}`. Without tracker: `{type}: {descript
 | Tracker | Title |
 |---|---|
 | Jira | `#PROJ-42: User authentication with JWT` |
-| Plane | `#NOKEY-7: Fix login redirect loop` |
 | None | `feat: add payment processing module` |
 
 The `#{ticket_id}` prefix (not brackets) is what activates automatic tracker state transitions.
@@ -46,11 +45,7 @@ The `#{ticket_id}` prefix (not brackets) is what activates automatic tracker sta
 
 ## Tracker state automation
 
-Both trackers are triggered by the `#{ticket_id}` format in the PR title.
-
-### Plane
-Requires GitHub integration enabled in Plane project settings.
-On PR merge → Plane moves the work item to **Done**.
+The tracker is triggered by the `#{ticket_id}` format in the PR title.
 
 ### Jira
 Requires the Jira GitHub integration (smart commits) enabled.
@@ -77,9 +72,8 @@ Resolve `{ticket_id}` in this order (see SKILL.md for full detail):
 2. **Current branch name** — parse the `{type}/{ticket_id}/{slug}` pattern
 3. **Tracker lookup** — read `docs/planning-artifacts/status.md` for `tracker:`, then delegate:
    - `tracker: jira` → `/bellosoft-jira get [key]`
-   - `tracker: plane` → `/bellosoft-plane get [sequence_id]`
 4. **No tracker** — omit the ticket from branch/commit (slug only, no ticket scope).
 
-This skill never calls Plane or Jira MCP tools directly — it always delegates to
-`/bellosoft-jira get` or `/bellosoft-plane get`, which return a structured story
+This skill never calls Jira MCP tools directly — it always delegates to
+`/bellosoft-jira get`, which returns a structured story
 object with `title`, `status`, and `acceptance_criteria`.
