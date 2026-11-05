@@ -8,7 +8,7 @@ In Copilot/Claude chat:
 ```
 /bellosoft-sprint
 ```
-Shows your active sprint items grouped by status (Blocked 🔴, In Progress 🟡, To Do ⚪, Done ✅) with quick-start commands for each story. Alternatively, open your tracker (Jira/Plane) directly and note the ticket ID (e.g. `PROJ-42` or `NOKEY-42`).
+Shows your active sprint items grouped by status (Blocked 🔴, In Progress 🟡, To Do ⚪, Done ✅) with quick-start commands for each story. Alternatively, open your tracker (Jira) directly and note the ticket ID (e.g. `PROJ-42`).
 
 **Step 2 — Plan the story**
 
@@ -25,11 +25,6 @@ Fetches the story from your tracker, loads relevant codebase context, and produc
 In Copilot/Claude chat:
 ```
 /bellosoft-github branch
-/bellosoft-plane update NOKEY-42 transition "In Development"
-```
-or for Jira:
-```
-/bellosoft-github branch
 /bellosoft-jira update PROJ-42 transition "In Progress"
 ```
 
@@ -41,9 +36,9 @@ Creates a tracker-compatible git branch (e.g. `feature/PROJ-42-story-slug`) and 
 
 **Step 4 — Execute the story**
 
-If you ran `/bellosoft-dev-plan` in Step 2, execute the approved plan:
+If you ran `/bellosoft-dev-plan` in Step 2, approving the plan saves it to `docs/planning-artifacts/dev-plans/`. Start a **new context window**, then execute it:
 ```
-/bellosoft-dev-execute
+/bellosoft-dev-execute docs/planning-artifacts/dev-plans/PROJ-42-story-slug.md
 ```
 The agent follows the TDD cycle: write failing tests (RED) → implement (GREEN) → clean up (REFACTOR). If unexpected scope is discovered mid-implementation it surfaces the issue and pauses — never silently expands scope.
 
@@ -103,10 +98,6 @@ Commits with a conventional message linked to the ticket (`feat(PROJ-42): descri
 **Step 10 — Sync tracker to In Review**
 
 In Copilot/Claude chat:
-```
-/bellosoft-plane update NOKEY-42 transition "In Review"
-```
-or for Jira:
 ```
 /bellosoft-jira update PROJ-42 transition "In Review"
 ```

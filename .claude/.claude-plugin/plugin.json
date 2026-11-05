@@ -1,7 +1,7 @@
 {
   "name": "bellosoft-default-skills",
   "version": "1.0.0",
-  "description": "Bellosoft's shared Claude Code skill library: delivery workflow (PRD, epics, stories, dev plan/execute/review), tracker integrations (Jira, Plane, OpenProject), DORA metrics, GitHub automation, and design/UI skills.",
+  "description": "Bellosoft's shared Claude Code skill library: delivery workflow (PRD, epics, stories, dev plan/execute/review), tracker integrations (Jira, OpenProject), DORA metrics, GitHub automation, and design/UI skills.",
   "author": {
     "name": "Bellosoft",
     "url": "https://github.com/Bellosoft-Limited"
@@ -13,7 +13,6 @@
     "bellosoft",
     "delivery",
     "jira",
-    "plane",
     "openproject",
     "dora",
     "github",

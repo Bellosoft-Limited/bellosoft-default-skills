@@ -5,7 +5,7 @@ description: >
   assigned to the current user or the team. Entry point for the dev daily workflow.
   Triggers: /bellosoft-sprint, "what's in my sprint", "what should I work on",
   "show my tickets", "what's open this sprint", "morning standup", "what's left this sprint",
-  "sprint status", "what are my stories". Fetches live data from Jira or Plane via MCP.
+  "sprint status", "what are my stories". Fetches live data from Jira via MCP.
   Falls back to docs/planning-artifacts/status.md if no tracker is connected.
 ---
 
@@ -41,13 +41,6 @@ If no `docs/planning-artifacts/` folder exists, skip this step silently.
 ---
 
 ## Step 1 — Detect tracker and sprint
-
-**Plane — delegate to `/bellosoft-plane`:**
-```
-/bellosoft-plane list-sprint mine    ← your open stories
-/bellosoft-plane list-sprint team    ← full team view
-```
-bellosoft-plane handles pagination, active cycle detection, and grouping.
 
 **Jira — delegate to `/bellosoft-jira`:**
 ```
@@ -121,7 +114,7 @@ Quick start:
   /bellosoft-dev-plan PROJ-43   ← plan with AI (TDD approach)
   /bellosoft-dev-plan PROJ-45   ← plan with AI
 
-Or work directly from Jira/Plane — no skill required.
+Or work directly from Jira — no skill required.
 ```
 
 If any story is blocked, flag it explicitly:

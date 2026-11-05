@@ -2,9 +2,9 @@
 name: bellosoft-plan-epics
 description: >
   Use this skill to start planning from a PRD, update an existing plan when the PRD
-  changes, or import an existing plan from Jira/Plane. Triggers: /bellosoft-plan-epics,
+  changes, or import an existing plan from Jira. Triggers: /bellosoft-plan-epics,
   "identify epics", "parse this PRD", "PRD changed", "update epics", "re-read the PRD".
-  For teams already in Jira/Plane without a PRD, use /bellosoft-sync import instead —
+  For teams already in Jira without a PRD, use /bellosoft-sync import instead —
   it bootstraps docs/planning-artifacts/ directly from the tracker. Does NOT decompose stories or tasks
   — that is /bellosoft-plan-epic. Run this first, or re-run whenever the PRD changes.
 ---
@@ -25,7 +25,7 @@ the start, then re-run it whenever the PRD changes.
 /bellosoft-plan-epics                       ← re-reads PRD from docs/planning-artifacts/prd-source.md if saved
 ```
 
-> **Already have tickets in Jira/Plane and no PRD?** Use `/bellosoft-sync import` to bootstrap
+> **Already have tickets in Jira and no PRD?** Use `/bellosoft-sync import` to bootstrap
 > `docs/planning-artifacts/` from your tracker — no PRD needed.
 >
 > **Replanning existing tickets** (e.g. BMAD → Bellosoft format, or adding task breakdowns)?
@@ -387,6 +387,6 @@ Next steps:
 
 ## Hard rules
 - Never create stories or tasks — that is /bellosoft-plan-epic
-- Never push to Jira or Plane — that is /bellosoft-plan-epic
+- Never push to Jira — that is /bellosoft-plan-epic
 - Always save state before finishing
 - Always detect PRD changes when re-running

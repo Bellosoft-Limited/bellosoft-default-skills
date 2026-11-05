@@ -36,7 +36,7 @@ You decide which epic to decompose and when.
 
 Before any push operation, check if tracker is already configured:
 - If `docs/planning-artifacts/status.md` contains `tracker:` → skip this step entirely
-- If not → load and follow `.claude/skills/bellosoft-plane/references/tracker-bootstrap.md`
+- If not → load and follow `.claude/skills/bellosoft-jira/references/tracker-bootstrap.md`
 
 This step runs silently when re-running on an already-configured project.
 
@@ -63,17 +63,12 @@ Options:
   /bellosoft-plan-epic E[N] add     ← add more stories to existing epic
 ```
 
-**Tracker check** — before decomposing, check whether stories already exist in Jira/Plane:
+**Tracker check** — before decomposing, check whether stories already exist in Jira:
 
 If `tracker: jira` (from `docs/planning-artifacts/status.md`):
 ```
 # Delegate to bellosoft-jira:
 /bellosoft-jira get [EPIC-KEY]  ← then search stories linked to it
-```
-If `tracker: plane`:
-```
-# Delegate to bellosoft-plane:
-/bellosoft-plane list-stories epic_id=[epicId]
 ```
 
 **Four outcomes:**
@@ -84,7 +79,7 @@ B) **Tracker connected, no existing stories found** → proceed with full decomp
 
 C) **Tracker connected, stories exist** → show them and ask:
 ```
-Found N existing stories for this epic in [Jira/Plane]:
+Found N existing stories for this epic in [Jira]:
   PROJ-42 — [title] — [state]
   PROJ-43 — [title] — [state]
   PROJ-44 — [title] — [state]
@@ -400,37 +395,11 @@ Reply with:
 After approval, ask:
 ```
 Where would you like to push E[N]?
-  1. Plane   (via /bellosoft-plane)
-  2. Jira
-  3. Markdown only — I'll create tickets manually
+  1. Jira
+  2. Markdown only — I'll create tickets manually
 ```
 
-### Option 1 — Plane
-
-Delegate ALL Plane operations to `/bellosoft-plane` in strict order.
-Do NOT call Plane MCP tools directly — bellosoft-plane handles all API quirks,
-HTML formatting, type resolution, and error handling.
-
-```
-1. /bellosoft-plane create-cycle "[Sprint name]" [start_date] [end_date]
-   → returns cycle_id
-
-2. /bellosoft-plane create-epic [E_number] "[title]" "[description]"
-   → returns epic_id
-
-3. For each Story:
-   /bellosoft-plane create-story [story_id] "[title]" [user_story] [ACs...]
-     epic_id=[epic_id] cycle_id=[cycle_id] estimate=[Xh] priority=[high|medium|low]
-   → returns story_work_item_id
-
-4. For each Task under that Story:
-   /bellosoft-plane create-task [task_id] "[title]" "[AC]"
-     parent_story_id=[story_work_item_id] estimate=[Xh] area_tag=[TAG]
-   (task_id = e.g. E1-S1-T1; title = clean description WITHOUT the tag; area_tag = BE|FE|DEVOPS|QA)
-   bellosoft-plane assembles the full name as: {task_id} [{area_tag}] {title}
-```
-
-### Option 2 — Jira
+### Option 1 — Jira
 
 Delegate ALL Jira operations to `/bellosoft-jira` in strict order.
 Do NOT call Atlassian MCP tools directly — bellosoft-jira handles ADF format,
@@ -457,7 +426,7 @@ custom field discovery, project type detection, and error handling.
    Each task's estimate=[Xh] sets its own originalEstimate in Jira.
 ```
 
-### Error handling (all options)
+### Error handling
 - Log every failure, continue with remaining items
 - Never silently drop items
 - End with recovery report:
@@ -503,7 +472,7 @@ criteria, wrong estimates, or are missing coverage for PRD requirements.
 
 ### Step F1 — Read tracker state
 
-Read `docs/planning-artifacts/status.md` to find all Jira/Plane keys for this epic:
+Read `docs/planning-artifacts/status.md` to find all Jira keys for this epic:
 ```bash
 grep "jira_epic_E5\|jira_story_5\." docs/planning-artifacts/status.md
 ```

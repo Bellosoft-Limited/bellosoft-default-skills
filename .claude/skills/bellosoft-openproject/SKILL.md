@@ -670,10 +670,9 @@ When more than one tracker may be configured:
 1. Check `docs/planning-artifacts/status.md` for `tracker:` field
 2. `tracker: openproject` → delegate here
 3. `tracker: jira` → delegate to `bellosoft-jira`
-4. `tracker: plane` → delegate to `bellosoft-plane`
-5. Not set → check which profile files exist (`openproject-profile.md`, `jira-profile.md`, `plane-profile.md`)
-6. Multiple exist → ask user which tracker for this operation
-7. None → ask user to run setup for their preferred tracker
+4. Not set → check which profile files exist (`openproject-profile.md`, `jira-profile.md`)
+5. Multiple exist → ask user which tracker for this operation
+6. None → ask user to run setup for their preferred tracker
 
 ---
 

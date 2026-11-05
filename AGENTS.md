@@ -12,7 +12,7 @@ Index only — load on demand, never pre-load.
 | Stack guidelines | `.agents/stack/<name>.md` |
 | Universal rules | `.agents/core/<name>.md` |
 | Prompt templates | `.agents/prompts/<name>.prompt.md` |
-| Tracker bootstrap | `.claude/skills/bellosoft-plane/references/tracker-bootstrap.md` |
+| Tracker bootstrap | `.claude/skills/bellosoft-jira/references/tracker-bootstrap.md` |
 
 ## Discovery
 

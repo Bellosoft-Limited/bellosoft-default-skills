@@ -317,7 +317,7 @@ For bellosoft area tags, embed the tag in the work package `subject`:
 E8-S2-T1 [BE] Add campaign scheduling method
 ```
 
-This mirrors the Jira/Plane approach and makes tags visible in the board without custom field setup.
+This mirrors the Jira approach and makes tags visible in the board without custom field setup.
 
 ---
 

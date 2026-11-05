@@ -2,7 +2,7 @@
 name: bellosoft-github
 description: >
   Creates git branches, conventional commits, and pull requests following bellosoft
-  conventions. Supports Jira and Plane ticket IDs, or works without any tracker.
+  conventions. Supports Jira ticket IDs, or works without any tracker.
   Triggers: "create branch", "branch for story [id]", "commit", "create PR",
   "open PR", "github branch", "github commit", "github pr", "pull request".
 ---
@@ -28,12 +28,10 @@ Every command needs a `{ticket_id}`. Resolve in this order:
 2. **Current branch name** — parse `{type}/{ticket_id}/{slug}` pattern
 3. **Tracker lookup** — read `docs/planning-artifacts/status.md` for `tracker:` then:
    - `tracker: jira` → `/bellosoft-jira get [key]`
-   - `tracker: plane` → `/bellosoft-plane get [sequence_id]`
 4. **No tracker** — ask user: `"Enter ticket ID or press Enter to skip"`
 
 Ticket ID formats:
 - Jira: `PROJ-42`
-- Plane: `NOKEY-42`
 - None: omit from branch/commit (branch slug only, no ticket scope in commit)
 
 ---
@@ -59,7 +57,7 @@ Infer from story title or issue type, or ask:
 ```
 {type}/{ticket_id}/{slug}
 e.g. feature/PROJ-42/user-auth-jwt
-     fix/NOKEY-7/login-redirect-loop
+     bug/PROJ-7/login-redirect-loop
      chore/refactor-payment-service    ← no tracker
 ```
 
@@ -117,8 +115,8 @@ Infer from changed files or ask:
 
 | Type | When |
 |---|---|
-| `feat` | New feature |
-| `fix` | Bug fix |
+| `feature` | New feature |
+| `bug` | Bug fix |
 | `chore` | Config, tooling, dependencies |
 | `docs` | Documentation only |
 | `refactor` | Structural change, no new feature |
@@ -200,7 +198,7 @@ grep -qxF '.secrets/' .gitignore || echo '.secrets/' >> .gitignore
 
 ### Step 2 — Resolve ticket ID and story context
 
-Extract from branch name. Fetch story title from tracker if needed (delegate to `/bellosoft-jira get` or `/bellosoft-plane get`).
+Extract from branch name. Fetch story title from tracker if needed (delegate to `/bellosoft-jira get`).
 
 ### Step 3 — Ensure branch is pushed
 
@@ -214,11 +212,10 @@ git push --set-upstream origin {branch_name}
 ```
 #{ticket_id}: {story_title}
 e.g. #PROJ-42: User authentication with JWT
-     #NOKEY-7: Fix login redirect loop
+     #PROJ-7: Fix login redirect loop
 ```
 
 The `#{ticket_id}` format activates automatic tracker state transitions:
-- **Plane:** work item moves to Done when PR is merged (requires GitHub integration enabled in Plane)
 - **Jira:** smart commit trigger (requires Jira GitHub integration)
 
 **Without tracker:**
