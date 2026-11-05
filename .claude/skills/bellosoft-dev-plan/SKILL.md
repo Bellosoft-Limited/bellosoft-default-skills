@@ -64,19 +64,30 @@ Use this format. Omit any section with no content. Never write "None".
 ## Plan — [ID]: [Title]
 [Epic ID] › [Story ID] › [Task ID]
 
-### Acceptance criteria → tests
-| AC | Test | Behaviour |
-|----|------|-----------|
-| 1 | `ShouldDoX_WhenY` | [≤10 words] |
-| 2 | `ShouldFailWith_WhenZ` | [≤10 words] |
+### Tests
+| # | Covers | Test | Behaviour |
+|---|--------|------|-----------|
+| 1 | AC1 | `ShouldDoX_WhenY` | [≤12 words] |
+| 2 | AC2, D1 | `ShouldFailWith_WhenZ` | [≤12 words] |
+| 3 | AC2 | `ShouldKeepX_WhenW` (guard) | [≤12 words] |
+
+### Test setup
+- [Fixture or data choice that makes the tests meaningful. ≤20 words.]
 
 ### Files
 - new `path/new.ext` — [≤8 words]
 - edit `path/existing.ext` — [≤8 words]
 
 ### Steps
+0. Scaffold: [members the tests need to compile]. No behaviour.
 1. [Imperative, ≤12 words] → tests 1, 2
 2. ...
+
+### Decisions
+- D1: [What was decided] — [reason]
+
+### Accepted risks
+- [Risk] — [why accepted]
 
 ### Out of scope
 - [item]
@@ -85,11 +96,29 @@ Use this format. Omit any section with no content. Never write "None".
 - [Blocking only. Yes/no answer.]
 ```
 
-Rules:
-- Every AC has at least one test. If not, write `AC n — no test: [reason]`.
+Rules for `Tests`:
+- Number every test. Steps refer to tests by `#`.
+- `Covers` names the source: `ACn`, `Dn`, or the ticket's own label (e.g. `S2`). Never a bare "Rule".
+- Every AC has at least one test. If not, write `ACn — no test: [reason]`.
+- Mark a test `(guard)` when it passes before any change. A guard protects existing behaviour.
+  Prefer an assertion that fails first, e.g. a log check, over a guard.
+- `Test setup` holds what the Behaviour cell cannot: fixtures, and data that makes a wrong path fail.
+  Example: "Saved figures differ from a recalculation, so recalculating fails the test."
+
+Rules for `Steps`:
+- Step 0 lists only what the tests need to compile: properties, signatures, constructor parameters.
+  Omit step 0 if the tests compile against today's code.
+- Each non-guard test appears in exactly one step: the step that turns it green.
+- Order the steps so each step's tests pass after that step and the steps before it.
+  Check every hop, e.g. a value copied in a later step that the earlier step reads.
+- One step = one file when possible. Steps with no test (migration, docs, manual check) say how to verify them.
+
+Rules for the other sections:
 - Include test files in `Files`. `bellosoft-dev-execute` reads them from there.
 - Write each `Files` entry as its own `- ` list item, one per line. Never start a line with `+` or `~`.
-- One step = one file when possible. Each step names the tests it makes pass.
+- `Decisions` is required when the plan departs from the ticket or spec text. One line each, with the reason.
+  `bellosoft-dev-review` reads it, so an approved departure is not reported as a failed AC.
+- `Accepted risks` holds known trade-offs the dev accepted. `Questions` holds only blocking items.
 - No summary paragraph. The table and steps are the summary.
 - Add story ACs the task does not cover only if they affect this task.
 
@@ -113,11 +142,11 @@ End the plan with:
 
 ```
 ---
-✅ approve · ✏️ [feedback] · 🔍 explain N · ❌ cancel
+✅ approve · ✏️ [feedback] · 🔍 explain step N | test N · ❌ cancel
 ```
 
 - `approve` → save the plan. See below. Do **not** run `/bellosoft-dev-execute`.
-- `explain N` → expand step or test N in 3–5 lines. Nothing else.
+- `explain step N` or `explain test N` → expand that step or test in 3–5 lines. Nothing else.
 - `cancel` → stop. The dev can code without a plan.
 
 **Do NOT write code until the developer approves. After approval, still write no code.**

@@ -39,20 +39,35 @@ Do NOT infer a plan from chat history or start coding without one.
 
 ## Execution Protocol
 
+Read the whole plan before Phase 1. `Decisions` override the ticket text. Do not "fix" code
+to match the ticket where a decision says otherwise. `Accepted risks` are not bugs to fix.
+
 ### Phase 1 — RED: Write All Tests
 
-1. Create the test file(s) listed in the approved plan
-2. Write every test case from the plan's test table
-3. Tests must be **compilable but failing** — do not write production code yet
-4. Run the test suite to confirm all new tests fail:
+1. Create or edit the test file(s) listed in the plan's `Files`
+2. Write every test from the plan's `Tests` table, in `#` order. Apply the plan's `Test setup`.
+3. Make the tests compile with **scaffolding only** — no production behaviour yet:
+   - Run plan step 0 if it exists.
+   - If there is no step 0 and the tests do not compile, add the minimum: new properties,
+     method signatures, constructor parameters, stubs that throw `NotImplementedException`
+     (or the language equivalent). Only in files listed in `Files`.
+   - List every scaffold change for the developer.
+4. Run the tests:
    ```bash
    # .NET
    dotnet test --filter "ClassName"
    # Node / TS
    npx vitest run path/to/spec
    ```
-5. Show the failing output to the developer
-6. Only proceed to Phase 2 after confirming failures
+5. Check the result:
+   - Every non-guard test fails, for the expected reason (assertion or `NotImplementedException`, not a setup crash).
+   - Every `(guard)` test passes.
+   - Existing tests in the same test classes still pass.
+6. If a non-guard test passes, it does not test the new behaviour. Strengthen it (see `Test setup`)
+   and re-run. If it still passes, pause and ask: mark it `(guard)`, or rewrite it?
+   If a guard test fails, pause and explain. Do not change production code to fix it.
+7. Show the failing output to the developer
+8. Only proceed to Phase 2 after the red state is confirmed
 
 If the project has no test runner available, note it explicitly and ask how to proceed.
 
@@ -65,10 +80,14 @@ Work through the implementation steps from the plan **one at a time**:
 For each step:
 1. State what you are about to do: `▶ Step N: [description]`
 2. Make the minimal change needed to pass the relevant test(s)
-3. Run the test(s) for that step:
+3. Run the test(s) for that step, plus the guard tests and the existing tests in the same test classes:
    - ✅ Passing → move to next step
    - ❌ Still failing → diagnose, fix, re-run (max 2 attempts before pausing to explain)
 4. Never implement ahead — only what the current step requires
+5. If a step's test can only pass after a later step, the plan's order is wrong.
+   Do not pull the later step forward silently. Pause, explain, and propose the new order.
+6. Steps with no test (migration, docs, build): verify the way the step says, e.g. build or command output.
+   Manual steps (e.g. a check in a local database): do not mark them done. List them in the summary.
 
 ---
 
@@ -125,7 +144,7 @@ Output a completion summary:
 ## ✅ Execution Complete — [STORY-ID]
 
 ### Tests
-- Written: N
+- Written: N (guards: N)
 - Passing: N
 - Skipped: 0
 
@@ -133,8 +152,11 @@ Output a completion summary:
 - Created: [list]
 - Modified: [list]
 
+### Manual steps left
+- Step N: [what the developer must check by hand]
+
 ### Notes
-[Any deviations from the plan, and why]
+[Any deviations from the plan, and why — including steps reordered and tests re-marked as guards]
 
 ---
 Next step: /bellosoft-dev-review   ← validate against acceptance criteria

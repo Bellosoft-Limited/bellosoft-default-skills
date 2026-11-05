@@ -28,9 +28,23 @@ stories Done in Jira without using it.
 Use the same input resolution as `/bellosoft-dev-plan`:
 - Jira ticket ID → delegate to `/bellosoft-jira get [issue_key]`
 - Local `.md` file → read directly
-- No argument → look for most recently modified story file
+- Path to a saved plan → read its `ticket:` field and load that story
+- No argument → use the most recently modified approved plan in `docs/planning-artifacts/dev-plans/`,
+  or else the most recently modified story file
 
 Extract every acceptance criterion as a checklist item.
+
+## Step 1b — Load the saved plan (if any)
+
+Look for `docs/planning-artifacts/dev-plans/[ID]-*.md`. If it exists, read it and use:
+- `Tests` → find the tests for each AC by name. Check every planned test exists.
+- `Decisions` → approved departures from the ticket text. An AC built as a decision says
+  is not a failure. Cite the decision (`per D1`) in the report.
+- `Accepted risks` → do not report them as issues. Report one only if the code makes it worse.
+- `Files` and `Out of scope` → the baseline for the out-of-scope check (Step 3).
+- `Steps` → note manual steps. Report them as unverified unless the developer confirms them.
+
+No plan → continue with the story alone.
 
 ---
 
@@ -38,7 +52,7 @@ Extract every acceptance criterion as a checklist item.
 
 For each acceptance criterion:
 
-1. **Find the test(s)** that cover it — read the test file
+1. **Find the test(s)** that cover it — use the plan's `Tests` table if loaded; read the test file
 2. **Find the production code** that satisfies it — read the implementation
 3. **Run the tests** to confirm current state:
    ```bash
@@ -66,8 +80,15 @@ For each acceptance criterion:
 ### Issues Found
 [For each ❌ or ⚠️ above, explain what is missing or wrong]
 
+### Plan Check (only if a plan was loaded)
+- Planned tests present: N / N — [missing names]
+- Decisions applied: D1 ✅, D2 ⚠️ [what differs]
+- Manual steps unverified: [step numbers]
+
 ### Out-of-Scope Check
-[Confirm no unintended changes were made outside the story scope]
+[With a plan: list changed files (branch commits and uncommitted) that are not in `Files`,
+and any change to an `Out of scope` item. Without a plan: confirm no unintended changes
+were made outside the story scope]
 
 ### Cyclomatic Complexity
 For every method/function added or modified by this story:
@@ -124,6 +145,8 @@ Issues listed above. Options:
 ## Hard Rules
 
 - Never silently pass an AC that has no test. Mark it ⚠️ at minimum.
+- Never fail an AC for following an approved plan `Decision`. Cite the decision instead.
+- A missing planned test, or a changed file outside the plan's `Files`, is ⚠️ at minimum.
 - Do not rewrite code during review — only report.
 - If tests cannot be run, say so clearly and mark all test-dependent ACs as ⚠️ unverified.
 - Any method with cyclomatic complexity > 15 **blocks** a ✅ READY verdict — must be reported as ❌ in the complexity table and flagged in Issues Found.
