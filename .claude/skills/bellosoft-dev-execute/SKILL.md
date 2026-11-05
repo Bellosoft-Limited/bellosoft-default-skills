@@ -51,6 +51,8 @@ to match the ticket where a decision says otherwise. `Accepted risks` are not bu
    - If there is no step 0 and the tests do not compile, add the minimum: new properties,
      method signatures, constructor parameters, stubs that throw `NotImplementedException`
      (or the language equivalent). Only in files listed in `Files`.
+   - Build the solution (or the project, if there is no solution). Fix any caller the scaffold broke,
+     with scaffolding only. A caller outside `Files` → pause and ask.
    - List every scaffold change for the developer.
 4. Run the tests:
    ```bash

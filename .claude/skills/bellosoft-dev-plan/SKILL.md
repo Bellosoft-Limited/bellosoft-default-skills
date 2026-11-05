@@ -79,7 +79,7 @@ Use this format. Omit any section with no content. Never write "None".
 - edit `path/existing.ext` — [≤8 words]
 
 ### Steps
-0. Scaffold: [members the tests need to compile]. No behaviour.
+0. Scaffold: [members the tests need to compile]. No behaviour. Verify: solution builds.
 1. [Imperative, ≤12 words] → tests 1, 2
 2. ...
 
@@ -108,7 +108,10 @@ Rules for `Tests`:
 Rules for `Steps`:
 - Step 0 lists only what the tests need to compile: properties, signatures, constructor parameters.
   Omit step 0 if the tests compile against today's code.
+- Step 0 ends with "Verify: solution builds" (or the project, if there is no solution).
+  A changed signature can break callers outside the test classes.
 - Each non-guard test appears in exactly one step: the step that turns it green.
+- Split a step that turns more than about 4 tests green. Slice by behaviour, e.g. matching, grouping, labels.
 - Order the steps so each step's tests pass after that step and the steps before it.
   Check every hop, e.g. a value copied in a later step that the earlier step reads.
 - One step = one file when possible. Steps with no test (migration, docs, manual check) say how to verify them.
@@ -118,6 +121,8 @@ Rules for the other sections:
 - Write each `Files` entry as its own `- ` list item, one per line. Never start a line with `+` or `~`.
 - `Decisions` is required when the plan departs from the ticket or spec text. One line each, with the reason.
   `bellosoft-dev-review` reads it, so an approved departure is not reported as a failed AC.
+- A decision is a choice between real alternatives, or a departure from the ticket.
+  Implementation notes go in `Steps`. Cite each decision in the `Covers` column of the test that checks it.
 - `Accepted risks` holds known trade-offs the dev accepted. `Questions` holds only blocking items.
 - No summary paragraph. The table and steps are the summary.
 - Add story ACs the task does not cover only if they affect this task.
