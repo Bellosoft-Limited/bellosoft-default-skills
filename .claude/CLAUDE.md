@@ -55,3 +55,11 @@ The developer might have created the working branch by hand, which can be identi
 ### Domain docs
 
 Single-context unless `GLOSSARY-MAP.md` exists. See `docs/agents/domain.md`.
+
+### Ponytail
+
+Optional plugin, active when its rules arrive at session start. Ponytail decides how much code to write; the skills decide the process. Where they meet:
+
+- **Tests**: when `tdd` or `bellosoft-dev-execute` is running, its testing rules apply in full. Ponytail's "one small test" is the floor, never the target.
+- **Review**: `code-review` is the review gate for `/implement` and `/implement-spec`. Run `/ponytail-review` only when the developer asks for it.
+- **Visual work**: Ponytail is for backend and logic work. Before building UI, layout or styling, or using a design skill (`impeccable`, `ui-ux-pro-max`, `frontend-design`, `ui-styling`), ask the developer to run `/ponytail off` and wait for it. Only the developer's prompt changes the mode.

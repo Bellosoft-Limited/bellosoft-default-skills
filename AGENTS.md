@@ -27,4 +27,4 @@ ls .agents/prompts/          # list prompt templates
 
 ## Agent skills
 
-Issue tracker, triage labels, branch/PR conventions and domain docs for the Matt Pocock skills are defined in `.claude/CLAUDE.md` → "Agent skills". Read that section; it is the single source of truth.
+Issue tracker, triage labels, branch/PR conventions, domain docs and the Ponytail plugin rules for the Matt Pocock skills are defined in `.claude/CLAUDE.md` → "Agent skills". Read that section; it is the single source of truth.

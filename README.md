@@ -265,6 +265,13 @@ happen in the coding session.
 - **A whole Epic at once**: `/implement-spec PROJ-40` on a hand-made integration branch, in place of step 3.
   The PR title carries the Epic key (`#PROJ-40: <title>`), so automation doesn't move anything:
   the developer moves the Epic's items on the board by hand.
+- **Backend and logic tickets with Ponytail (optional)**: the [Ponytail](https://ponytail.dev/) plugin
+  keeps Claude's code to the smallest change that works. Install it once per developer with
+  `/plugin marketplace add DietrichGebert/ponytail`, then `/plugin install ponytail@ponytail`. It
+  doesn't change the steps above: `/implement` still builds test-first against our standards, and
+  `code-review` stays the review gate. Run `/ponytail off` before a ticket with visual work (UI,
+  layout, styling) and `/ponytail full` when you're back on backend work. The mode is set per repo,
+  so every session open in that repo shares it.
 - **Every PR still needs a human review.**
 
 ---
