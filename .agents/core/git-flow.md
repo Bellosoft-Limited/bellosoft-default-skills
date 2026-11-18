@@ -124,7 +124,7 @@ git checkout -b hotfix/PROJ-99-fix-payment-timeout
 ## Pull Request Rules
 
 - PRs must target the correct branch (`feature/*` → `develop`, `hotfix/*` → `main`).
-- PR title follows Conventional Commits format.
+- PR title: `#<KEY>: <title>`, where KEY is the Jira development item (e.g. `#PROJ-42: Throttle repeated login attempts`). Commit messages still follow Conventional Commits.
 - Every PR must reference a ticket in the description.
 - Minimum 1 reviewer required. 2 reviewers for changes to `main` or security-sensitive code.
 - CI must pass (build + tests + lint) before merge.

@@ -43,7 +43,7 @@ Backlog → Ready → In Progress → Review → QA → Done
 
 ### Review
 - PR opened against `develop`.
-- PR title follows Conventional Commits.
+- PR title: `#<KEY>: <title>`, where KEY is the Jira development item (e.g. `#PROJ-42: Throttle repeated login attempts`). Jira automation moves the item to In Review when the PR is raised.
 - CI must pass.
 - Code review completed with at least 1 approval.
 - All review comments addressed.
