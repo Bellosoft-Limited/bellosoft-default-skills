@@ -1,4 +1,8 @@
-# Development Workflow
+# Development Workflow (legacy)
+
+> **Legacy flow.** This describes the `bellosoft-dev-*` skills, which are being replaced. The current
+> flow (`/implement` → `/pr` → `/bellosoft-qa-handoff`) is in the
+> [README's Development workflow](../README.md#development-workflow).
 
 ## Phase 1 — Pick & Prep the Story
 

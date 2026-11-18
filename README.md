@@ -35,10 +35,12 @@ bellosoft-default-skills/
 ├── .claude/
 │   ├── CLAUDE.md                  # Claude Code entry point — load-on-demand principles
 │   ├── settings.example.json      # Example Claude Code settings
-│   └── skills/                    # Skill library (see catalog below)
-│       └── <skill-name>/
-│           ├── SKILL.md           # Skill instructions
-│           └── references/        # Reference files loaded on-demand
+│   ├── skills/                    # Skill library (see catalog below)
+│   │   └── <skill-name>/
+│   │       ├── SKILL.md           # Skill instructions
+│   │       └── references/        # Reference files loaded on-demand
+│   └── vendor/
+│       └── mattpocock-skills/     # Pinned upstream commit, LICENSE, update rules
 ├── .agents/
 │   ├── core/                      # Universal coding rules (loaded on-demand)
 │   │   ├── coding-standards.md
@@ -62,7 +64,8 @@ bellosoft-default-skills/
 │   └── settings.json              # Editor settings (skill/agent discovery)
 ├── scripts/
 │   ├── sync.sh                    # Bash sync script
-│   └── sync.ps1                   # PowerShell sync script
+│   ├── sync.ps1                   # PowerShell sync script
+│   └── update-mattpocock-skills.sh  # Re-copy Matt Pocock's skills at a pinned ref
 ├── AGENTS.md                      # Directory map for agents (index, not instructions)
 └── README.md
 ```
@@ -93,7 +96,38 @@ bellosoft-default-skills/
 
 Skills live in `.claude/skills/`. Load with `/skill-name` in Claude Code.
 
-### Delivery workflow
+### Matt Pocock skills (vendored)
+
+27 skills from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), copied into
+`.claude/skills/` at the commit pinned in `.claude/vendor/mattpocock-skills/upstream.json`.
+**Don't edit them**: updates overwrite the folders. A weekly GitHub Action opens a PR when
+upstream releases; merge it when you want the update. See
+[`.claude/vendor/mattpocock-skills/README.md`](.claude/vendor/mattpocock-skills/README.md).
+
+| Skill | Purpose |
+|-------|---------|
+| `/setup-matt-pocock-skills` | Run once per project. Pick **Other → Jira** (see [Jira](#jira-for-matt-pocock-skills)) |
+| `/grill-me`, `/grill-with-docs` | Get interviewed about a change until it's clear; `grill-with-docs` also keeps `GLOSSARY.md` and ADRs up to date |
+| `/to-spec` | Turn the conversation into a spec → Jira Epic (Scrum) or a single Task (Kanban, after confirming the board) |
+| `/to-tickets` | Split a spec into thin end-to-end tickets with blocking links → User Stories with dev + QA Sub-tasks (Scrum) or Tasks/Bugs (Kanban) |
+| `/wayfinder` | Plan work too big for one session as a map of decision tickets |
+| `/triage` | Move incoming issues through `needs-triage` → `ready-for-agent` / `ready-for-human` / `wont-do` |
+| `/implement`, `/implement-spec` | Build a ticket or a whole spec, test-first, closing with a review |
+| `/improve-codebase-architecture` | Find places where the code could be simplified behind smaller interfaces |
+| `/ask-matt` | Not sure which skill fits? It routes you |
+| `/handoff`, `/teach`, `/to-questionnaire`, `/wait-what`, `/retro` | Productivity helpers |
+
+Model-invoked (Claude reaches for them when relevant): `tdd`, `diagnosing-bugs`, `code-review`,
+`prototype`, `research`, `domain-modeling`, `codebase-design`, `pr`, `wizard`, `grilling`,
+`writing-for-agents`.
+
+> `code-review` shares its name with Claude Code's built-in `/code-review`. Type
+> `/bellosoft-default-skills:code-review` (plugin install) to be sure you get Matt's.
+
+### Delivery workflow (legacy, being retired)
+
+`bellosoft-prd`, `bellosoft-plan-epics`, `bellosoft-plan-epic` and `bellosoft-plan-adhoc` are
+being replaced by the Matt Pocock flow above. They stay available during the trial.
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
@@ -111,14 +145,15 @@ Skills live in `.claude/skills/`. Load with `/skill-name` in Claude Code.
 | **bellosoft-jira** | `/bellosoft-jira` | Jira service layer — create epics/stories/tasks, manage sprints, transitions, imports |
 | **bellosoft-sync** | `/bellosoft-sync` | Tracker sync — import, push, pull, update |
 
-### Development workflow
+### Development
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| **bellosoft-dev-plan** | `/bellosoft-dev-plan PROJ-42` | TDD-based implementation plan for a story |
-| **bellosoft-dev-execute** | `/bellosoft-dev-execute` | Execute the plan: RED → GREEN → REFACTOR cycle |
-| **bellosoft-dev-review** | `/bellosoft-dev-review` | Code review + test coverage check before PR |
-| **bellosoft-github** | `/bellosoft-github branch` | Branch naming, conventional commits, PR creation |
+| **bellosoft-qa-handoff** | `/bellosoft-qa-handoff` | After the PR: post what changed, how to test and the risk on the Jira ticket, for the dev's smoke test and for QA |
+
+Legacy, not part of the new flow (kept during the trial): `bellosoft-dev-plan`, `bellosoft-dev-execute`
+and `bellosoft-dev-review` (replaced by `/implement`), `bellosoft-github` (branches are created by
+hand, PRs use Matt's `pr`), `bellosoft-sprint` (devs pick tickets from the board).
 
 ### Design & content
 
@@ -149,8 +184,43 @@ Skills live in `.claude/skills/`. Load with `/skill-name` in Claude Code.
 
 ## Planning workflow
 
-The delivery workflow picks up after a PRD exists and produces properly structured
-epics, stories, and tasks in your tracker of choice.
+```
+/grill-with-docs                   1. Get interviewed about the change until it's clear
+/to-spec                           2. Spec → Epic (Scrum) or a single Task (Kanban)
+/to-tickets                        3. Tickets with blocking links → User Stories + Sub-tasks (Scrum) or Tasks (Kanban)
+/implement PROJ-42                 4. Build a ticket (see Development workflow)
+```
+
+Bugs and unplanned work: `/triage`. Work too big for one session: `/wayfinder`.
+No estimates are produced; tickets are sized to fit one agent session instead.
+
+### Jira for Matt Pocock skills
+
+Matt's skills don't support Jira themselves. They read a per-project contract from
+`docs/agents/issue-tracker.md`, and ours routes every operation through `bellosoft-jira`.
+Once per project:
+
+1. `/bellosoft-jira setup` (if the project isn't connected to Jira yet)
+2. `/setup-matt-pocock-skills` → Issue tracker: **Other**, "Jira via bellosoft-jira". It copies
+   `.claude/skills/bellosoft-jira/references/matt-issue-tracker-jira.md` to
+   `docs/agents/issue-tracker.md`. Triage labels: answer **no** to keeping the defaults and map
+   `wontfix` → `wont-do`; the other four stay as they are.
+3. Commit `docs/agents/`. Edit it freely: that copy belongs to the project.
+
+Conventions the template applies (board type is detected by `/bellosoft-jira setup`):
+
+| Board | Spec | Ticket | Children |
+|---|---|---|---|
+| Scrum | Epic | User Story | Development Sub-task(s) or Sub-bug(s), plus one QA Sub-task |
+| Kanban | A single Task (the skill first asks whether Kanban is the right board) | Task or Bug | None (the board has a fixed QA task) |
+
+A ticket is unblocked once every blocker is In Review, Ready for QA, Ready to Release or Done.
+Won't-do work gets the `wont-do` label and moves forward like any other ticket.
+Jira automation moves the development item to In Review when its PR is raised.
+
+### Legacy planning workflow (being retired)
+
+Produces epics, stories, and tasks from a PRD.
 
 ```
 /bellosoft-prd                     1. Gather requirements → PRD
@@ -170,15 +240,26 @@ epics, stories, and tasks in your tracker of choice.
 
 ## Development workflow
 
-```
-/bellosoft-sprint                  See what's in the sprint
-/bellosoft-dev-plan PROJ-42        Plan the story (TDD approach)
-/bellosoft-github branch           Create feature branch
-/bellosoft-dev-execute             Implement: RED → GREEN → REFACTOR
-/bellosoft-dev-review              Review before PR
-/bellosoft-github commit           Conventional commit
-/bellosoft-github pr               Open PR
-```
+Jira tickets exist for tracking and to guide testing. Planning, implementation and code review
+happen in the coding session.
+
+| # | Who | How | Result |
+|---|-----|-----|--------|
+| 1 | Dev | Jira board, by hand | Pick a ticket and move it to **In Progress** |
+| 2 | Dev | `git switch -c feature/PROJ-42-<slug>`, by hand | Working branch |
+| 3 | Dev | `/implement PROJ-42` in a fresh session | Test-first build, full test run, `code-review` against our standards and the ticket, commit |
+| 4 | Dev | `/pr` | Claude writes the PR body (summary, before/after evidence, risk). **Title: `#PROJ-42: <title>`**, check it before the PR is raised. Jira automation → **In Review** |
+| 5 | Dev | `/bellosoft-qa-handoff` | Jira comment: what changed, how to test, risk |
+| 6 | Dev | QA environment, by hand | Smoke-test by following the handoff, then move to **Ready for QA** |
+| 7 | QA | QA Sub-task (Scrum) or the Task (Kanban) | Test by following the handoff → **Ready to Release** → **Done** |
+
+- **Bugs**: a bug report in Jira starts with `/triage PROJ-42`, which turns it into a ticket ready to
+  build. Then steps 2 to 7 as usual; Claude reaches for `diagnosing-bugs` on its own when the cause
+  isn't obvious.
+- **A whole Epic at once**: `/implement-spec PROJ-40` on a hand-made integration branch, in place of step 3.
+  The PR title carries the Epic key (`#PROJ-40: <title>`), so automation doesn't move anything:
+  the developer moves the Epic's items on the board by hand.
+- **Every PR still needs a human review.**
 
 ---
 
