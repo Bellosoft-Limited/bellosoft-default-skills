@@ -7,8 +7,8 @@ description: >
   rather than calling Atlassian MCP tools directly. Triggers: /bellosoft-jira,
   "create jira epic", "push to jira", "update jira ticket", "sync to jira", or
   when any bellosoft skill needs to read/write Jira. Also the Jira backend for
-  Matt Pocock's skills (/to-spec, /to-tickets, /triage, /wayfinder) via
-  docs/agents/issue-tracker.md, and for /setup-matt-pocock-skills choosing Jira.
+  the mattpocock-skills plugin (to-spec, to-tickets, triage, wayfinder) via
+  docs/agents/issue-tracker.md, and for its setup-matt-pocock-skills choosing Jira.
 ---
 
 # Skill: bellosoft-jira
@@ -408,7 +408,7 @@ lead_account_id: string  (from jira-profile.md — current user)
 
 ## Operation: CREATE_EPIC
 
-Called by: `bellosoft-plan-epic` after approval; `/to-spec` and `/wayfinder` (Matt Pocock skills)
+Called by: `bellosoft-plan-epic` after approval; `/mattpocock-skills:to-spec` and `/mattpocock-skills:wayfinder` (Matt Pocock skills)
 
 **Input:**
 ```
@@ -463,7 +463,7 @@ For **classic projects**, also set in additional_fields:
 ## Operation: CREATE_STORY
 
 Called by: `bellosoft-plan-epic`, `bellosoft-dev-plan` (free-text flow), `bellosoft-plan-adhoc`;
-`/to-tickets`, `/triage`, `/wayfinder` (Matt Pocock skills)
+`/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage`, `/mattpocock-skills:wayfinder` (Matt Pocock skills)
 
 **Input:**
 ```
@@ -533,7 +533,7 @@ Add source comment after creation, naming the calling skill:
 ```
 mcp__atlassian__jira_add_comment(
   issue_key = "{key}",
-  comment = "Created by {calling skill, e.g. bellosoft-plan-epic or /to-tickets}"
+  comment = "Created by {calling skill, e.g. bellosoft-plan-epic or /mattpocock-skills:to-tickets}"
 )
 ```
 
@@ -543,7 +543,7 @@ mcp__atlassian__jira_add_comment(
 
 ## Operation: CREATE_TASK
 
-Called by: `bellosoft-plan-epic` (sub-tasks), `bellosoft-plan-adhoc`; `/to-tickets`, `/triage` (Matt Pocock skills)
+Called by: `bellosoft-plan-epic` (sub-tasks), `bellosoft-plan-adhoc`; `/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage` (Matt Pocock skills)
 
 **Input:**
 ```
@@ -695,7 +695,7 @@ curl -s -X POST \
 
 ## Operation: UPDATE
 
-Called by: `bellosoft-sync` after dev milestones; `bellosoft-qa-handoff`; Matt Pocock skills (`/triage`, `/wayfinder`, `/implement`)
+Called by: `bellosoft-sync` after dev milestones; `bellosoft-qa-handoff`; Matt Pocock skills (`/mattpocock-skills:triage`, `/mattpocock-skills:wayfinder`, `/mattpocock-skills:implement`)
 
 **Input:**
 ```
@@ -815,7 +815,7 @@ Parse and return structured object:
 
 ## Operation: LINK
 
-Called by: `/to-tickets`, `/wayfinder` (Matt Pocock skills)
+Called by: `/mattpocock-skills:to-tickets`, `/mattpocock-skills:wayfinder` (Matt Pocock skills)
 
 **Input:** `blocker: string`, `blocked: string` (issue keys) — meaning "`{blocker}` blocks `{blocked}`".
 
@@ -840,7 +840,7 @@ Called by: `/to-tickets`, `/wayfinder` (Matt Pocock skills)
 
 ## Operation: SEARCH
 
-Called by: Matt Pocock skills (`/triage` buckets, `/wayfinder` frontier, open-blocker counts)
+Called by: Matt Pocock skills (`/mattpocock-skills:triage` buckets, `/mattpocock-skills:wayfinder` frontier, open-blocker counts)
 
 **Input:** `jql: string`, `fields: string` (optional)
 
@@ -940,12 +940,12 @@ Ask before overwriting if `docs/planning-artifacts/` already exists.
 
 ## Matt Pocock skills integration
 
-Matt Pocock's skills (`/to-spec`, `/to-tickets`, `/triage`, `/wayfinder`, `/implement`, `/code-review`)
+Matt Pocock's skills (`/mattpocock-skills:to-spec`, `/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage`, `/mattpocock-skills:wayfinder`, `/mattpocock-skills:implement`, `/mattpocock-skills:code-review`)
 read the project's tracker contract from `docs/agents/issue-tracker.md`. For Jira projects that
 file is a copy of [`references/matt-issue-tracker-jira.md`](references/matt-issue-tracker-jira.md),
 which routes every operation back to this skill.
 
-**Setting a project up** (when `/setup-matt-pocock-skills` reaches "Issue tracker", or the user asks
+**Setting a project up** (when `/mattpocock-skills:setup-matt-pocock-skills` reaches "Issue tracker", or the user asks
 to connect Matt's skills to Jira):
 1. Run SETUP above if `docs/planning-artifacts/jira-profile.md` doesn't exist yet.
 2. Choose **Other** and copy `references/matt-issue-tracker-jira.md` to `docs/agents/issue-tracker.md`.

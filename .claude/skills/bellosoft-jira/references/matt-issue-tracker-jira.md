@@ -35,10 +35,10 @@ Never create any other type, and never give a Task or Bug a child.
 
 Work closes through pull requests. The key in them is the **development item** the PR delivers (Sub-task or Sub-bug on Scrum, Task or Bug on Kanban).
 
-- **Branch**: the developer creates the working branch by hand before starting. Skills work on the current branch; `/implement-spec` uses it as its integration branch.
+- **Branch**: the developer creates the working branch by hand before starting. Skills work on the current branch; `/mattpocock-skills:implement-spec` uses it as its integration branch.
 - **PR title**: `#<KEY>: <title>`, e.g. `#PROJ-42: Throttle repeated login attempts`. Jira automation reads the key and moves the item to **In Review** when the PR is raised, so never transition it yourself.
-- **Whole-Epic PR** (`/implement-spec`): the title carries the **Epic** key, e.g. `#PROJ-40: Login hardening`. Automation doesn't fire for an Epic, so the developer moves the Epic's items on the board by hand.
-- **PR body**: the `pr` skill.
+- **Whole-Epic PR** (`/mattpocock-skills:implement-spec`): the title carries the **Epic** key, e.g. `#PROJ-40: Login hardening`. Automation doesn't fire for an Epic, so the developer moves the Epic's items on the board by hand.
+- **PR body**: the `mattpocock-skills:pr` skill.
 - **After the PR**: the developer runs `/bellosoft-qa-handoff` to post testing steps on Jira.
 
 **Ready for QA**, **Ready to Release** and **Done** belong to the team.
@@ -53,19 +53,19 @@ When a skill says "resolve the ticket the way the tracker closes work", raise th
 
 ### Scrum board
 
-- A **spec** (`/to-spec`): an **Epic**. Summary = spec title, description = full spec body.
-- A **ticket** (`/to-tickets`): a **User Story** under the spec's Epic, holding the ticket's full body (what to build, acceptance criteria). Blocking edges go between User Stories. Then break each User Story into child items:
+- A **spec** (`/mattpocock-skills:to-spec`): an **Epic**. Summary = spec title, description = full spec body.
+- A **ticket** (`/mattpocock-skills:to-tickets`): a **User Story** under the spec's Epic, holding the ticket's full body (what to build, acceptance criteria). Blocking edges go between User Stories. Then break each User Story into child items:
   - **Development**: one **Sub-task** per separable piece of work (e.g. a backend part and a frontend part that different people would pick up), or a **Sub-bug** when the work fixes a defect. A small User Story gets a single development Sub-task or Sub-bug. Don't split for the sake of it.
   - **QA**: always one **Sub-task** titled `QA: <User Story title>`, with the User Story's acceptance criteria as the test checklist.
 
   Show the planned child items under each ticket when you present the breakdown for approval, so the user approves them too.
-- A **ticket** from `/triage`: a defect in an existing User Story becomes a **Sub-bug** under it. Anything else becomes a **User Story** with its development and QA children as above.
+- A **ticket** from `/mattpocock-skills:triage`: a defect in an existing User Story becomes a **Sub-bug** under it. Anything else becomes a **User Story** with its development and QA children as above.
 
 ### Kanban board
 
-- A **spec** (`/to-spec`): a single **Task** holding the full spec body. A spec on a Kanban board is usually a huge Task, so **before creating it, ask the user whether this is the right board**: work that needs a spec usually belongs on a Scrum board, where it can be split into User Stories. Create the Task only if they confirm.
-- A **ticket** (`/to-tickets`, `/triage`): one **Task**, or one **Bug** for a defect. No QA item: Kanban boards already have a fixed QA task.
-- `/to-tickets` on a spec Task: a Task never has children, so the spec Task is the unit of work. Don't split it into more Tasks; if the user wants it split, suggest moving the work to a Scrum board.
+- A **spec** (`/mattpocock-skills:to-spec`): a single **Task** holding the full spec body. A spec on a Kanban board is usually a huge Task, so **before creating it, ask the user whether this is the right board**: work that needs a spec usually belongs on a Scrum board, where it can be split into User Stories. Create the Task only if they confirm.
+- A **ticket** (`/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage`): one **Task**, or one **Bug** for a defect. No QA item: Kanban boards already have a fixed QA task.
+- `/mattpocock-skills:to-tickets` on a spec Task: a Task never has children, so the spec Task is the unit of work. Don't split it into more Tasks; if the user wants it split, suggest moving the work to a Scrum board.
 
 Publish blockers first so later tickets can link to real keys.
 
@@ -75,7 +75,7 @@ Read it as in **Read an issue** above. A Jira URL works too; `bellosoft-jira` ex
 
 ## Wayfinding operations
 
-Used by `/wayfinder`. Wayfinder tickets are decisions (research, prototype, grilling, task), not development work, so they never get development or QA children.
+Used by `/mattpocock-skills:wayfinder`. Wayfinder tickets are decisions (research, prototype, grilling, task), not development work, so they never get development or QA children.
 
 Jira labels can't hold the `:` the skill uses, so `wayfinder:<type>` maps to the label `wayfinder-<type>` (`research`/`prototype`/`grilling`/`task`).
 
@@ -88,7 +88,7 @@ Jira labels can't hold the `:` the skill uses, so `wayfinder:<type>` maps to the
 
 **Kanban board**
 
-Work big enough for `/wayfinder` rarely belongs on a Kanban board: before creating the map, ask the user whether this is the right board, as for a spec.
+Work big enough for `/mattpocock-skills:wayfinder` rarely belongs on a Kanban board: before creating the map, ask the user whether this is the right board, as for a spec.
 
 - **Map**: a single Task labelled `wayfinder-map`, holding the Notes / Decisions-so-far / Fog body.
 - **Child ticket**: a Task labelled `wayfinder-<type>` and `wayfinder-<MAP-KEY>` (e.g. `wayfinder-PROJ-12`), with a `Map: <MAP-KEY>` line at the top of the body. Tasks never have children, so the label, not a parent, ties tickets to their map.

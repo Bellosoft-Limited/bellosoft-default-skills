@@ -1,6 +1,6 @@
 # Coding Standards
 
-How code in this repo should be written. Read during code review (`/code-review`), not before implementing.
+How code in this repo should be written. Read during code review (`/mattpocock-skills:code-review`), not before implementing.
 
 ## Shared Bellosoft standards
 
@@ -19,4 +19,4 @@ Rules that apply only to this repo. When a rule here conflicts with a shared sta
 
 Only add judgement calls, such as cross-file consistency or matching the surrounding style. If a linter, pre-commit hook or CI check could catch the problem, add that check instead of a rule.
 
-<!-- Add project rules below. /retro proposes additions after a review misses something. -->
+<!-- Add project rules below. /mattpocock-skills:retro proposes additions after a review misses something. -->

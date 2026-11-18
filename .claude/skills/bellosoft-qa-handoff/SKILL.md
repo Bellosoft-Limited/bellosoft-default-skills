@@ -56,4 +56,4 @@ Every Jira operation goes through the `bellosoft-jira` skill.
 - **What changed** describes behaviour in the words QA uses. Name a file, setting or endpoint only when the tester has to touch it.
 - **How to test** gives every acceptance criterion at least one numbered scenario, tagged with the criterion it proves, plus the edge cases and failure paths the diff handles. Every step is something a tester can do in the QA environment; every expected result is something they can see.
 - **Risk** names concrete areas, never generic warnings.
-- The comment is a manual verification guide. Automated test evidence lives in the PR body, through the `pr` skill.
+- The comment is a manual verification guide. Automated test evidence lives in the PR body, through the `mattpocock-skills:pr` skill.

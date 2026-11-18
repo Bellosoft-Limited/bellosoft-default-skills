@@ -13,7 +13,7 @@ Index only — load on demand, never pre-load.
 | Universal rules | `.agents/core/<name>.md` |
 | Prompt templates | `.agents/prompts/<name>.prompt.md` |
 | Tracker bootstrap | `.claude/skills/bellosoft-jira/references/tracker-bootstrap.md` |
-| Matt Pocock skills (vendored, don't edit) | `.claude/vendor/mattpocock-skills/README.md` |
+| External plugins (Matt Pocock's skills, Ponytail), pinned | `.claude-plugin/marketplace.json` |
 
 ## Discovery
 

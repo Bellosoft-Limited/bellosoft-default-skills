@@ -38,7 +38,7 @@ See `AGENTS.md` for the full directory map and discovery commands.
 
 ## Agent skills
 
-Used by the Matt Pocock skills (`/to-spec`, `/to-tickets`, `/triage`, `/wayfinder`, ...). Per-project details live in `docs/agents/`; if it's missing, run `/setup-matt-pocock-skills`.
+Used by Matt Pocock's skills from the `mattpocock-skills` plugin (`/mattpocock-skills:to-spec`, `/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage`, `/mattpocock-skills:wayfinder`, ...). Per-project details live in `docs/agents/`; if it's missing, run `/mattpocock-skills:setup-matt-pocock-skills`.
 
 ### Issue tracker
 
@@ -50,7 +50,7 @@ Jira, through the `bellosoft-jira` skill. See `docs/agents/issue-tracker.md`; wh
 
 ### Branches and pull requests
 
-The developer might have created the working branch by hand, which can be identified if the current branch is not 'develop' nor 'master'; skills work on the current branch. PR title: `#<KEY>: <title>`, where KEY is the development item (Sub-task/Sub-bug on Scrum, Task/Bug on Kanban), or the Epic for a whole-Epic PR from `/implement-spec`. PR body: the `pr` skill. Details in `docs/agents/issue-tracker.md` → "How work is closed".
+The developer might have created the working branch by hand, which can be identified if the current branch is not 'develop' nor 'master'; skills work on the current branch. PR title: `#<KEY>: <title>`, where KEY is the development item (Sub-task/Sub-bug on Scrum, Task/Bug on Kanban), or the Epic for a whole-Epic PR from `/mattpocock-skills:implement-spec`. PR body: the `mattpocock-skills:pr` skill. Details in `docs/agents/issue-tracker.md` → "How work is closed".
 
 ### Domain docs
 
@@ -58,8 +58,8 @@ Single-context unless `GLOSSARY-MAP.md` exists. See `docs/agents/domain.md`.
 
 ### Ponytail
 
-Optional plugin, active when its rules arrive at session start. Ponytail decides how much code to write; the skills decide the process. Where they meet:
+Plugin installed for everyone from the Claude admin dashboard, active when its rules arrive at session start. Ponytail decides how much code to write; the skills decide the process. Where they meet:
 
-- **Tests**: when `tdd` or `bellosoft-dev-execute` is running, its testing rules apply in full. Ponytail's "one small test" is the floor, never the target.
-- **Review**: `code-review` is the review gate for `/implement` and `/implement-spec`. Run `/ponytail-review` only when the developer asks for it.
+- **Tests**: when `mattpocock-skills:tdd` or `bellosoft-dev-execute` is running, its testing rules apply in full. Ponytail's "one small test" is the floor, never the target.
+- **Review**: `mattpocock-skills:code-review` is the review gate for `/mattpocock-skills:implement` and `/mattpocock-skills:implement-spec`. Run `/ponytail:ponytail-review` only when the developer asks for it.
 - **Visual work**: Ponytail is for backend and logic work. Before building UI, layout or styling, or using a design skill (`impeccable`, `ui-ux-pro-max`, `frontend-design`, `ui-styling`), ask the developer to run `/ponytail off` and wait for it. Only the developer's prompt changes the mode.
