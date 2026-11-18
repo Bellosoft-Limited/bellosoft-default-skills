@@ -82,6 +82,12 @@ bellosoft-default-skills/
 | `.vscode/` | `.vscode/` | Editor settings |
 | `scripts/` | `scripts/` | Self-updating sync scripts |
 
+### Seeded once (created if missing, then project-owned)
+
+| Template | Destination | Purpose |
+|----------|-------------|---------|
+| `.agents/templates/docs/CODING_STANDARDS.md` | `docs/CODING_STANDARDS.md` | Standards source for `/code-review`: points to the shared `.agents/` rules and holds project-specific ones (`/retro` adds to it) |
+
 ### Protected paths (never overwritten)
 
 | Path | Reason |

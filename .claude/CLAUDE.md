@@ -50,7 +50,7 @@ Jira, through the `bellosoft-jira` skill. See `docs/agents/issue-tracker.md`; wh
 
 ### Branches and pull requests
 
-The developer creates the working branch by hand; skills work on the current branch. PR title: `#<KEY>: <title>`, where KEY is the development item (Sub-task/Sub-bug on Scrum, Task/Bug on Kanban), or the Epic for a whole-Epic PR from `/implement-spec`. PR body: the `pr` skill. Details in `docs/agents/issue-tracker.md` → "How work is closed".
+The developer might have created the working branch by hand, which can be identified if the current branch is not 'develop' nor 'master'; skills work on the current branch. PR title: `#<KEY>: <title>`, where KEY is the development item (Sub-task/Sub-bug on Scrum, Task/Bug on Kanban), or the Epic for a whole-Epic PR from `/implement-spec`. PR body: the `pr` skill. Details in `docs/agents/issue-tracker.md` → "How work is closed".
 
 ### Domain docs
 

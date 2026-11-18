@@ -17,6 +17,11 @@ $rootFiles = @(
     "AGENTS.md"
 )
 
+# Seeded once from a template, then owned by the project: never overwritten.
+$seedFiles = @(
+    @{ Source = ".agents/templates/docs/CODING_STANDARDS.md"; Destination = "docs/CODING_STANDARDS.md" }
+)
+
 $protectedPathPrefixes = @(
     ".github/skills/bmad-tea"
     ".github/skills/reports"
@@ -81,6 +86,22 @@ function Sync-RootFiles($tmpBase, $destBase) {
     }
 }
 
+function Seed-Files($tmpBase, $destBase) {
+    foreach ($entry in $seedFiles) {
+        $src = Join-Path $tmpBase ($entry.Source -replace "/", "\")
+        $dest = Join-Path $destBase ($entry.Destination -replace "/", "\")
+        if (-not (Test-Path $src)) { continue }
+        Write-Host "  → $($entry.Destination)"
+        if (Test-Path $dest) {
+            Write-Host "     ⏭ Skipping $($entry.Destination) (exists, project-owned)"
+            continue
+        }
+        New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+        Copy-Item -Path $src -Destination $dest
+        Write-Host "     ✅ $($entry.Destination) (seeded)"
+    }
+}
+
 $cwd = (Get-Location).Path
 Write-Host "🔄 Syncing Bellosoft project defaults into: $cwd"
 
@@ -96,6 +117,7 @@ foreach ($folder in $syncFolders) {
 }
 
 Sync-RootFiles $tmp $cwd
+Seed-Files $tmp $cwd
 
 Remove-Item -Recurse -Force $tmp
 

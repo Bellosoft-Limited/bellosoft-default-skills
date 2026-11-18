@@ -27,20 +27,4 @@ ls .agents/prompts/          # list prompt templates
 
 ## Agent skills
 
-Used by the Matt Pocock skills (`/to-spec`, `/to-tickets`, `/triage`, `/wayfinder`, ...). Per-project details live in `docs/agents/`; if it's missing, run `/setup-matt-pocock-skills`.
-
-### Issue tracker
-
-Jira, through the `bellosoft-jira` skill. See `docs/agents/issue-tracker.md`; when setting it up, copy it from `.claude/skills/bellosoft-jira/references/matt-issue-tracker-jira.md`.
-
-### Triage labels
-
-`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wont-do` for the `wontfix` role. See `docs/agents/triage-labels.md`.
-
-### Branches and pull requests
-
-The developer creates the working branch by hand; skills work on the current branch. PR title: `#<KEY>: <title>`, where KEY is the development item (Sub-task/Sub-bug on Scrum, Task/Bug on Kanban), or the Epic for a whole-Epic PR from `/implement-spec`. PR body: the `pr` skill. Details in `docs/agents/issue-tracker.md` → "How work is closed".
-
-### Domain docs
-
-Single-context unless `GLOSSARY-MAP.md` exists. See `docs/agents/domain.md`.
+Issue tracker, triage labels, branch/PR conventions and domain docs for the Matt Pocock skills are defined in `.claude/CLAUDE.md` → "Agent skills". Read that section; it is the single source of truth.
