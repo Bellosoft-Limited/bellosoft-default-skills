@@ -4,11 +4,29 @@
     "name": "Bellosoft",
     "url": "https://github.com/Bellosoft-Limited"
   },
-  "description": "Bellosoft's shared Claude Code plugin marketplace: delivery workflow, tracker integrations, and design/UI skills used across Bellosoft projects.",
+  "description": "Bellosoft's shared Claude Code plugin marketplace: delivery workflow, tracker integrations, and design/UI skills used across Bellosoft projects, plus the external plugins every developer gets, pinned to a release.",
   "plugins": [
     {
       "name": "bellosoft-default-skills",
       "source": "./.claude"
+    },
+    {
+      "name": "mattpocock-skills",
+      "description": "Matt Pocock's engineering skills: grilling, spec and ticket flows, TDD, code review, domain modelling. Pinned to a release tag; bump the ref to update.",
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills",
+        "ref": "v1.3.2"
+      }
+    },
+    {
+      "name": "ponytail",
+      "description": "Keeps Claude's code to the smallest change that works. Pinned to a release tag; bump the ref to update.",
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail",
+        "ref": "v5.3.3"
+      }
     }
   ]
 }

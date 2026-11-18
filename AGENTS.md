@@ -13,6 +13,7 @@ Index only — load on demand, never pre-load.
 | Universal rules | `.agents/core/<name>.md` |
 | Prompt templates | `.agents/prompts/<name>.prompt.md` |
 | Tracker bootstrap | `.claude/skills/bellosoft-jira/references/tracker-bootstrap.md` |
+| External plugins (Matt Pocock's skills, Ponytail), pinned | `.claude-plugin/marketplace.json` |
 
 ## Discovery
 
@@ -23,3 +24,7 @@ ls .agents/stack/            # list stack rules
 ls .agents/core/             # list core rules
 ls .agents/prompts/          # list prompt templates
 ```
+
+## Agent skills
+
+Issue tracker, triage labels, branch/PR conventions, domain docs and the Ponytail plugin rules for the Matt Pocock skills are defined in `.claude/CLAUDE.md` → "Agent skills". Read that section; it is the single source of truth.

@@ -18,6 +18,11 @@ ROOT_FILES=(
     "AGENTS.md"
 )
 
+# Seeded once from a template ("source:destination"), then owned by the project: never overwritten.
+SEED_FILES=(
+    ".agents/templates/docs/CODING_STANDARDS.md:docs/CODING_STANDARDS.md"
+)
+
 PROTECTED_PREFIXES=(
     ".github/skills/bmad-tea"
     ".github/skills/reports"
@@ -83,6 +88,22 @@ sync_root_files() {
     done
 }
 
+seed_files() {
+    for entry in "${SEED_FILES[@]}"; do
+        src="$TMP/${entry%%:*}"
+        dest="./${entry#*:}"
+        [ -f "$src" ] || continue
+        echo "  → ${entry#*:}"
+        if [ -e "$dest" ]; then
+            echo "     ⏭ Skipping ${entry#*:} (exists, project-owned)"
+            continue
+        fi
+        mkdir -p "$(dirname "$dest")"
+        cp "$src" "$dest"
+        echo "     ✅ ${entry#*:} (seeded)"
+    done
+}
+
 echo "🔄 Syncing Bellosoft project defaults..."
 
 git clone --depth=1 --quiet "$REPO" "$TMP"
@@ -97,6 +118,7 @@ for folder in "${SYNC_FOLDERS[@]}"; do
 done
 
 sync_root_files
+seed_files
 
 rm -rf "$TMP"
 

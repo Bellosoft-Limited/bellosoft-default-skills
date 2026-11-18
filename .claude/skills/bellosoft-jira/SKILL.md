@@ -6,7 +6,9 @@ description: >
   project scaffolding. Other bellosoft skills MUST delegate Jira operations here
   rather than calling Atlassian MCP tools directly. Triggers: /bellosoft-jira,
   "create jira epic", "push to jira", "update jira ticket", "sync to jira", or
-  when any bellosoft skill needs to read/write Jira.
+  when any bellosoft skill needs to read/write Jira. Also the Jira backend for
+  the mattpocock-skills plugin (to-spec, to-tickets, triage, wayfinder) via
+  docs/agents/issue-tracker.md, and for its setup-matt-pocock-skills choosing Jira.
 ---
 
 # Skill: bellosoft-jira
@@ -22,7 +24,9 @@ call Atlassian MCP tools directly — route through this skill instead.
 /bellosoft-jira create-story    ← create story (called by plan-epic, dev-plan)
 /bellosoft-jira create-task     ← create sub-task (called by plan-epic, plan-adhoc)
 /bellosoft-jira create-sprint   ← create sprint (called by plan-epic)
-/bellosoft-jira update          ← update state/comment (called by sync, dev-review)
+/bellosoft-jira update          ← transition/comment/assign/label/edit (called by sync, dev-review, Matt Pocock skills)
+/bellosoft-jira link            ← "blocks" link between two issues (called by Matt Pocock skills)
+/bellosoft-jira search          ← list issues by JQL (called by Matt Pocock skills)
 /bellosoft-jira get             ← fetch issue by key (called by dev-plan, sprint)
 /bellosoft-jira list-sprint     ← list active sprint (called by bellosoft-sprint)
 /bellosoft-jira sync-epics      ← bulk push docs/planning-artifacts/epics.md → Jira
@@ -168,6 +172,21 @@ Identity is **personal** — save to `.secrets/`, not to `docs/planning-artifact
 
 ---
 
+## Bellosoft issue-type convention
+
+The board type (`board_type` in `jira-profile.md`) decides which issue types exist. Never create any other type.
+
+| Board | Issue types | Hierarchy |
+|---|---|---|
+| **scrum** | Epic, User Story, Sub-task, Sub-bug | Epic → User Story → Sub-task / Sub-bug |
+| **kanban** | Task, Bug | None. Tasks and Bugs never have child issues |
+
+Match these names against the issue types discovered in SETUP (case-insensitive; a project may call
+"User Story" just "Story"). If a required type is missing from the project, stop and tell the user
+rather than substituting another type.
+
+---
+
 ## Critical API Rules
 
 These rules are non-negotiable. Violating them causes Jira API errors:
@@ -253,14 +272,16 @@ Runs automatically on first use (triggered by Step 1 above). Discovers and cache
 everything needed so subsequent operations never need to ask questions.
 
 **ALREADY CONFIGURED CHECK — run this first:**
-1. Check if `docs/planning-artifacts/jira-profile.md` exists and contains `project_key` and `issue_types`, and `.secrets/jira-identity.txt` contains `account_id`
+1. Check if `docs/planning-artifacts/jira-profile.md` exists and contains `project_key`, `board_type` and `issue_types`, and `.secrets/jira-identity.txt` contains `account_id`
+   - Only `board_type` missing (profiles from before it existed) → run step 5 below alone, add it to the profile, then continue as complete.
 2. If complete → **stop immediately** and report:
    ```
    ✅ Jira already configured:
      Project: {project_key} ({project_name})
      Type: {project_type}
+     Board: {board_type}
      User: (from .secrets/jira-identity.txt)
-     Issue types: Epic, Story, Task, Sub-task, Bug
+     Issue types: {issue types allowed for board_type}
    No setup needed. To refresh, delete docs/planning-artifacts/jira-profile.md first.
    ```
 3. Only proceed with discovery steps below if profile is missing or incomplete.
@@ -270,9 +291,13 @@ everything needed so subsequent operations never need to ask questions.
 2. `mcp__atlassian__jira_get_issue_types(project_key)` → save type IDs
 3. `mcp__atlassian__jira_get_fields()` → save custom field IDs (story points, sprint, epic link)
 4. Detect project type: search for one Epic issue — if found, record type
-5. Save all to `docs/planning-artifacts/jira-profile.md`
+5. Detect board type: `GET /rest/agile/1.0/board?projectKeyOrId={KEY}` → each board's `type`
+   (`scrum` | `kanban`) and `id`. One board, or all boards of the same type → record it silently.
+   Boards of both types → ask once which board this repo works against.
+6. Save all to `docs/planning-artifacts/jira-profile.md`
 
-SETUP is silent and automatic. It does not ask the user any questions.
+SETUP is silent and automatic. It asks nothing, except the board question in step 5 when the
+project has both a Scrum and a Kanban board.
 
 **Output — two separate files:**
 
@@ -283,12 +308,12 @@ SETUP is silent and automatic. It does not ask the user any questions.
 - **project_key**: PROJ
 - **project_type**: next-gen | classic
 - **board_id**: 42
-- **issue_types**:
+- **board_type**: scrum | kanban
+- **issue_types**:          (only the types allowed for board_type, see "Bellosoft issue-type convention")
   - Epic: 10000
-  - Story: 10001
-  - Task: 10002
+  - User Story: 10001
   - Sub-task: 10003
-  - Bug: 10004
+  - Sub-bug: 10005
 - **custom_fields**:
   - story_points: customfield_10058
   - sprint: customfield_10020
@@ -383,14 +408,18 @@ lead_account_id: string  (from jira-profile.md — current user)
 
 ## Operation: CREATE_EPIC
 
-Called by: `bellosoft-plan-epic` after approval
+Called by: `bellosoft-plan-epic` after approval; `/mattpocock-skills:to-spec` and `/mattpocock-skills:wayfinder` (Matt Pocock skills)
 
 **Input:**
 ```
 title: string
-description: string (plain text — skill converts to ADF)
-epic_number: string (e.g. "E1")
+description: string (plain text or markdown — skill converts to ADF)
+epic_number: string (optional, e.g. "E1" — bellosoft-plan-epic only)
+labels: string[] (optional, added to "ai-generated")
 ```
+
+Without `epic_number` (Matt Pocock skills): use the plain `{title}` as summary and
+omit the `Source: docs/planning-artifacts/epics.md` paragraph.
 
 **Never summarize any title, description, AC nor test scenario, every text on the planning documents matter.**
 
@@ -433,16 +462,19 @@ For **classic projects**, also set in additional_fields:
 
 ## Operation: CREATE_STORY
 
-Called by: `bellosoft-plan-epic`, `bellosoft-dev-plan` (free-text flow), `bellosoft-plan-adhoc`
+Called by: `bellosoft-plan-epic`, `bellosoft-dev-plan` (free-text flow), `bellosoft-plan-adhoc`;
+`/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage`, `/mattpocock-skills:wayfinder` (Matt Pocock skills)
 
 **Input:**
 ```
 title: string
-user_story: string ("As a ... I want ... so that ...")
-acceptance_criteria: string[]
-epic_key: string (e.g. PROJ-5)
+user_story: string ("As a ... I want ... so that ...") — OR —
+body: string (markdown; Matt Pocock skills pass their full ticket body instead)
+acceptance_criteria: string[] (optional when body already contains them)
+epic_key: string (optional, e.g. PROJ-5)
+issue_type: "User Story" (scrum) | "Task" | "Bug" (kanban) — optional, default: "User Story" on scrum, "Task" on kanban
 sprint_id: number (optional)
-estimate_hours: number
+estimate_hours: number (optional — omit for Matt Pocock skills, which never estimate)
 priority: "Highest" | "High" | "Medium" | "Low" | "Lowest"
 assignee_id: string (optional — account_id)
 labels: string[] (optional)
@@ -477,27 +509,31 @@ curl -s -u "{username}:{api-token}" "{jira_url}/rest/api/3/field" | ConvertFrom-
 ```
 Cache the field ID in `jira-profile.md`. **Never skip this — a missing field ID silently drops the estimate.**
 
+**No `estimate_hours` given** → omit `{story_points_field}` and `timetracking` entirely. Never invent an estimate.
+Likewise omit `customfield_10020`, `priority` and `assignee` when not given.
+
 ```json
 ```
 
 For **next-gen**: add `"parent": {"key": "{epic_key}"}` to additional_fields.
 For **classic**: add `"customfield_10014": "{epic_key}"` instead.
+On a **kanban** board, `epic_key` is never set: Tasks and Bugs have no parent.
 
 ```
 mcp__atlassian__jira_create_issue(
   project_key = "{KEY}",
   summary = "{title}",
-  issue_type = "Story",
+  issue_type = "{issue_type}",
   description = {ADF object},
   additional_fields = {fields}
 )
 ```
 
-Add source comment after creation:
+Add source comment after creation, naming the calling skill:
 ```
 mcp__atlassian__jira_add_comment(
   issue_key = "{key}",
-  comment = "Created by bellosoft-plan-epic from docs/planning-artifacts/epics.md"
+  comment = "Created by {calling skill, e.g. bellosoft-plan-epic or /mattpocock-skills:to-tickets}"
 )
 ```
 
@@ -507,19 +543,25 @@ mcp__atlassian__jira_add_comment(
 
 ## Operation: CREATE_TASK
 
-Called by: `bellosoft-plan-epic` (sub-tasks), `bellosoft-plan-adhoc`
+Called by: `bellosoft-plan-epic` (sub-tasks), `bellosoft-plan-adhoc`; `/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage` (Matt Pocock skills)
 
 **Input:**
 ```
 title: string                (short action phrase, max ~60 chars — NO implementation details here)
 implementation_notes: string (the specifics: file paths, method names, field lists, patterns to follow)
-task_id: string              (e.g. "E1-S1-T1" — epic.story.task numbers)
+body: string                 (Matt Pocock skills: full markdown body, used instead of implementation_notes + acceptance_criterion)
+task_id: string              (optional for Matt Pocock skills — e.g. "E1-S1-T1", epic.story.task numbers)
 acceptance_criterion: string
-estimate_hours: number
+estimate_hours: number       (optional — omit for Matt Pocock skills, which never estimate)
 parent_story_key: string     (e.g. PROJ-12)
+issue_type: "Sub-task" | "Sub-bug" (optional, default "Sub-task"; Sub-bug when the work fixes a defect)
 area_tag: string             (BE | FE | DEVOPS | QA)
 labels: string[]             (optional)
 ```
+
+**Matt Pocock skills (scrum only):** summary is `[{area_tag}] {title}` (no task_id), description is
+`body` converted to ADF, and there is no Estimate paragraph or `timetracking`. QA items use
+`area_tag = QA` and title `QA: {User Story title}`.
 
 **Title rule:** Keep `title` short, but at the same time never summarize it from the specification document — it is the Jira summary field shown in board/list views.
 Move all specifics (file paths, method names, field lists) to `implementation_notes`.
@@ -538,8 +580,9 @@ Move all specifics (file paths, method names, field lists) to `implementation_no
 Example: `E8-S2-T1 [BE] Add campaign scheduling method`
 
 **Issue type selection:**
-- Parent provided → use "Sub-task" type with `parent` field
-- Standalone → use "Task" type (no parent)
+- Parent provided → use `issue_type` ("Sub-task" or "Sub-bug") with `parent` field. Scrum boards only.
+- Standalone → use "Task" type (no parent). Kanban boards only; Matt Pocock skills create
+  Kanban Tasks and Bugs through CREATE_STORY instead.
 
 **Execution:**
 
@@ -562,12 +605,12 @@ Build ADF description (always ADF, even for Sub-tasks — plain text causes 400)
 ```
 If `implementation_notes` is empty, omit the Description heading and paragraph entirely.
 
-**If issue_type is "Sub-task" (has a parent story):**
+**If issue_type is "Sub-task" or "Sub-bug" (has a parent story):**
 ```
 mcp__atlassian__jira_create_issue(
   project_key = "{KEY}",
   summary = "{task_id} [{area_tag}] {title}",
-  issue_type = "Sub-task",  // {area_tag} comes from the area_tag parameter
+  issue_type = "{issue_type}",  // {area_tag} comes from the area_tag parameter
   description = {ADF},
   additional_fields = {
     "parent": {"key": "{parent_story_key}"},
@@ -577,7 +620,7 @@ mcp__atlassian__jira_create_issue(
 )
 ```
 ⚠️ Do NOT include story-points (`customfield_10033`) for Sub-tasks — not available, causes 400.
-`timetracking` IS supported on Sub-tasks and must always be set.
+`timetracking` IS supported on Sub-tasks and must be set whenever `estimate_hours` is given (omit it otherwise).
 If create returns 400 on `timetracking`, create without it then immediately call:
 ```
 mcp__atlassian__jira_update_issue(
@@ -652,15 +695,19 @@ curl -s -X POST \
 
 ## Operation: UPDATE
 
-Called by: `bellosoft-sync` after dev milestones
+Called by: `bellosoft-sync` after dev milestones; `bellosoft-qa-handoff`; Matt Pocock skills (`/mattpocock-skills:triage`, `/mattpocock-skills:wayfinder`, `/mattpocock-skills:implement`)
 
 **Input:**
 ```
 issue_key: string          (e.g. PROJ-42)
-action: "transition" | "comment" | "assign"
+action: "transition" | "comment" | "assign" | "label" | "edit"
 status_name: string        (for transition — e.g. "In Progress", "In Review", "Done")
-comment: string            (for comment — plain text)
-assignee_id: string        (for assign — account_id)
+comment: string            (for comment — plain text or markdown: headings, lists, bold)
+assignee_id: string        (for assign — account_id, or "me" for the current user)
+label_op: "add" | "remove" (for label)
+label: string              (for label — no spaces; Jira labels can't contain them)
+field: "summary" | "description" (for edit)
+value: string              (for edit — new full value; markdown for description)
 ```
 
 **Transition:**
@@ -672,6 +719,9 @@ assignee_id: string        (for assign — account_id)
 ```
 mcp__atlassian__jira_add_comment(issue_key, comment)
 ```
+MCP accepts markdown as-is. REST (`POST /rest/api/3/issue/{issue_key}/comment`) needs ADF: convert
+headings, numbered/bulleted lists and bold to their ADF nodes (see `references/jql-guide.md`) so the
+comment keeps its structure. Never flatten it to a single paragraph.
 
 **Assign:**
 ```
@@ -680,6 +730,22 @@ mcp__atlassian__jira_update_issue(
   fields = { "assignee": { "accountId": "{assignee_id}" } }
 )
 ```
+`assignee_id = "me"` → use `account_id` from `.secrets/jira-identity.txt` (Step 1c).
+
+**Label** (add or remove one label without touching the others):
+```
+REST: PUT /rest/api/3/issue/{issue_key}
+{ "update": { "labels": [ { "{label_op}": "{label}" } ] } }
+```
+With MCP, read the current labels first, then `jira_update_issue(issue_key, fields={"labels": [...]})`
+with the full new list.
+
+**Edit** (summary or description):
+```
+mcp__atlassian__jira_update_issue(issue_key, fields = { "{field}": {value} })
+```
+Description is always ADF. To append (e.g. a wayfinder Decisions-so-far pointer), GET the
+issue first and send the full description with the addition — never drop existing text.
 
 **Hard rule:** Never transition to Done/Closed without explicit ✅ READY signal
 from `bellosoft-dev-review` or explicit user instruction.
@@ -739,8 +805,58 @@ Parse and return structured object:
 - `sprint` — from `customfield_10020`
 - `story_points` — from discovered story points field
 - `parent` — epic key if set
+- `labels`, `issuetype.name`, `created`
+- `issuelinks` — as `blocks: [keys]` and `is_blocked_by: [{key, status_category}]`
+- `comments` — author, date and text of each (Matt Pocock skills read the full thread)
 
-**Returns:** structured story object ready for `bellosoft-dev-plan` to consume.
+**Returns:** structured story object ready for `bellosoft-dev-plan` or a Matt Pocock skill to consume.
+
+---
+
+## Operation: LINK
+
+Called by: `/mattpocock-skills:to-tickets`, `/mattpocock-skills:wayfinder` (Matt Pocock skills)
+
+**Input:** `blocker: string`, `blocked: string` (issue keys) — meaning "`{blocker}` blocks `{blocked}`".
+
+1. Discover the link type once per session: `mcp__atlassian__jira_get_link_types()` or
+   `GET /rest/api/3/issueLinkType`. Use the type whose outward text is "blocks" and inward text
+   "is blocked by" (usually named "Blocks"). Never hardcode its id.
+2. Create the link:
+   ```
+   mcp__atlassian__jira_create_issue_link(link_type = "Blocks",
+     inward_issue_key = "{blocked}", outward_issue_key = "{blocker}")
+   ```
+   REST: `POST /rest/api/3/issueLink`
+   `{ "type": {"name": "Blocks"}, "inwardIssue": {"key": "{blocked}"}, "outwardIssue": {"key": "{blocker}"} }`
+3. **Verify direction on the first link of a session** (Jira's inward/outward naming is easy to get
+   backwards): GET `{blocked}` and check its `issuelinks` show "is blocked by {blocker}". If reversed,
+   delete that link (`DELETE /rest/api/3/issueLink/{link_id}`), recreate with the keys swapped, and
+   keep the swapped form for the rest of the session.
+
+**Returns:** `{ link_id }`
+
+---
+
+## Operation: SEARCH
+
+Called by: Matt Pocock skills (`/mattpocock-skills:triage` buckets, `/mattpocock-skills:wayfinder` frontier, open-blocker counts)
+
+**Input:** `jql: string`, `fields: string` (optional)
+
+Always scope to the project: prepend `project = {KEY} AND` unless the JQL already names a project.
+
+```
+mcp__atlassian__jira_search(
+  jql = "{jql}",
+  fields = "summary,status,labels,assignee,issuetype,parent,created,{fields}",
+  max_results = 100
+)
+```
+REST fallback: `POST /rest/api/3/search/jql` with `{"jql": "...", "fields": [...], "maxResults": 100}`,
+saved to a temp file and read as in GET. Page with `nextPageToken` until done.
+
+**Returns:** list of `{ key, summary, status, status_category, labels, assignee, parent, created }` and the total count.
 
 ---
 
@@ -819,6 +935,28 @@ Fetch existing Jira project structure → build `docs/planning-artifacts/epics.m
 5. Update `docs/planning-artifacts/jira-profile.md` with project metadata
 
 Ask before overwriting if `docs/planning-artifacts/` already exists.
+
+---
+
+## Matt Pocock skills integration
+
+Matt Pocock's skills (`/mattpocock-skills:to-spec`, `/mattpocock-skills:to-tickets`, `/mattpocock-skills:triage`, `/mattpocock-skills:wayfinder`, `/mattpocock-skills:implement`, `/mattpocock-skills:code-review`)
+read the project's tracker contract from `docs/agents/issue-tracker.md`. For Jira projects that
+file is a copy of [`references/matt-issue-tracker-jira.md`](references/matt-issue-tracker-jira.md),
+which routes every operation back to this skill.
+
+**Setting a project up** (when `/mattpocock-skills:setup-matt-pocock-skills` reaches "Issue tracker", or the user asks
+to connect Matt's skills to Jira):
+1. Run SETUP above if `docs/planning-artifacts/jira-profile.md` doesn't exist yet.
+2. Choose **Other** and copy `references/matt-issue-tracker-jira.md` to `docs/agents/issue-tracker.md`.
+3. Triage labels: keep the defaults except `wontfix`, which maps to our `wont-do` label. Bellosoft
+   has no "Won't Do" status: a won't-do issue gets the `wont-do` label and moves to Done.
+
+The template follows the Bellosoft issue-type convention above, so it reads `board_type` from
+`jira-profile.md`. Run SETUP first if the profile has no `board_type`.
+
+Matt's skills never estimate: create issues without story points or time tracking unless the user
+gives a value.
 
 ---
 
