@@ -29,11 +29,24 @@ PROTECTED_PREFIXES=(
     ".github/CODEOWNERS"
 )
 
+# Belong to this repository only: never copied into projects.
+EXCLUDED_PATHS=(
+    ".github/workflows/sync-private-fork.yml"
+)
+
 files_equal() {
     local a b
     a=$(tr -d '\r' < "$1" | md5sum)
     b=$(tr -d '\r' < "$2" | md5sum)
     [ "$a" = "$b" ]
+}
+
+is_excluded() {
+    local rel_norm="$1"
+    for path in "${EXCLUDED_PATHS[@]}"; do
+        [[ "$rel_norm" == "$path" ]] && return 0
+    done
+    return 1
 }
 
 is_protected() {
@@ -56,6 +69,10 @@ sync_folder() {
         rel="${src#$src_base/}"
         dest="$dest_base/$rel"
         rel_norm="$log_label/$rel"
+
+        if is_excluded "$rel_norm"; then
+            continue
+        fi
 
         if is_protected "$rel_norm"; then
             echo "     ⏭ Skipping $rel_norm (protected)"

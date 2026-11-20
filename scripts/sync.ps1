@@ -28,6 +28,11 @@ $protectedPathPrefixes = @(
     ".github/CODEOWNERS"
 )
 
+# Belong to this repository only: never copied into projects.
+$excludedPaths = @(
+    ".github/workflows/sync-private-fork.yml"
+)
+
 function Get-ContentHash($path) {
     $content = [System.IO.File]::ReadAllText($path) -replace "`r`n", "`n"
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
@@ -45,6 +50,8 @@ function Sync-Folder($srcBase, $destBase, $logLabel) {
         $rel = [System.IO.Path]::GetRelativePath($srcBase, $src) -replace "\\", "/"
         $dest = Join-Path $destBase ($rel -replace "/", "\")
         $relNorm = "$logLabel/$rel"
+
+        if ($excludedPaths -contains $relNorm) { continue }
 
         $protected = $false
         foreach ($prefix in $protectedPathPrefixes) {
