@@ -124,7 +124,7 @@ permissions:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, bellosoft]
     steps:
       - uses: actions/checkout@<sha>
       - name: Build
