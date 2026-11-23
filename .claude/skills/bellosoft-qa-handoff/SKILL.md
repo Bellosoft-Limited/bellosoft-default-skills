@@ -16,6 +16,7 @@ Every Jira operation goes through the `bellosoft-jira` skill.
 
 2. **Read the requirement.** `bellosoft-jira get <KEY>`. Check `board_type` in `docs/planning-artifacts/jira-profile.md`:
    - **Scrum**: the key is usually a Sub-task or Sub-bug. Also get its parent User Story, which holds the acceptance criteria, and find the story's QA Sub-task: `bellosoft-jira search "parent = <STORY> AND summary ~ 'QA:'"`.
+   - **Scrum, catch-all story**: some sprints have a User Story with no description or acceptance criteria, such as "As the client, I want bugs fixed and improvements implemented", that collects small unplanned bugs and requests as Sub-bugs and Sub-tasks. When the parent story is empty like that, the Sub-task or Sub-bug holds its own acceptance criteria and gets its own handoff, as on Kanban. This is expected, not a gap: don't report the empty story or look for a QA Sub-task under it.
    - **Kanban**: the Task or Bug holds the acceptance criteria itself.
 
    Done when you hold every acceptance criterion the change is meant to satisfy.
@@ -28,6 +29,7 @@ Every Jira operation goes through the `bellosoft-jira` skill.
 
 6. **Post.**
    - **Scrum**: on the QA Sub-task, plus a one-line pointer on the development item (`QA handoff posted on <QA-KEY>`). No QA Sub-task → on the development item.
+   - **Scrum, catch-all story**: on the Sub-task or Sub-bug itself.
    - **Kanban**: on the Task or Bug.
 
    Statuses stay as they are: Jira automation and the team move tickets.
