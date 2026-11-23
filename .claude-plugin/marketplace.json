@@ -18,15 +18,6 @@
         "repo": "mattpocock/skills",
         "ref": "v1.3.2"
       }
-    },
-    {
-      "name": "ponytail",
-      "description": "Keeps Claude's code to the smallest change that works. Pinned to a release tag; bump the ref to update.",
-      "source": {
-        "source": "github",
-        "repo": "DietrichGebert/ponytail",
-        "ref": "v5.3.3"
-      }
     }
   ]
 }
