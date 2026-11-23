@@ -58,7 +58,7 @@ Single-context unless `GLOSSARY-MAP.md` exists. See `docs/agents/domain.md`.
 
 ### Ponytail
 
-Plugin installed for everyone from the Claude admin dashboard, active when its rules arrive at session start. Ponytail decides how much code to write; the skills decide the process. Where they meet:
+Optional plugin, installed by each developer in their own environment; applies only when its rules arrive at session start. Ponytail decides how much code to write; the skills decide the process. Where they meet:
 
 - **Tests**: when `mattpocock-skills:tdd` or `bellosoft-dev-execute` is running, its testing rules apply in full. Ponytail's "one small test" is the floor, never the target.
 - **Review**: `mattpocock-skills:code-review` is the review gate for `/mattpocock-skills:implement` and `/mattpocock-skills:implement-spec`. Run `/ponytail:ponytail-review` only when the developer asks for it.

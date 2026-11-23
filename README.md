@@ -103,9 +103,8 @@ Skills in `.claude/skills/` load with `/skill-name` in Claude Code.
 
 ### Plugins installed for everyone
 
-Two external plugins reach every developer from the Claude admin dashboard, so there's nothing to
-install: Matt Pocock's skills (`mattpocock-skills`, below) and [Ponytail](https://ponytail.dev/)
-(`ponytail`, see [Development workflow](#development-workflow)). The dashboard syncs our marketplace,
+Matt Pocock's skills (`mattpocock-skills`, below) reach every developer from the Claude admin
+dashboard, so there's nothing to install. The dashboard syncs our marketplace,
 [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json), which pins each plugin to a
 release tag.
 
@@ -273,13 +272,11 @@ happen in the coding session.
 - **A whole Epic at once**: `/mattpocock-skills:implement-spec PROJ-40` on a hand-made integration branch, in place of step 3.
   The PR title carries the Epic key (`#PROJ-40: <title>`), so automation doesn't move anything:
   the developer moves the Epic's items on the board by hand.
-- **Backend and logic tickets with Ponytail**: the [Ponytail](https://ponytail.dev/) plugin keeps
-  Claude's code to the smallest change that works. It's installed for everyone (see
-  [Plugins installed for everyone](#plugins-installed-for-everyone)). It doesn't change the steps
-  above: `/mattpocock-skills:implement` still builds test-first against our standards, and
-  `mattpocock-skills:code-review` stays the review gate. Run `/ponytail off` before a ticket with visual work (UI,
-  layout, styling) and `/ponytail full` when you're back on backend work. The mode is set per repo,
-  so every session open in that repo shares it.
+- **Ponytail (optional)**: the [Ponytail](https://ponytail.dev/) plugin keeps Claude's code to the
+  smallest change that works. It's no longer installed for everyone; install it in your own
+  environment if you want it. It doesn't change the steps above: `/mattpocock-skills:implement` still
+  builds test-first against our standards, and `mattpocock-skills:code-review` stays the review gate.
+  Run `/ponytail off` before a ticket with visual work (UI, layout, styling).
 - **Every PR still needs a human review.**
 
 ---
